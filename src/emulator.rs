@@ -43,7 +43,7 @@ impl Emulator {
         return emu;
     }
 
-    pub fn loadFromFile(&mut self, path: &str) {
+    pub fn load_from_file(&mut self, path: &str) {
         let mut file = File::open(path).expect("Failed to open file.");
         file.read(&mut self.memory[(self.eip as usize)..]).expect("Failed to read file.");
     }

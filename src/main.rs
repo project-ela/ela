@@ -9,5 +9,5 @@ fn main() {
     }
     let file = args[1].as_str();
     let mut emu = Emulator::new(0x0000, 0x7c00);
-    emu.loadFromFile(file);
+    emu.load_from_file(file);
 }
