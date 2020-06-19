@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::Read;
+
 const MEMORY_SIZE: usize = 1024 * 1024;
 const REGISTERS_COUNT: usize = 8;
 
@@ -38,6 +41,11 @@ impl Emulator {
         emu.registers[ESP] = esp;
 
         return emu;
+    }
+
+    pub fn loadFromFile(&mut self, path: &str) {
+        let mut file = File::open(path).expect("Failed to open file.");
+        file.read(&mut self.memory[(self.eip as usize)..]).expect("Failed to read file.");
     }
 }
 
