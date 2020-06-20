@@ -3,6 +3,7 @@ use std::io::Read;
 
 const MEMORY_SIZE: usize = 1024 * 1024;
 const REGISTERS_COUNT: usize = 8;
+const REGISTERS_NAME: [&str; 8] = ["EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"];
 
 // Accumulator
 pub const EAX: usize = 0;
@@ -55,6 +56,7 @@ impl Emulator {
     }
 
     pub fn run(&mut self) {
+        self.dump();
         while self.eip < self.initial_eip + self.len {
             self.exec();
         }
@@ -78,6 +80,29 @@ impl Emulator {
 
     pub fn get_sign_code32(&self, index: usize) -> i32 {
         self.get_code32(index) as i32
+    }
+
+    pub fn dump(&self) {
+        println!("----------------------------------------");
+        println!("EIP: {:4X}", self.eip);
+        println!("Opcode: {:X}", self.get_code8(0));
+
+        self.dump_registers();
+    }
+
+    pub fn dump_registers(&self) {
+        for i in 0..REGISTERS_COUNT {
+            if i != 0 {
+                print!(", ");
+                if i % 4 == 0 {
+                    println!("");
+                }
+            }
+
+            print!("{}: {:4X}", REGISTERS_NAME[i], self.registers[i]);
+        }
+
+        println!("");
     }
 }
 

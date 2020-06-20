@@ -3,12 +3,12 @@ use crate::emulator::Emulator;
 impl Emulator {
     pub fn exec(&mut self) {
         let code = self.get_code8(0);
-        println!("eip: {}, opcode: {:X}", self.eip, code);
         match code {
             0xB8..=0xBF => self.mov_r32_imm32(),
             0xEB => self.short_jump(),
             _ => panic!("Not implemented: {:X}", code),
         }
+        self.dump();
     }
 
     // MOV r32, imm32 | B8+rd id
