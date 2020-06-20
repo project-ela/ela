@@ -2,6 +2,6 @@ build:
 	cargo build
 
 run:
-	cargo run
+	cargo run -- ${FILE}
 
 .PHONY: build run

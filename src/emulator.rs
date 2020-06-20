@@ -27,16 +27,20 @@ pub struct Emulator {
     memory: [u8; MEMORY_SIZE],
 
     // Instruction Pointer
-    eip: u32,
+    pub eip: usize,
+
+    // Size of binary
+    len: usize,
 }
 
 impl Emulator {
-    pub fn new(eip: u32, esp: u32) -> Self {
+    pub fn new(eip: usize, esp: u32) -> Self {
         let mut emu = Self {
             registers: [0; REGISTERS_COUNT],
             eflags: 0,
             memory: [0; MEMORY_SIZE],
             eip: eip,
+            len: 0,
         };
         emu.registers[ESP] = esp;
 
@@ -45,7 +49,33 @@ impl Emulator {
 
     pub fn load_from_file(&mut self, path: &str) {
         let mut file = File::open(path).expect("Failed to open file.");
-        file.read(&mut self.memory[(self.eip as usize)..]).expect("Failed to read file.");
+        self.len = file.read(&mut self.memory[(self.eip as usize)..]).expect("Failed to read file.");
+    }
+
+    pub fn run(&mut self) {
+        while self.eip < self.len {
+            self.exec();
+        }
+    }
+
+    pub fn get_code8(&self, index: usize) -> u8 {
+        self.memory[self.eip + index]
+    }
+
+    pub fn get_sign_code8(&self, index: usize) -> i8 {
+        self.get_code8(index) as i8
+    }
+
+    pub fn get_code32(&self, index: usize) -> u32 {
+        let mut ret: u32 = 0;
+        for i in 0..4 {
+            ret |= (self.get_code8(index + i) as u32) << (i * 8)
+        }
+        return ret;
+    }
+
+    pub fn get_sign_code32(&self, index: usize) -> i32 {
+        self.get_code32(index) as i32
     }
 }
 
