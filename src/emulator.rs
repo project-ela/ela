@@ -22,15 +22,15 @@ pub const ESI: usize = 6;
 pub const EDI: usize = 7;
 
 pub struct Emulator {
-    registers: [u32; REGISTERS_COUNT],
-    eflags: u32,
-    memory: [u8; MEMORY_SIZE],
+    pub registers: [u32; REGISTERS_COUNT],
+    pub eflags: u32,
+    pub memory: [u8; MEMORY_SIZE],
 
     // Instruction Pointer
     pub eip: usize,
 
     // Size of binary
-    len: usize,
+    pub len: usize,
 }
 
 impl Emulator {
