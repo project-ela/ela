@@ -28,6 +28,7 @@ pub struct Emulator {
 
     // Instruction Pointer
     pub eip: usize,
+    initial_eip: usize,
 
     // Size of binary
     pub len: usize,
@@ -40,6 +41,7 @@ impl Emulator {
             eflags: 0,
             memory: [0; MEMORY_SIZE],
             eip: eip,
+            initial_eip: eip,
             len: 0,
         };
         emu.registers[ESP] = esp;
@@ -53,7 +55,7 @@ impl Emulator {
     }
 
     pub fn run(&mut self) {
-        while self.eip < self.len {
+        while self.eip < self.initial_eip + self.len {
             self.exec();
         }
     }

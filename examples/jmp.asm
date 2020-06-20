@@ -1,4 +1,5 @@
 BITS 32
+org 0x7C00
 
 start:
   jmp test1
