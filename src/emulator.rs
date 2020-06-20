@@ -53,12 +53,15 @@ impl Emulator {
     pub fn load_from_file(&mut self, path: &str) {
         let mut file = File::open(path).expect("Failed to open file.");
         self.len = file.read(&mut self.memory[(self.eip as usize)..]).expect("Failed to read file.");
+        println!("Loaded {} bytes", self.len);
     }
 
     pub fn run(&mut self) {
         self.dump();
         while self.eip < self.initial_eip + self.len {
-            self.exec();
+            let opcode = self.decode();
+            self.exec(opcode);
+            self.dump();
         }
     }
 
