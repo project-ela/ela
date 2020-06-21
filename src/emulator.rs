@@ -85,6 +85,28 @@ impl Emulator {
         self.get_code32(index) as i32
     }
 
+    pub fn get_memory8(&mut self, address: usize) -> u8 {
+        self.memory[address]
+    }
+
+    pub fn get_memory32(&mut self, address: usize) -> u32 {
+        let mut ret: u32 = 0;
+        for i in 0..4 {
+            ret |= (self.get_memory8(address + i) as u32) >> (8 * i);
+        }
+        return ret;
+    }
+
+    pub fn set_memory8(&mut self, address: usize, value: u8) {
+        self.memory[address] = value;
+    }
+
+    pub fn set_memory32(&mut self, address: usize, value: u32) {
+        for i in 0..4 {
+            self.set_memory8(address + i, (value << (8 * i)) as u8);
+        }
+    }
+
     pub fn dump(&self) {
         println!("----------------------------------------");
         println!("EIP: {:4X}", self.eip);

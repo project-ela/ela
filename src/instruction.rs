@@ -1,10 +1,15 @@
 use crate::emulator::Emulator;
 
+#[derive(Debug)]
 pub enum Opcode {
     // 89 /r
     MovRm32R32(usize, usize),
+    // 8B /r
+    MovR32Rm32(usize, usize),
     // B8+ rd id
     MovR32Imm32(usize, u32),
+    // C7 /0 id
+    MovRm32Imm32(usize, u32),
     // EB cb
     ShortJump(usize),
 }
@@ -24,11 +29,26 @@ impl Emulator {
                 let modrm = self.parse_modrm();
                 Opcode::MovRm32R32(modrm.reg as usize, modrm.rm as usize)
             }
+            0x8B => {
+                self.eip += 1;
+                let modrm = self.parse_modrm();
+                let disp = self.get_sign_code8(0);
+                self.eip += 2;
+                Opcode::MovR32Rm32(modrm.reg as usize, (self.registers[modrm.rm as usize] as i32 + disp as i32) as usize)
+            }
             0xB8..=0xBF => {
                 let reg = self.get_code8(0) - 0xB8;
                 let value = self.get_code32(1);
                 self.eip += 5;
                 Opcode::MovR32Imm32(reg as usize, value)
+            }
+            0xC7 => {
+                self.eip += 1;
+                let modrm = self.parse_modrm();
+                let disp = self.get_sign_code8(0);
+                let value = self.get_code8(1);
+                self.eip += 5;
+                Opcode::MovRm32Imm32((self.registers[modrm.reg as usize] as i32 + disp as i32) as usize, value as u32)
             }
             0xEB => {
                 let diff = self.get_sign_code8(1);
@@ -42,7 +62,9 @@ impl Emulator {
     pub fn exec(&mut self, opcode: Opcode) {
         match opcode {
             Opcode::MovRm32R32(reg_from, reg_to) => self.registers[reg_to] = self.registers[reg_from],
+            Opcode::MovR32Rm32(reg, addr) => self.registers[reg] = self.get_memory32(addr),
             Opcode::MovR32Imm32(reg, value) =>self.registers[reg] = value,
+            Opcode::MovRm32Imm32(addr, value) => self.set_memory32(addr, value),
             Opcode::ShortJump(diff) => self.eip = self.eip.wrapping_add(diff),
         }
     }

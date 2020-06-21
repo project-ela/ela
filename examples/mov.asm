@@ -4,3 +4,6 @@ mov eax, 42
 mov ecx, 16
 mov eax, ecx
 mov ebx, eax
+mov ebp, esp
+mov dword [ebp-4], 10
+mov eax, [ebp-4]
