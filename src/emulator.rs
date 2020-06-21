@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Read;
+use crate::instruction::RM;
 
 const MEMORY_SIZE: usize = 1024 * 1024;
 const REGISTERS_COUNT: usize = 8;
@@ -114,6 +115,20 @@ impl Emulator {
     pub fn set_memory32(&mut self, address: usize, value: u32) {
         for i in 0..4 {
             self.set_memory8(address + i, (value << (8 * i)) as u8);
+        }
+    }
+
+    pub fn get_rm(&self, rm: RM) -> u32 {
+        match rm {
+            RM::Register(index) => self.get_register(index),
+            RM::Memory(addr) => self.get_memory32(addr),
+        }
+    }
+
+    pub fn set_rm(&mut self, rm: RM, value: u32) {
+        match rm {
+            RM::Register(index) => self.set_register(index, value),
+            RM::Memory(addr) => self.set_memory32(addr, value),
         }
     }
 

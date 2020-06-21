@@ -6,4 +6,5 @@ mov eax, ecx
 mov ebx, eax
 mov ebp, esp
 mov dword [ebp-4], 10
+mov dword [ebp-4], eax
 mov eax, [ebp-4]
