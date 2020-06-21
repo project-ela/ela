@@ -27,14 +27,17 @@ impl Emulator {
             0x89 => {
                 self.eip += 1;
                 let modrm = self.parse_modrm();
-                Opcode::MovRm32R32(modrm.reg as usize, modrm.rm as usize)
+                Opcode::MovRm32R32(modrm.rm as usize, modrm.reg as usize)
             }
             0x8B => {
                 self.eip += 1;
                 let modrm = self.parse_modrm();
                 let disp = self.get_sign_code8(0);
                 self.eip += 2;
-                Opcode::MovR32Rm32(modrm.reg as usize, (self.registers[modrm.rm as usize] as i32 + disp as i32) as usize)
+                Opcode::MovR32Rm32(
+                    modrm.reg as usize,
+                    (self.registers[modrm.rm as usize] as i32 + disp as i32) as usize,
+                )
             }
             0xB8..=0xBF => {
                 let reg = self.get_code8(0) - 0xB8;
@@ -48,22 +51,27 @@ impl Emulator {
                 let disp = self.get_sign_code8(0);
                 let value = self.get_code8(1);
                 self.eip += 5;
-                Opcode::MovRm32Imm32((self.registers[modrm.reg as usize] as i32 + disp as i32) as usize, value as u32)
+                Opcode::MovRm32Imm32(
+                    (self.registers[modrm.reg as usize] as i32 + disp as i32) as usize,
+                    value as u32,
+                )
             }
             0xEB => {
                 let diff = self.get_sign_code8(1);
                 // add 2 because of 'cb'
                 Opcode::ShortJump((diff + 2) as usize)
             }
-            o => panic!("Not implemented: {:X}", o)
+            o => panic!("Not implemented: {:X}", o),
         }
     }
 
     pub fn exec(&mut self, opcode: Opcode) {
         match opcode {
-            Opcode::MovRm32R32(reg_from, reg_to) => self.registers[reg_to] = self.registers[reg_from],
-            Opcode::MovR32Rm32(reg, addr) => self.registers[reg] = self.get_memory32(addr),
-            Opcode::MovR32Imm32(reg, value) =>self.registers[reg] = value,
+            Opcode::MovRm32R32(reg_to, reg_from) => {
+                self.set_register(reg_to, self.get_register(reg_from))
+            }
+            Opcode::MovR32Rm32(reg, addr) => self.set_register(reg, self.get_memory32(addr)),
+            Opcode::MovR32Imm32(reg, value) => self.set_register(reg, value),
             Opcode::MovRm32Imm32(addr, value) => self.set_memory32(addr, value),
             Opcode::ShortJump(diff) => self.eip = self.eip.wrapping_add(diff),
         }
@@ -75,10 +83,6 @@ impl Emulator {
         let reg = (code & 0b00111000) >> 3;
         let rm = code & 0b00000111;
         self.eip += 1;
-        ModRM {
-            modval,
-            reg,
-            rm,
-        }
+        ModRM { modval, reg, rm }
     }
 }

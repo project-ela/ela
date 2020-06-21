@@ -52,7 +52,9 @@ impl Emulator {
 
     pub fn load_from_file(&mut self, path: &str) {
         let mut file = File::open(path).expect("Failed to open file.");
-        self.len = file.read(&mut self.memory[(self.eip as usize)..]).expect("Failed to read file.");
+        self.len = file
+            .read(&mut self.memory[(self.eip as usize)..])
+            .expect("Failed to read file.");
         println!("Loaded {} bytes", self.len);
     }
 
@@ -85,11 +87,19 @@ impl Emulator {
         self.get_code32(index) as i32
     }
 
-    pub fn get_memory8(&mut self, address: usize) -> u8 {
+    pub fn get_register(&self, index: usize) -> u32 {
+        self.registers[index]
+    }
+
+    pub fn set_register(&mut self, index: usize, value: u32) {
+        self.registers[index] = value;
+    }
+
+    pub fn get_memory8(&self, address: usize) -> u8 {
         self.memory[address]
     }
 
-    pub fn get_memory32(&mut self, address: usize) -> u32 {
+    pub fn get_memory32(&self, address: usize) -> u32 {
         let mut ret: u32 = 0;
         for i in 0..4 {
             ret |= (self.get_memory8(address + i) as u32) >> (8 * i);
@@ -130,4 +140,3 @@ impl Emulator {
         println!("");
     }
 }
-
