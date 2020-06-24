@@ -6,6 +6,8 @@ pub enum Opcode {
     MovRm32R32(RM, usize),
     // 8B /r
     MovR32Rm32(usize, RM),
+    // 90
+    Nop,
     // B8+ rd id
     MovR32Imm32(usize, u32),
     // C7 /0 id
@@ -54,6 +56,10 @@ impl Emulator {
                 self.eip += 5;
                 Opcode::MovR32Imm32(reg as usize, value)
             }
+            0x90 => {
+                self.eip += 1;
+                Opcode::Nop
+            }
             0xC7 => {
                 self.eip += 1;
                 let modrm = self.parse_modrm();
@@ -76,6 +82,7 @@ impl Emulator {
             Opcode::MovRm32R32(rm, reg) => self.set_rm(rm, self.get_register(reg)),
             Opcode::MovR32Rm32(reg, rm) => self.set_register(reg, self.get_rm(rm)),
             Opcode::MovR32Imm32(reg, value) => self.set_register(reg, value),
+            Opcode::Nop => {}
             Opcode::MovRm32Imm32(rm, value) => self.set_rm(rm, value),
             Opcode::ShortJump(diff) => self.eip = self.eip.wrapping_add(diff),
         }
@@ -99,7 +106,9 @@ impl Emulator {
 
     pub fn calc_rm(&self, modrm: &ModRM) -> RM {
         match modrm.modval {
-            0b01 => RM::Memory((self.registers[modrm.reg as usize] as i32 + modrm.disp8 as i32) as usize),
+            0b01 => RM::Memory(
+                (self.registers[modrm.reg as usize] as i32 + modrm.disp8 as i32) as usize,
+            ),
             0b11 => RM::Register(modrm.rm as usize),
             x => panic!("Not implemented: {:X}", x),
         }
