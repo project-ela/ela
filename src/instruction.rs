@@ -50,15 +50,15 @@ impl Emulator {
                 self.eip += 2;
                 Opcode::MovR32Rm32(modrm.reg as usize, rm)
             }
+            0x90 => {
+                self.eip += 1;
+                Opcode::Nop
+            }
             0xB8..=0xBF => {
                 let reg = self.get_code8(0) - 0xB8;
                 let value = self.get_code32(1);
                 self.eip += 5;
                 Opcode::MovR32Imm32(reg as usize, value)
-            }
-            0x90 => {
-                self.eip += 1;
-                Opcode::Nop
             }
             0xC7 => {
                 self.eip += 1;
@@ -81,8 +81,8 @@ impl Emulator {
         match opcode {
             Opcode::MovRm32R32(rm, reg) => self.set_rm(rm, self.get_register(reg)),
             Opcode::MovR32Rm32(reg, rm) => self.set_register(reg, self.get_rm(rm)),
-            Opcode::MovR32Imm32(reg, value) => self.set_register(reg, value),
             Opcode::Nop => {}
+            Opcode::MovR32Imm32(reg, value) => self.set_register(reg, value),
             Opcode::MovRm32Imm32(rm, value) => self.set_rm(rm, value),
             Opcode::ShortJump(diff) => self.eip = self.eip.wrapping_add(diff),
         }
@@ -132,10 +132,7 @@ mod tests {
     fn mov_rm32_r32() {
         let mut emu = new_emu(&[0x89, 0xC8]);
         let opcode = emu.decode();
-        assert_eq!(opcode, Opcode::MovRm32R32(
-            RM::Register(EAX),
-            ECX,
-        ));
+        assert_eq!(opcode, Opcode::MovRm32R32(RM::Register(EAX), ECX,));
         emu.exec(opcode);
     }
 }
