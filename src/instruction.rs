@@ -1,6 +1,6 @@
 use crate::emulator::Emulator;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Opcode {
     // 89 /r
     MovRm32R32(RM, usize),
@@ -16,7 +16,7 @@ pub enum Opcode {
     ShortJump(usize),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct ModRM {
     pub modval: u8,
     pub reg: u8,
@@ -26,7 +26,7 @@ pub struct ModRM {
     pub disp32: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RM {
     // index
     Register(usize),
@@ -112,5 +112,30 @@ impl Emulator {
             0b11 => RM::Register(modrm.rm as usize),
             x => panic!("Not implemented: {:X}", x),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Opcode, RM};
+    use crate::emulator::*;
+
+    fn new_emu(bin: &[u8]) -> Emulator {
+        let mut emu = Emulator::new(0x7C00, 0x7C00);
+        for (i, v) in bin.iter().enumerate() {
+            emu.set_memory8(0x7C00 + i, *v);
+        }
+        return emu;
+    }
+
+    #[test]
+    fn mov_rm32_r32() {
+        let mut emu = new_emu(&[0x89, 0xC8]);
+        let opcode = emu.decode();
+        assert_eq!(opcode, Opcode::MovRm32R32(
+            RM::Register(EAX),
+            ECX,
+        ));
+        emu.exec(opcode);
     }
 }
