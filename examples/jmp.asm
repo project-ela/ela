@@ -9,3 +9,4 @@ test1:
   jmp test2
 
 test2:
+  nop

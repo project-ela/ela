@@ -1,6 +1,6 @@
+use crate::instruction::RM;
 use std::fs::File;
 use std::io::Read;
-use crate::instruction::RM;
 
 const MEMORY_SIZE: usize = 1024 * 1024;
 const REGISTERS_COUNT: usize = 8;
