@@ -26,7 +26,7 @@ pub const EDI: usize = 7;
 pub struct Emulator {
     pub registers: [u32; REGISTERS_COUNT],
     pub eflags: u32,
-    pub memory: [u8; MEMORY_SIZE],
+    pub memory: Vec<u8>,
 
     // Instruction Pointer
     pub eip: usize,
@@ -41,7 +41,7 @@ impl Emulator {
         let mut emu = Self {
             registers: [0; REGISTERS_COUNT],
             eflags: 0,
-            memory: [0; MEMORY_SIZE],
+            memory: vec![0; MEMORY_SIZE],
             eip: eip,
             initial_eip: eip,
             len: 0,

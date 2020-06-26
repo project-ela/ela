@@ -4,4 +4,7 @@ build:
 run:
 	cargo run -- ${FILE}
 
-.PHONY: build run
+test:
+	cargo test
+
+.PHONY: build run test
