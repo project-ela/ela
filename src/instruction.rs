@@ -2,10 +2,18 @@ use crate::emulator::Emulator;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Opcode {
+    // 50+rd
+    PushR32(usize),
+    // 58
+    PopR32(usize),
+    // 6A ib
+    PushImm8(u32),
     // 89 /r
     MovRm32R32(RM, usize),
     // 8B /r
     MovR32Rm32(usize, RM),
+    // 8F /0
+    PopRm32(RM),
     // 90
     Nop,
     // B8+ rd id
@@ -14,6 +22,8 @@ pub enum Opcode {
     MovRm32Imm32(RM, u32),
     // EB cb
     ShortJump(usize),
+    // FF /6
+    PushRm32(RM),
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -37,6 +47,21 @@ pub enum RM {
 impl Emulator {
     pub fn decode(&mut self) -> Opcode {
         match self.get_code8(0) {
+            0x50..=0x57 => {
+                let reg = self.get_code8(0) - 0x50;
+                self.eip += 1;
+                Opcode::PushR32(reg as usize)
+            }
+            0x58..=0x5F => {
+                let reg = self.get_code8(0) - 0x58;
+                self.eip += 1;
+                Opcode::PopR32(reg as usize)
+            }
+            0x6A => {
+                let value = self.get_code8(1);
+                self.eip += 2;
+                Opcode::PushImm8(value as u32)
+            }
             0x89 => {
                 self.eip += 1;
                 let modrm = self.parse_modrm();
@@ -48,6 +73,12 @@ impl Emulator {
                 let modrm = self.parse_modrm();
                 let rm = self.calc_rm(&modrm);
                 Opcode::MovR32Rm32(modrm.reg as usize, rm)
+            }
+            0x8F => {
+                self.eip += 1;
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                Opcode::PopRm32(rm)
             }
             0x90 => {
                 self.eip += 1;
@@ -72,18 +103,35 @@ impl Emulator {
                 // add 2 because of 'cb'
                 Opcode::ShortJump((diff + 2) as usize)
             }
+            0xFF => {
+                self.eip += 1;
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                Opcode::PushRm32(rm)
+            }
             o => panic!("Not implemented: {:X}", o),
         }
     }
 
     pub fn exec(&mut self, opcode: Opcode) {
         match opcode {
+            Opcode::PushR32(reg) => self.push32(self.get_register(reg)),
+            Opcode::PopR32(reg) => {
+                let value = self.pop32();
+                self.set_register(reg, value);
+            }
+            Opcode::PushImm8(value) => self.push32(value),
             Opcode::MovRm32R32(rm, reg) => self.set_rm(rm, self.get_register(reg)),
             Opcode::MovR32Rm32(reg, rm) => self.set_register(reg, self.get_rm(rm)),
+            Opcode::PopRm32(rm) => {
+                let value = self.pop32();
+                self.set_rm(rm, value);
+            }
             Opcode::Nop => {}
             Opcode::MovR32Imm32(reg, value) => self.set_register(reg, value),
             Opcode::MovRm32Imm32(rm, value) => self.set_rm(rm, value),
             Opcode::ShortJump(diff) => self.eip = self.eip.wrapping_add(diff),
+            Opcode::PushRm32(rm) => self.push32(self.get_rm(rm)),
         }
     }
 
@@ -128,6 +176,41 @@ mod tests {
     }
 
     #[test]
+    fn push_r32() {
+        let mut emu = new_emu(&[0x50]);
+        emu.set_register(EAX, 0x20);
+        let opcode = emu.decode();
+        assert_eq!(emu.eip, 0x7C00 + 0x1);
+        assert_eq!(opcode, Opcode::PushR32(EAX));
+        emu.exec(opcode);
+        assert_eq!(
+            emu.get_memory32(emu.get_register(ESP) as usize),
+            emu.get_register(EAX)
+        );
+    }
+
+    #[test]
+    fn pop_r32() {
+        let mut emu = new_emu(&[0x58]);
+        emu.push32(0xB);
+        let opcode = emu.decode();
+        assert_eq!(emu.eip, 0x7C00 + 0x1);
+        assert_eq!(opcode, Opcode::PopR32(EAX));
+        emu.exec(opcode);
+        assert_eq!(emu.get_register(EAX), 0xB);
+    }
+
+    #[test]
+    fn push_imm8() {
+        let mut emu = new_emu(&[0x6A, 0x0A]);
+        let opcode = emu.decode();
+        assert_eq!(emu.eip, 0x7C00 + 0x2);
+        assert_eq!(opcode, Opcode::PushImm8(0xA));
+        emu.exec(opcode);
+        assert_eq!(emu.get_memory32(emu.get_register(ESP) as usize), 0xA);
+    }
+
+    #[test]
     fn mov_rm32_r32() {
         let mut emu = new_emu(&[0x89, 0xE5, 0x89, 0x45, 0xFC]);
 
@@ -155,6 +238,18 @@ mod tests {
         assert_eq!(opcode, Opcode::MovR32Rm32(EAX, RM::Memory(addr)));
         emu.exec(opcode);
         assert_eq!(emu.get_register(EAX), emu.get_memory32(addr));
+    }
+
+    #[test]
+    fn pop_rm32() {
+        let mut emu = new_emu(&[0x8F, 0x45, 0x04]);
+        emu.push32(0xB);
+        let opcode = emu.decode();
+        assert_eq!(emu.eip, 0x7C00 + 0x3);
+        let addr = (emu.get_register(EBP) as i32 + 4 as i32) as usize;
+        assert_eq!(opcode, Opcode::PopRm32(RM::Memory(addr)));
+        emu.exec(opcode);
+        assert_eq!(emu.get_memory32(addr), 0xB);
     }
 
     #[test]
@@ -194,5 +289,18 @@ mod tests {
         assert_eq!(opcode, Opcode::ShortJump(0x76 + 0x2));
         emu.exec(opcode);
         assert_eq!(emu.eip, 0x7C00 + 0x76 + 0x2);
+    }
+
+    #[test]
+    fn push_rm32() {
+        let mut emu = new_emu(&[0xFF, 0x75, 0x04]);
+        emu.set_register(EBP, 0x7C00);
+        let addr = (emu.get_register(EBP) as i32 + 4 as i32) as usize;
+        emu.set_memory32(addr, 0xA);
+        let opcode = emu.decode();
+        assert_eq!(emu.eip, 0x7C00 + 0x3);
+        assert_eq!(opcode, Opcode::PushRm32(RM::Memory(addr)));
+        emu.exec(opcode);
+        assert_eq!(emu.get_memory32(emu.get_register(ESP) as usize), 0xA);
     }
 }
