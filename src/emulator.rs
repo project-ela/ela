@@ -132,12 +132,25 @@ impl Emulator {
         }
     }
 
+    pub fn push32(&mut self, value: u32) {
+        let new_esp = self.get_register(ESP) - 4;
+        self.set_memory32(new_esp as usize, value);
+        self.set_register(ESP, new_esp);
+    }
+
+    pub fn pop32(&mut self) -> u32 {
+        let esp = self.get_register(ESP);
+        self.set_register(ESP, esp + 4);
+        self.get_memory32(esp as usize)
+    }
+
     pub fn dump(&self) {
         println!("----------------------------------------");
         println!("EIP: {:4X}", self.eip);
         println!("Opcode: {:X}", self.get_code8(0));
 
         self.dump_registers();
+        self.dump_stack();
     }
 
     pub fn dump_registers(&self) {
@@ -153,5 +166,13 @@ impl Emulator {
         }
 
         println!("");
+    }
+
+    pub fn dump_stack(&self) {
+        println!("----- stack -----");
+        for i in 0..5 {
+            let esp = self.get_register(ESP) as usize;
+            println!("0x{:4X}: {:X}", esp + 4 * i, self.get_memory32(esp + 4 * i));
+        }
     }
 }
