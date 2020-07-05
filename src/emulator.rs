@@ -1,75 +1,60 @@
+use crate::cpu::Register::*;
+use crate::cpu::{Register, CPU};
 use crate::instruction::RM;
 use std::fs::File;
 use std::io::Read;
 
 const MEMORY_SIZE: usize = 1024 * 1024;
-const REGISTERS_COUNT: usize = 8;
-const REGISTERS_NAME: [&str; 8] = ["EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"];
-
-// Accumulator
-pub const EAX: usize = 0;
-// Counter
-pub const ECX: usize = 1;
-// Data
-pub const EDX: usize = 2;
-// Base
-pub const EBX: usize = 3;
-// Stack Pointer
-pub const ESP: usize = 4;
-// Stack Base Pointer
-pub const EBP: usize = 5;
-// Source Index
-pub const ESI: usize = 6;
-// Destination Index
-pub const EDI: usize = 7;
 
 pub struct Emulator {
-    pub registers: [u32; REGISTERS_COUNT],
-    pub eflags: u32,
-    pub memory: Vec<u8>,
-
-    // Instruction Pointer
-    pub eip: usize,
-    initial_eip: usize,
+    cpu: CPU,
+    memory: Vec<u8>,
 
     // Size of binary
-    pub len: usize,
+    len: u32,
+    initial_eip: u32,
 }
 
 impl Emulator {
-    pub fn new(eip: usize, esp: u32) -> Self {
+    pub fn new(eip: u32, esp: u32) -> Self {
         let mut emu = Self {
-            registers: [0; REGISTERS_COUNT],
-            eflags: 0,
+            cpu: CPU::new(),
             memory: vec![0; MEMORY_SIZE],
-            eip: eip,
-            initial_eip: eip,
             len: 0,
+            initial_eip: eip,
         };
-        emu.registers[ESP] = esp;
+        emu.set_register(EIP, eip);
+        emu.set_register(ESP, esp);
 
         return emu;
     }
 
     pub fn load_from_file(&mut self, path: &str) {
         let mut file = File::open(path).expect("Failed to open file.");
+        let eip = self.get_register(EIP) as usize;
         self.len = file
-            .read(&mut self.memory[(self.eip as usize)..])
-            .expect("Failed to read file.");
+            .read(&mut self.memory[eip..])
+            .expect("Failed to read file.") as u32;
         println!("Loaded {} bytes", self.len);
     }
 
     pub fn run(&mut self) {
         self.dump();
-        while self.eip < self.initial_eip + self.len {
+        while self.get_register(EIP) < self.initial_eip + self.len {
             let opcode = self.decode();
             self.exec(opcode);
             self.dump();
         }
     }
 
+    pub fn inc_eip(&mut self, value: u32) {
+        let eip = self.get_register(EIP);
+        self.set_register(EIP, eip.wrapping_add(value));
+    }
+
     pub fn get_code8(&self, index: usize) -> u8 {
-        self.memory[self.eip + index]
+        let eip = self.get_register(EIP) as usize;
+        self.memory[eip + index]
     }
 
     pub fn get_sign_code8(&self, index: usize) -> i8 {
@@ -88,12 +73,12 @@ impl Emulator {
         self.get_code32(index) as i32
     }
 
-    pub fn get_register(&self, index: usize) -> u32 {
-        self.registers[index]
+    pub fn get_register(&self, reg: Register) -> u32 {
+        self.cpu.get_register(reg)
     }
 
-    pub fn set_register(&mut self, index: usize, value: u32) {
-        self.registers[index] = value;
+    pub fn set_register(&mut self, reg: Register, value: u32) {
+        self.cpu.set_register(reg, value);
     }
 
     pub fn get_memory8(&self, address: usize) -> u8 {
@@ -120,14 +105,14 @@ impl Emulator {
 
     pub fn get_rm(&self, rm: RM) -> u32 {
         match rm {
-            RM::Register(index) => self.get_register(index),
+            RM::Register(reg) => self.get_register(reg),
             RM::Memory(addr) => self.get_memory32(addr),
         }
     }
 
     pub fn set_rm(&mut self, rm: RM, value: u32) {
         match rm {
-            RM::Register(index) => self.set_register(index, value),
+            RM::Register(reg) => self.set_register(reg, value),
             RM::Memory(addr) => self.set_memory32(addr, value),
         }
     }
@@ -146,26 +131,11 @@ impl Emulator {
 
     pub fn dump(&self) {
         println!("----------------------------------------");
-        println!("EIP: {:4X}", self.eip);
+        println!("EIP: {:4X}", self.get_register(EIP));
         println!("Opcode: {:X}", self.get_code8(0));
 
-        self.dump_registers();
+        self.cpu.dump();
         self.dump_stack();
-    }
-
-    pub fn dump_registers(&self) {
-        for i in 0..REGISTERS_COUNT {
-            if i != 0 {
-                print!(", ");
-                if i % 4 == 0 {
-                    println!("");
-                }
-            }
-
-            print!("{}: {:4X}", REGISTERS_NAME[i], self.registers[i]);
-        }
-
-        println!("");
     }
 
     pub fn dump_stack(&self) {
