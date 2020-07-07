@@ -134,8 +134,19 @@ impl Emulator {
         println!("EIP: {:4X}", self.get_register(EIP));
         println!("Opcode: {:X}", self.get_code8(0));
 
-        self.cpu.dump();
+        self.dump_registers();
         self.dump_stack();
+    }
+
+    pub fn dump_registers(&self) {
+        print!("EAX: {:4X}, ", self.cpu.get_register(Register::EAX));
+        print!("ECX: {:4X}, ", self.cpu.get_register(Register::ECX));
+        print!("EDX: {:4X}, ", self.cpu.get_register(Register::EDX));
+        println!("EBX: {:4X}, ", self.cpu.get_register(Register::EBX));
+        print!("ESP: {:4X}, ", self.cpu.get_register(Register::ESP));
+        print!("EBP: {:4X}, ", self.cpu.get_register(Register::EBP));
+        print!("ESI: {:4X}, ", self.cpu.get_register(Register::ESI));
+        println!("EDI: {:4X}, ", self.cpu.get_register(Register::EDI));
     }
 
     pub fn dump_stack(&self) {

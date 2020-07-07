@@ -84,15 +84,4 @@ impl CPU {
             Register::EIP => self.eip = value,
         }
     }
-
-    pub fn dump(&self) {
-        print!("EAX: {:4X}, ", self.eax);
-        print!("ECX: {:4X}, ", self.ecx);
-        print!("EDX: {:4X}, ", self.edx);
-        println!("EBX: {:4X}, ", self.ebx);
-        print!("ESP: {:4X}, ", self.esp);
-        print!("EBP: {:4X}, ", self.ebp);
-        print!("ESI: {:4X}, ", self.esi);
-        println!("EDI: {:4X}, ", self.edi);
-    }
 }
