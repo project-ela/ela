@@ -3,12 +3,18 @@ use crate::emulator::Emulator;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Opcode {
+    // 29 /r
+    SubRm32R32(RM, Register),
+    // 2B /r
+    SubR32Rm32(Register, RM),
     // 50+rd
     PushR32(Register),
     // 58
     PopR32(Register),
     // 6A ib
     PushImm8(u32),
+    // 81 /5 id
+    SubRm32Imm32(RM, u32),
     // 89 /r
     MovRm32R32(RM, Register),
     // 8B /r
@@ -37,7 +43,7 @@ pub struct ModRM {
     pub disp32: u32,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum RM {
     // index
     Register(Register),
@@ -48,6 +54,18 @@ pub enum RM {
 impl Emulator {
     pub fn decode(&mut self) -> Opcode {
         match self.get_code8(0) {
+            0x29 => {
+                self.inc_eip(1);
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                Opcode::SubRm32R32(rm, Register::from(modrm.reg))
+            }
+            0x2B => {
+                self.inc_eip(1);
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                Opcode::SubR32Rm32(Register::from(modrm.reg), rm)
+            }
             0x50..=0x57 => {
                 let reg = self.get_code8(0) - 0x50;
                 self.inc_eip(1);
@@ -62,6 +80,13 @@ impl Emulator {
                 let value = self.get_code8(1);
                 self.inc_eip(2);
                 Opcode::PushImm8(value as u32)
+            }
+            0x81 => {
+                self.inc_eip(1);
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                let value = self.get_code8(0);
+                Opcode::SubRm32Imm32(rm, value as u32)
             }
             0x89 => {
                 self.inc_eip(1);
@@ -116,12 +141,32 @@ impl Emulator {
 
     pub fn exec(&mut self, opcode: Opcode) {
         match opcode {
+            Opcode::SubRm32R32(rm, reg) => {
+                let lhs = self.get_rm(rm);
+                let rhs = self.get_register(reg);
+                let result = (lhs as u64).wrapping_sub(rhs as u64);
+                self.update_eflags_sub(lhs, rhs, result);
+                self.set_rm(rm, result as u32);
+            }
+            Opcode::SubR32Rm32(reg, rm) => {
+                let lhs = self.get_register(reg);
+                let rhs = self.get_rm(rm);
+                let result = (lhs as u64).wrapping_sub(rhs as u64);
+                self.update_eflags_sub(lhs, rhs, result);
+                self.set_register(reg, result as u32);
+            }
             Opcode::PushR32(reg) => self.push32(self.get_register(reg)),
             Opcode::PopR32(reg) => {
                 let value = self.pop32();
                 self.set_register(reg, value);
             }
             Opcode::PushImm8(value) => self.push32(value),
+            Opcode::SubRm32Imm32(rm, value) => {
+                let lhs = self.get_rm(rm);
+                let result = (lhs as u64).wrapping_sub(value as u64);
+                self.update_eflags_sub(lhs, value, result);
+                self.set_rm(rm, result as u32);
+            }
             Opcode::MovRm32R32(rm, reg) => self.set_rm(rm, self.get_register(reg)),
             Opcode::MovR32Rm32(reg, rm) => self.set_register(reg, self.get_rm(rm)),
             Opcode::PopRm32(rm) => {

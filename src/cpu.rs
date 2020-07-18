@@ -23,7 +23,7 @@ pub struct CPU {
     eip: u32,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Register {
     EAX,
     ECX,
