@@ -1,5 +1,6 @@
 use std::env;
-use verdandi::token::Token;
+use verdandi::ast::AST;
+use verdandi::parser::parse;
 use verdandi::tokenizer::tokenize;
 
 extern crate verdandi;
@@ -19,10 +20,10 @@ fn main() {
 }
 
 fn compile(source: String) -> Result<(), String> {
-    match tokenize(source) {
+    match tokenize(source).and_then(|tokens| parse(tokens)) {
         Err(err) => Err(err),
-        Ok(tokens) => match tokens.get(0).unwrap() {
-            Token::IntLiteral { value } => {
+        Ok(ast) => match ast {
+            AST::Integer { value } => {
                 println!(".intel_syntax noprefix");
                 println!(".global main");
                 println!("main:");
@@ -30,7 +31,7 @@ fn compile(source: String) -> Result<(), String> {
                 println!("  ret");
                 Ok(())
             }
-            _ => Err("unexpected token".to_string()),
+            x => Err(format!("unexpected node: {:?}", x)),
         },
     }
 }
