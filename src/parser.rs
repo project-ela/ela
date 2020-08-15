@@ -20,17 +20,44 @@ impl Parser {
     }
 
     fn parse_add(&mut self) -> Result<AST, String> {
+        let mut node = self.parse_mul()?;
+        loop {
+            match self.peek() {
+                Token::Plus => {
+                    self.consume();
+                    node = AST::Add {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_mul()?),
+                    }
+                }
+                Token::Minus => {
+                    self.consume();
+                    node = AST::Sub {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_mul()?),
+                    }
+                }
+                _ => break,
+            }
+        }
+
+        Ok(node)
+    }
+
+    fn parse_mul(&mut self) -> Result<AST, String> {
         let mut node = self.parse_primary()?;
         loop {
-            match self.consume() {
-                Token::Plus => {
-                    node = AST::Add {
+            match self.peek() {
+                Token::Asterisk => {
+                    self.consume();
+                    node = AST::Mul {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_primary()?),
                     }
                 }
-                Token::Minus => {
-                    node = AST::Sub {
+                Token::Slash => {
+                    self.consume();
+                    node = AST::Div {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_primary()?),
                     }
@@ -47,6 +74,10 @@ impl Parser {
             Token::IntLiteral { value } => Ok(AST::Integer { value: *value }),
             x => Err(format!("unexpected token: {:?}", x)),
         }
+    }
+
+    fn peek(&mut self) -> &Token {
+        self.tokens.get(self.pos).unwrap_or(&Token::EOF)
     }
 
     fn consume(&mut self) -> &Token {

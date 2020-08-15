@@ -4,6 +4,8 @@ pub enum Token {
 
     Plus,
     Minus,
+    Asterisk,
+    Slash,
 
     EOF,
 }

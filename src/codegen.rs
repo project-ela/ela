@@ -24,6 +24,16 @@ fn gen_expression(ast: AST) -> Result<(), String> {
             gen_expression(*rhs)?;
             gen_sub();
         }
+        AST::Mul { lhs, rhs } => {
+            gen_expression(*lhs)?;
+            gen_expression(*rhs)?;
+            gen_mul();
+        }
+        AST::Div { lhs, rhs } => {
+            gen_expression(*lhs)?;
+            gen_expression(*rhs)?;
+            gen_div();
+        }
     }
     Ok(())
 }
@@ -42,5 +52,20 @@ fn gen_sub() {
     println!("  pop ecx");
     println!("  pop eax");
     println!("  sub eax, ecx");
+    println!("  push eax");
+}
+
+fn gen_mul() {
+    println!("  pop ecx");
+    println!("  pop eax");
+    println!("  imul ecx");
+    println!("  push eax");
+}
+
+fn gen_div() {
+    println!("  pop ecx");
+    println!("  pop eax");
+    println!("  xor edx, edx");
+    println!("  idiv ecx");
     println!("  push eax");
 }

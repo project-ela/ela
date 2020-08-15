@@ -41,6 +41,8 @@ impl Tokenizer {
         let token = match self.peek_char() {
             '+' => Ok(Token::Plus),
             '-' => Ok(Token::Minus),
+            '*' => Ok(Token::Asterisk),
+            '/' => Ok(Token::Slash),
             x if x.is_digit(10) => {
                 return Ok(Token::IntLiteral {
                     value: self.consume_number(),
