@@ -1,5 +1,5 @@
 use std::env;
-use verdandi::ast::AST;
+use verdandi::codegen::generate;
 use verdandi::parser::parse;
 use verdandi::tokenizer::tokenize;
 
@@ -20,18 +20,7 @@ fn main() {
 }
 
 fn compile(source: String) -> Result<(), String> {
-    match tokenize(source).and_then(|tokens| parse(tokens)) {
-        Err(err) => Err(err),
-        Ok(ast) => match ast {
-            AST::Integer { value } => {
-                println!(".intel_syntax noprefix");
-                println!(".global main");
-                println!("main:");
-                println!("  mov eax, {}", value);
-                println!("  ret");
-                Ok(())
-            }
-            x => Err(format!("unexpected node: {:?}", x)),
-        },
-    }
+    tokenize(source)
+        .and_then(|tokens| parse(tokens))
+        .and_then(|ast| generate(ast))
 }
