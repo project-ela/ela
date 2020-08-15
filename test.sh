@@ -4,7 +4,8 @@ try() {
   expected=$1
   source=$2
 
-  cargo run "$source" 2> /dev/null > tmp.s
+  echo "$source" > tmp.vd
+  cargo run tmp.vd tmp.s 2> /dev/null
   gcc -m32 tmp.s -o tmp
   ./tmp
   actual=$?

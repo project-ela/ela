@@ -1,71 +1,94 @@
 use crate::ast::AST;
 
-pub fn generate(ast: AST) -> Result<(), String> {
-    println!(".intel_syntax noprefix");
-    println!(".global main");
-    println!("main:");
-    gen_expression(ast)?;
-    println!("  pop eax");
-    println!("  ret");
-
-    Ok(())
+struct Codegen {
+    output: String,
 }
 
-fn gen_expression(ast: AST) -> Result<(), String> {
-    match ast {
-        AST::Integer { value } => gen_integer(value),
-        AST::Add { lhs, rhs } => {
-            gen_expression(*lhs)?;
-            gen_expression(*rhs)?;
-            gen_add();
-        }
-        AST::Sub { lhs, rhs } => {
-            gen_expression(*lhs)?;
-            gen_expression(*rhs)?;
-            gen_sub();
-        }
-        AST::Mul { lhs, rhs } => {
-            gen_expression(*lhs)?;
-            gen_expression(*rhs)?;
-            gen_mul();
-        }
-        AST::Div { lhs, rhs } => {
-            gen_expression(*lhs)?;
-            gen_expression(*rhs)?;
-            gen_div();
+pub fn generate(ast: AST) -> Result<String, String> {
+    let mut codegen = Codegen::new();
+    codegen.generate(ast)
+}
+
+impl Codegen {
+    fn new() -> Self {
+        Codegen {
+            output: String::new(),
         }
     }
-    Ok(())
-}
-fn gen_integer(value: u32) {
-    println!("  push {}", value);
-}
 
-fn gen_add() {
-    println!("  pop ecx");
-    println!("  pop eax");
-    println!("  add eax, ecx");
-    println!("  push eax");
-}
+    fn generate(&mut self, ast: AST) -> Result<String, String> {
+        self.gen(".intel_syntax noprefix");
+        self.gen(".global main");
+        self.gen("main:");
+        self.gen_expression(ast)?;
+        self.gen("  pop eax");
+        self.gen("  ret");
 
-fn gen_sub() {
-    println!("  pop ecx");
-    println!("  pop eax");
-    println!("  sub eax, ecx");
-    println!("  push eax");
-}
+        Ok(self.output.clone())
+    }
 
-fn gen_mul() {
-    println!("  pop ecx");
-    println!("  pop eax");
-    println!("  imul ecx");
-    println!("  push eax");
-}
+    fn gen_expression(&mut self, ast: AST) -> Result<(), String> {
+        match ast {
+            AST::Integer { value } => self.gen_integer(value),
+            AST::Add { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_add();
+            }
+            AST::Sub { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_sub();
+            }
+            AST::Mul { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_mul();
+            }
+            AST::Div { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_div();
+            }
+        }
+        Ok(())
+    }
 
-fn gen_div() {
-    println!("  pop ecx");
-    println!("  pop eax");
-    println!("  xor edx, edx");
-    println!("  idiv ecx");
-    println!("  push eax");
+    fn gen_integer(&mut self, value: u32) {
+        self.gen(&format!("  push {}", value));
+    }
+
+    fn gen_add(&mut self) {
+        self.gen("  pop ecx");
+        self.gen("  pop eax");
+        self.gen("  add eax, ecx");
+        self.gen("  push eax");
+    }
+
+    fn gen_sub(&mut self) {
+        self.gen("  pop ecx");
+        self.gen("  pop eax");
+        self.gen("  sub eax, ecx");
+        self.gen("  push eax");
+    }
+
+    fn gen_mul(&mut self) {
+        self.gen("  pop ecx");
+        self.gen("  pop eax");
+        self.gen("  imul ecx");
+        self.gen("  push eax");
+    }
+
+    fn gen_div(&mut self) {
+        self.gen("  pop ecx");
+        self.gen("  pop eax");
+        self.gen("  xor edx, edx");
+        self.gen("  idiv ecx");
+        self.gen("  push eax");
+    }
+
+    fn gen(&mut self, s: &str) {
+        self.output.push_str(s);
+        self.output.push_str("\n");
+    }
 }
