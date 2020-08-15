@@ -33,11 +33,11 @@ impl Tokenizer {
     }
 
     fn next_token(&mut self) -> Result<Token, String> {
+        self.consume_whitespace();
         if self.is_eof() {
             return Ok(Token::EOF);
         }
 
-        self.consume_whitespace();
         let token = match self.peek_char() {
             '+' => Ok(Token::Plus),
             '-' => Ok(Token::Minus),
