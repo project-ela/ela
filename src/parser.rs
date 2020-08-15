@@ -16,7 +16,30 @@ impl Parser {
     }
 
     fn parse(&mut self) -> Result<AST, String> {
-        self.parse_primary()
+        self.parse_add()
+    }
+
+    fn parse_add(&mut self) -> Result<AST, String> {
+        let mut node = self.parse_primary()?;
+        loop {
+            match self.consume() {
+                Token::Plus => {
+                    node = AST::Add {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_primary()?),
+                    }
+                }
+                Token::Minus => {
+                    node = AST::Sub {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_primary()?),
+                    }
+                }
+                _ => break,
+            }
+        }
+
+        Ok(node)
     }
 
     fn parse_primary(&mut self) -> Result<AST, String> {

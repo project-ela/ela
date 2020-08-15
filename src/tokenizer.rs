@@ -38,12 +38,18 @@ impl Tokenizer {
         }
 
         self.consume_whitespace();
-        match self.peek_char() {
-            x if x.is_digit(10) => Ok(Token::IntLiteral {
-                value: self.consume_number(),
-            }),
-            x => Err(format!("unexpected char: {}", x)),
-        }
+        let token = match self.peek_char() {
+            '+' => Ok(Token::Plus),
+            '-' => Ok(Token::Minus),
+            x if x.is_digit(10) => {
+                return Ok(Token::IntLiteral {
+                    value: self.consume_number(),
+                })
+            }
+            x => return Err(format!("unexpected char: {}", x)),
+        };
+        self.consume_char();
+        token
     }
 
     fn consume_number(&mut self) -> u32 {
