@@ -72,7 +72,21 @@ impl Parser {
     fn parse_primary(&mut self) -> Result<AST, String> {
         match self.consume() {
             Token::IntLiteral { value } => Ok(AST::Integer { value: *value }),
+            Token::LParen => {
+                let expr = self.parse_add()?;
+                self.expect(&Token::RParen)?;
+                Ok(expr)
+            }
             x => Err(format!("unexpected token: {:?}", x)),
+        }
+    }
+
+    fn expect(&mut self, token: &Token) -> Result<&Token, String> {
+        let next_token = self.consume();
+        if next_token == token {
+            Ok(next_token)
+        } else {
+            Err(format!("expected {:?}, but got {:?}", token, next_token))
         }
     }
 

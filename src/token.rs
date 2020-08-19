@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Token {
     IntLiteral { value: u32 },
 
@@ -6,6 +6,9 @@ pub enum Token {
     Minus,
     Asterisk,
     Slash,
+
+    LParen,
+    RParen,
 
     EOF,
 }
