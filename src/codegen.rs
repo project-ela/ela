@@ -71,12 +71,32 @@ impl Codegen {
             AST::Equal { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
-                self.gen_equal();
+                self.gen_compare("sete");
             }
             AST::NotEqual { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
-                self.gen_not_equal();
+                self.gen_compare("setne");
+            }
+            AST::Lt { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_compare("setl");
+            }
+            AST::Lte { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_compare("setle");
+            }
+            AST::Gt { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_compare("setg");
+            }
+            AST::Gte { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_compare("setge");
             }
             x => return Err(format!("unexpected node: {:?}", x)),
         }
@@ -120,19 +140,11 @@ impl Codegen {
         self.gen("  push eax");
     }
 
-    fn gen_equal(&mut self) {
+    fn gen_compare(&mut self, op: &str) {
         self.gen("  pop ecx");
         self.gen("  pop eax");
         self.gen("  cmp eax, ecx");
-        self.gen("  sete al");
-        self.gen("  push eax");
-    }
-
-    fn gen_not_equal(&mut self) {
-        self.gen("  pop ecx");
-        self.gen("  pop eax");
-        self.gen("  cmp eax, ecx");
-        self.gen("  setne al");
+        self.gen(format!("  {} al", op).as_str());
         self.gen("  push eax");
     }
 

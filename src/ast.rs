@@ -13,4 +13,9 @@ pub enum AST {
 
     Equal { lhs: Box<AST>, rhs: Box<AST> },
     NotEqual { lhs: Box<AST>, rhs: Box<AST> },
+
+    Lt { lhs: Box<AST>, rhs: Box<AST> },
+    Lte { lhs: Box<AST>, rhs: Box<AST> },
+    Gt { lhs: Box<AST>, rhs: Box<AST> },
+    Gte { lhs: Box<AST>, rhs: Box<AST> },
 }

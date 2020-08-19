@@ -50,21 +50,60 @@ impl Parser {
     }
 
     fn parse_equal(&mut self) -> Result<AST, String> {
-        let mut node = self.parse_add()?;
+        let mut node = self.parse_relation()?;
         loop {
             match self.peek() {
                 Token::Equal => {
                     self.consume();
                     node = AST::Equal {
                         lhs: Box::new(node),
-                        rhs: Box::new(self.parse_mul()?),
+                        rhs: Box::new(self.parse_relation()?),
                     }
                 }
                 Token::NotEqual => {
                     self.consume();
                     node = AST::NotEqual {
                         lhs: Box::new(node),
-                        rhs: Box::new(self.parse_mul()?),
+                        rhs: Box::new(self.parse_relation()?),
+                    }
+                }
+                _ => break,
+            }
+        }
+
+        Ok(node)
+    }
+
+    fn parse_relation(&mut self) -> Result<AST, String> {
+        let mut node = self.parse_add()?;
+        loop {
+            match self.peek() {
+                Token::Lt => {
+                    self.consume();
+                    node = AST::Lt {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_add()?),
+                    }
+                }
+                Token::Lte => {
+                    self.consume();
+                    node = AST::Lte {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_add()?),
+                    }
+                }
+                Token::Gt => {
+                    self.consume();
+                    node = AST::Gt {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_add()?),
+                    }
+                }
+                Token::Gte => {
+                    self.consume();
+                    node = AST::Gte {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_add()?),
                     }
                 }
                 _ => break,

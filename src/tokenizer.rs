@@ -63,6 +63,24 @@ impl Tokenizer {
                     x => Err(format!("expected '=', but got '{}'", x)),
                 }
             }
+            '<' => {
+                self.consume_char();
+                if self.peek_char() == '=' {
+                    self.consume_char();
+                    Ok(Token::Lte)
+                } else {
+                    Ok(Token::Lt)
+                }
+            }
+            '>' => {
+                self.consume_char();
+                if self.peek_char() == '=' {
+                    self.consume_char();
+                    Ok(Token::Gte)
+                } else {
+                    Ok(Token::Gt)
+                }
+            }
             '(' => Ok(Token::LParen),
             ')' => Ok(Token::RParen),
             '{' => Ok(Token::LBrace),
