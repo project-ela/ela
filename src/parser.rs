@@ -37,6 +37,7 @@ impl Parser {
                 let mut stmts = Vec::new();
                 loop {
                     if self.peek() == &Token::RBrace {
+                        self.consume();
                         break;
                     }
                     stmts.push(self.parse_statement()?);

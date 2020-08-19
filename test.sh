@@ -76,3 +76,14 @@ try 2 "func main() {
     return 0
   }
 }"
+
+try 1 "func main() {
+  if 1 == 1 {
+    if 0 == 1 {
+      return 2
+    }
+    return 1
+  } else {
+    return 0
+  }
+}"
