@@ -37,6 +37,12 @@ impl Codegen {
 
     fn gen_statement(&mut self, ast: AST) -> Result<(), String> {
         match ast {
+            AST::Block { stmts } => {
+                for stmt in stmts {
+                    self.gen_statement(stmt)?;
+                }
+                Ok(())
+            }
             AST::Return { value } => {
                 self.gen_expression(*value)?;
                 self.gen("  pop eax");

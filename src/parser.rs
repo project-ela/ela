@@ -24,9 +24,7 @@ impl Parser {
         let name = self.consume_ident()?;
         self.expect(&Token::LParen)?;
         self.expect(&Token::RParen)?;
-        self.expect(&Token::LBrace)?;
         let body = self.parse_statement()?;
-        self.expect(&Token::RBrace)?;
         Ok(AST::Function {
             name,
             body: Box::new(body),
@@ -35,6 +33,16 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<AST, String> {
         match self.consume() {
+            Token::LBrace => {
+                let mut stmts = Vec::new();
+                loop {
+                    if self.peek() == &Token::RBrace {
+                        break;
+                    }
+                    stmts.push(self.parse_statement()?);
+                }
+                Ok(AST::Block { stmts })
+            }
             Token::Return => {
                 let value = self.parse_expression()?;
                 Ok(AST::Return {
@@ -43,14 +51,10 @@ impl Parser {
             }
             Token::If => {
                 let cond = self.parse_expression()?;
-                self.expect(&Token::LBrace)?;
                 let then = self.parse_statement()?;
-                self.expect(&Token::RBrace)?;
                 let els = if self.peek() == &Token::Else {
                     self.consume();
-                    self.expect(&Token::LBrace)?;
                     let els = self.parse_statement()?;
-                    self.expect(&Token::RBrace)?;
                     Some(Box::new(els))
                 } else {
                     None

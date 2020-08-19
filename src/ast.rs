@@ -4,6 +4,9 @@ pub enum AST {
         name: String,
         body: Box<AST>,
     },
+    Block {
+        stmts: Vec<AST>,
+    },
 
     Return {
         value: Box<AST>,
