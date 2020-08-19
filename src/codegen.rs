@@ -26,12 +26,22 @@ impl Codegen {
         if let AST::Function { name, body } = ast {
             self.gen(&format!(".global {}", name));
             self.gen_label(name);
-            self.gen_expression(*body)?;
-            self.gen("  pop eax");
-            self.gen("  ret");
+            self.gen_statement(*body)?;
             Ok(())
         } else {
             Err(format!("expected function, but got {:?}", ast))
+        }
+    }
+
+    fn gen_statement(&mut self, ast: AST) -> Result<(), String> {
+        match ast {
+            AST::Return { value } => {
+                self.gen_expression(*value)?;
+                self.gen("  pop eax");
+                self.gen("  ret");
+                Ok(())
+            }
+            x => return Err(format!("unexpected node: {:?}", x)),
         }
     }
 

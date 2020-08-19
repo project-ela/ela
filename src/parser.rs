@@ -25,12 +25,24 @@ impl Parser {
         self.expect(&Token::LParen)?;
         self.expect(&Token::RParen)?;
         self.expect(&Token::LBrace)?;
-        let body = self.parse_add()?;
+        let body = self.parse_statement()?;
         self.expect(&Token::RBrace)?;
         Ok(AST::Function {
             name,
             body: Box::new(body),
         })
+    }
+
+    fn parse_statement(&mut self) -> Result<AST, String> {
+        match self.consume() {
+            Token::Return => {
+                let value = self.parse_add()?;
+                Ok(AST::Return {
+                    value: Box::new(value),
+                })
+            }
+            x => Err(format!("unexpected token: {:?}", x)),
+        }
     }
 
     fn parse_add(&mut self) -> Result<AST, String> {

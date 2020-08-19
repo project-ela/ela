@@ -107,6 +107,7 @@ impl Tokenizer {
 fn find_keyword(ident: &String) -> Option<Token> {
     match ident.as_str() {
         "func" => Some(Token::Func),
+        "return" => Some(Token::Return),
         _ => None,
     }
 }

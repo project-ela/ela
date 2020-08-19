@@ -4,6 +4,7 @@ pub enum Token {
     Ident { name: String },
 
     Func,
+    Return,
 
     Plus,
     Minus,

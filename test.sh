@@ -17,18 +17,18 @@ try() {
   fi
 }
 
-try 0 "func main() { 0 }"
-try 42 "func main() { 42 }"
+try 0 "func main() { return 0 }"
+try 42 "func main() { return 42 }"
 
-try 3 "func main() { 1 + 2 }"
-try 6 "func main() { 1 + 2 + 3 }"
-try 5 "func main() { 6 - 1 }"
-try 17 "func main() { 20 - 5 + 2 }"
+try 3 "func main() { return 1 + 2 }"
+try 6 "func main() { return 1 + 2 + 3 }"
+try 5 "func main() { return 6 - 1 }"
+try 17 "func main() { return 20 - 5 + 2 }"
 
-try 20 "func main() { 2 * 2 * 5 }"
-try 5 "func main() { 20 / 4 }"
-try 12 "func main() { 1 + 2 * 3 + 5 / 1 }"
+try 20 "func main() { return 2 * 2 * 5 }"
+try 5 "func main() { return 20 / 4 }"
+try 12 "func main() { return 1 + 2 * 3 + 5 / 1 }"
 
-try 38 "func main() { 3 + 5 * 7 }"
-try 56 "func main() { (3 + 5) * 7 }"
-try 1 "func main() { ((1)) }"
+try 38 "func main() { return 3 + 5 * 7 }"
+try 56 "func main() { return (3 + 5) * 7 }"
+try 1 "func main() { return ((1)) }"
