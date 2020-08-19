@@ -43,6 +43,8 @@ impl Tokenizer {
             '-' => Ok(Token::Minus),
             '*' => Ok(Token::Asterisk),
             '/' => Ok(Token::Slash),
+            '(' => Ok(Token::LParen),
+            ')' => Ok(Token::RParen),
             x if x.is_digit(10) => {
                 return Ok(Token::IntLiteral {
                     value: self.consume_number(),
