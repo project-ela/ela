@@ -46,9 +46,19 @@ impl Parser {
                 self.expect(&Token::LBrace)?;
                 let then = self.parse_statement()?;
                 self.expect(&Token::RBrace)?;
+                let els = if self.peek() == &Token::Else {
+                    self.consume();
+                    self.expect(&Token::LBrace)?;
+                    let els = self.parse_statement()?;
+                    self.expect(&Token::RBrace)?;
+                    Some(Box::new(els))
+                } else {
+                    None
+                };
                 Ok(AST::If {
                     cond: Box::new(cond),
                     then: Box::new(then),
+                    els,
                 })
             }
             x => Err(format!("unexpected token: {:?}", x)),

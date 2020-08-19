@@ -43,14 +43,22 @@ impl Codegen {
                 self.gen("  ret");
                 Ok(())
             }
-            AST::If { cond, then } => {
+            AST::If { cond, then, els } => {
                 self.gen_expression(*cond)?;
                 self.gen("  pop eax");
                 self.gen("  cmp eax, 0");
-                let label_then = self.next_label();
-                self.gen(format!("  je {}", label_then).as_str());
+                let label_else = self.next_label();
+                let label_merge = self.next_label();
+                self.gen(format!("  je {}", label_else).as_str());
+
                 self.gen_statement(*then)?;
-                self.gen_label(label_then);
+                self.gen(format!("  jmp {}", label_merge).as_str());
+
+                self.gen_label(label_else);
+                if let Some(els) = els {
+                    self.gen_statement(*els)?;
+                }
+                self.gen_label(label_merge);
                 Ok(())
             }
             x => return Err(format!("unexpected node: {:?}", x)),
