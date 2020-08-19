@@ -41,6 +41,16 @@ impl Parser {
                     value: Box::new(value),
                 })
             }
+            Token::If => {
+                let cond = self.parse_expression()?;
+                self.expect(&Token::LBrace)?;
+                let then = self.parse_statement()?;
+                self.expect(&Token::RBrace)?;
+                Ok(AST::If {
+                    cond: Box::new(cond),
+                    then: Box::new(then),
+                })
+            }
             x => Err(format!("unexpected token: {:?}", x)),
         }
     }

@@ -2,6 +2,7 @@ use crate::ast::AST;
 
 struct Codegen {
     output: String,
+    label_num: u32,
 }
 
 pub fn generate(ast: AST) -> Result<String, String> {
@@ -13,6 +14,7 @@ impl Codegen {
     fn new() -> Self {
         Codegen {
             output: String::new(),
+            label_num: 0,
         }
     }
 
@@ -39,6 +41,16 @@ impl Codegen {
                 self.gen_expression(*value)?;
                 self.gen("  pop eax");
                 self.gen("  ret");
+                Ok(())
+            }
+            AST::If { cond, then } => {
+                self.gen_expression(*cond)?;
+                self.gen("  pop eax");
+                self.gen("  cmp eax, 0");
+                let label_then = self.next_label();
+                self.gen(format!("  je {}", label_then).as_str());
+                self.gen_statement(*then)?;
+                self.gen_label(label_then);
                 Ok(())
             }
             x => return Err(format!("unexpected node: {:?}", x)),
@@ -146,6 +158,12 @@ impl Codegen {
         self.gen("  cmp eax, ecx");
         self.gen(format!("  {} al", op).as_str());
         self.gen("  push eax");
+    }
+
+    fn next_label(&mut self) -> String {
+        let label = format!(".L.{}", self.label_num);
+        self.label_num += 1;
+        label
     }
 
     fn gen(&mut self, s: &str) {

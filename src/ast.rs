@@ -3,6 +3,7 @@ pub enum AST {
     Function { name: String, body: Box<AST> },
 
     Return { value: Box<AST> },
+    If { cond: Box<AST>, then: Box<AST> },
 
     Integer { value: u32 },
 

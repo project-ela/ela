@@ -5,6 +5,7 @@ pub enum Token {
 
     Func,
     Return,
+    If,
 
     Equal,
     NotEqual,
