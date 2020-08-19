@@ -40,3 +40,13 @@ try 0 "func main() { return 0 == 1 }"
 try 1 "func main() { return 1 == 1 }"
 try 1 "func main() { return 0 != 1 }"
 try 0 "func main() { return 1 != 1 }"
+
+try 0 "func main() { return 1 < 1 }"
+try 1 "func main() { return 0 < 1 }"
+try 0 "func main() { return 2 <= 1 }"
+try 1 "func main() { return 1 <= 1 }"
+try 0 "func main() { return 1 > 1 }"
+try 1 "func main() { return 2 > 1 }"
+try 0 "func main() { return 0 >= 1 }"
+try 1 "func main() { return 1 >= 1 }"
+

@@ -9,6 +9,11 @@ pub enum Token {
     Equal,
     NotEqual,
 
+    Lt,
+    Lte,
+    Gt,
+    Gte,
+
     Plus,
     Minus,
     Asterisk,
