@@ -45,15 +45,32 @@ impl Tokenizer {
             '/' => Ok(Token::Slash),
             '(' => Ok(Token::LParen),
             ')' => Ok(Token::RParen),
+            '{' => Ok(Token::LBrace),
+            '}' => Ok(Token::RBrace),
             x if x.is_digit(10) => {
                 return Ok(Token::IntLiteral {
                     value: self.consume_number(),
                 })
             }
+            x if x.is_alphabetic() => {
+                let ident = self.consume_ident();
+                return match find_keyword(&ident) {
+                    Some(token) => Ok(token),
+                    None => Ok(Token::Ident { name: ident }),
+                };
+            }
             x => return Err(format!("unexpected char: {}", x)),
         };
         self.consume_char();
         token
+    }
+
+    fn consume_ident(&mut self) -> String {
+        let mut result = String::new();
+        while !self.is_eof() && self.peek_char().is_alphabetic() {
+            result.push(self.consume_char());
+        }
+        result
     }
 
     fn consume_number(&mut self) -> u32 {
@@ -84,5 +101,13 @@ impl Tokenizer {
 
     fn is_eof(&self) -> bool {
         self.pos >= self.source.len()
+    }
+}
+
+fn find_keyword(ident: &String) -> Option<Token> {
+    match ident.as_str() {
+        "func" => Some(Token::Func),
+        "return" => Some(Token::Return),
+        _ => None,
     }
 }
