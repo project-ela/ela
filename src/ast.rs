@@ -10,4 +10,7 @@ pub enum AST {
     Sub { lhs: Box<AST>, rhs: Box<AST> },
     Mul { lhs: Box<AST>, rhs: Box<AST> },
     Div { lhs: Box<AST>, rhs: Box<AST> },
+
+    Equal { lhs: Box<AST>, rhs: Box<AST> },
+    NotEqual { lhs: Box<AST>, rhs: Box<AST> },
 }

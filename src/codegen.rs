@@ -68,6 +68,16 @@ impl Codegen {
                 self.gen_expression(*rhs)?;
                 self.gen_div();
             }
+            AST::Equal { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_equal();
+            }
+            AST::NotEqual { lhs, rhs } => {
+                self.gen_expression(*lhs)?;
+                self.gen_expression(*rhs)?;
+                self.gen_not_equal();
+            }
             x => return Err(format!("unexpected node: {:?}", x)),
         }
         Ok(())
@@ -107,6 +117,22 @@ impl Codegen {
         self.gen("  pop eax");
         self.gen("  xor edx, edx");
         self.gen("  idiv ecx");
+        self.gen("  push eax");
+    }
+
+    fn gen_equal(&mut self) {
+        self.gen("  pop ecx");
+        self.gen("  pop eax");
+        self.gen("  cmp eax, ecx");
+        self.gen("  sete al");
+        self.gen("  push eax");
+    }
+
+    fn gen_not_equal(&mut self) {
+        self.gen("  pop ecx");
+        self.gen("  pop eax");
+        self.gen("  cmp eax, ecx");
+        self.gen("  setne al");
         self.gen("  push eax");
     }
 

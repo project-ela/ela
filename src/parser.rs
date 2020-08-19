@@ -36,13 +36,42 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<AST, String> {
         match self.consume() {
             Token::Return => {
-                let value = self.parse_add()?;
+                let value = self.parse_expression()?;
                 Ok(AST::Return {
                     value: Box::new(value),
                 })
             }
             x => Err(format!("unexpected token: {:?}", x)),
         }
+    }
+
+    fn parse_expression(&mut self) -> Result<AST, String> {
+        self.parse_equal()
+    }
+
+    fn parse_equal(&mut self) -> Result<AST, String> {
+        let mut node = self.parse_add()?;
+        loop {
+            match self.peek() {
+                Token::Equal => {
+                    self.consume();
+                    node = AST::Equal {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_mul()?),
+                    }
+                }
+                Token::NotEqual => {
+                    self.consume();
+                    node = AST::NotEqual {
+                        lhs: Box::new(node),
+                        rhs: Box::new(self.parse_mul()?),
+                    }
+                }
+                _ => break,
+            }
+        }
+
+        Ok(node)
     }
 
     fn parse_add(&mut self) -> Result<AST, String> {
