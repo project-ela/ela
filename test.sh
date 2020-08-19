@@ -32,3 +32,6 @@ try 12 "func main() { return 1 + 2 * 3 + 5 / 1 }"
 try 38 "func main() { return 3 + 5 * 7 }"
 try 56 "func main() { return (3 + 5) * 7 }"
 try 1 "func main() { return ((1)) }"
+
+try 2 "func main() { return --+---++-2 }"
+try 3 "func main() { return -3 * -1 }"
