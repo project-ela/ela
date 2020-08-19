@@ -50,3 +50,29 @@ try 1 "func main() { return 2 > 1 }"
 try 0 "func main() { return 0 >= 1 }"
 try 1 "func main() { return 1 >= 1 }"
 
+try 1 "func main() {
+  if 1 == 1 {
+    return 1
+  } else {
+    return 0
+  }
+}"
+
+try 0 "func main() {
+  if 0 == 1 {
+    return 1
+  } else {
+    return 0
+  }
+}"
+
+try 2 "func main() {
+  if 1 == 1 {
+    if 1 == 1 {
+      return 2
+    }
+    return 1
+  } else {
+    return 0
+  }
+}"

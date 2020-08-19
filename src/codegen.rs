@@ -2,6 +2,7 @@ use crate::ast::AST;
 
 struct Codegen {
     output: String,
+    label_num: u32,
 }
 
 pub fn generate(ast: AST) -> Result<String, String> {
@@ -13,6 +14,7 @@ impl Codegen {
     fn new() -> Self {
         Codegen {
             output: String::new(),
+            label_num: 0,
         }
     }
 
@@ -35,10 +37,34 @@ impl Codegen {
 
     fn gen_statement(&mut self, ast: AST) -> Result<(), String> {
         match ast {
+            AST::Block { stmts } => {
+                for stmt in stmts {
+                    self.gen_statement(stmt)?;
+                }
+                Ok(())
+            }
             AST::Return { value } => {
                 self.gen_expression(*value)?;
                 self.gen("  pop eax");
                 self.gen("  ret");
+                Ok(())
+            }
+            AST::If { cond, then, els } => {
+                self.gen_expression(*cond)?;
+                self.gen("  pop eax");
+                self.gen("  cmp eax, 0");
+                let label_else = self.next_label();
+                let label_merge = self.next_label();
+                self.gen(format!("  je {}", label_else).as_str());
+
+                self.gen_statement(*then)?;
+                self.gen(format!("  jmp {}", label_merge).as_str());
+
+                self.gen_label(label_else);
+                if let Some(els) = els {
+                    self.gen_statement(*els)?;
+                }
+                self.gen_label(label_merge);
                 Ok(())
             }
             x => return Err(format!("unexpected node: {:?}", x)),
@@ -146,6 +172,12 @@ impl Codegen {
         self.gen("  cmp eax, ecx");
         self.gen(format!("  {} al", op).as_str());
         self.gen("  push eax");
+    }
+
+    fn next_label(&mut self) -> String {
+        let label = format!(".L.{}", self.label_num);
+        self.label_num += 1;
+        label
     }
 
     fn gen(&mut self, s: &str) {
