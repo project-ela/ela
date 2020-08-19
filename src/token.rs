@@ -6,6 +6,9 @@ pub enum Token {
     Func,
     Return,
 
+    Equal,
+    NotEqual,
+
     Plus,
     Minus,
     Asterisk,

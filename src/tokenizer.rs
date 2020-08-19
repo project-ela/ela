@@ -43,6 +43,26 @@ impl Tokenizer {
             '-' => Ok(Token::Minus),
             '*' => Ok(Token::Asterisk),
             '/' => Ok(Token::Slash),
+            '=' => {
+                self.consume_char();
+                match self.peek_char() {
+                    '=' => {
+                        self.consume_char();
+                        Ok(Token::Equal)
+                    }
+                    x => Err(format!("expected '=', but got '{}'", x)),
+                }
+            }
+            '!' => {
+                self.consume_char();
+                match self.peek_char() {
+                    '=' => {
+                        self.consume_char();
+                        Ok(Token::NotEqual)
+                    }
+                    x => Err(format!("expected '=', but got '{}'", x)),
+                }
+            }
             '(' => Ok(Token::LParen),
             ')' => Ok(Token::RParen),
             '{' => Ok(Token::LBrace),
