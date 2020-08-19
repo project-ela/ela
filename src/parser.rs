@@ -71,21 +71,21 @@ impl Parser {
     }
 
     fn parse_mul(&mut self) -> Result<AST, String> {
-        let mut node = self.parse_primary()?;
+        let mut node = self.parse_unary()?;
         loop {
             match self.peek() {
                 Token::Asterisk => {
                     self.consume();
                     node = AST::Mul {
                         lhs: Box::new(node),
-                        rhs: Box::new(self.parse_primary()?),
+                        rhs: Box::new(self.parse_unary()?),
                     }
                 }
                 Token::Slash => {
                     self.consume();
                     node = AST::Div {
                         lhs: Box::new(node),
-                        rhs: Box::new(self.parse_primary()?),
+                        rhs: Box::new(self.parse_unary()?),
                     }
                 }
                 _ => break,
@@ -93,6 +93,26 @@ impl Parser {
         }
 
         Ok(node)
+    }
+
+    fn parse_unary(&mut self) -> Result<AST, String> {
+        match self.peek() {
+            Token::Plus => {
+                self.consume();
+                Ok(AST::Add {
+                    lhs: Box::new(AST::Integer { value: 0 }),
+                    rhs: Box::new(self.parse_unary()?),
+                })
+            }
+            Token::Minus => {
+                self.consume();
+                Ok(AST::Sub {
+                    lhs: Box::new(AST::Integer { value: 0 }),
+                    rhs: Box::new(self.parse_unary()?),
+                })
+            }
+            _ => Ok(self.parse_primary()?),
+        }
     }
 
     fn parse_primary(&mut self) -> Result<AST, String> {
