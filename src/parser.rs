@@ -16,7 +16,21 @@ impl Parser {
     }
 
     fn parse(&mut self) -> Result<AST, String> {
-        self.parse_add()
+        self.parse_function()
+    }
+
+    fn parse_function(&mut self) -> Result<AST, String> {
+        self.expect(&Token::Func)?;
+        let name = self.consume_ident()?;
+        self.expect(&Token::LParen)?;
+        self.expect(&Token::RParen)?;
+        self.expect(&Token::LBrace)?;
+        let body = self.parse_add()?;
+        self.expect(&Token::RBrace)?;
+        Ok(AST::Function {
+            name,
+            body: Box::new(body),
+        })
     }
 
     fn parse_add(&mut self) -> Result<AST, String> {
@@ -92,6 +106,15 @@ impl Parser {
 
     fn peek(&mut self) -> &Token {
         self.tokens.get(self.pos).unwrap_or(&Token::EOF)
+    }
+
+    fn consume_ident(&mut self) -> Result<String, String> {
+        let next_token = self.consume();
+        if let Token::Ident { name } = next_token {
+            Ok(name.to_string())
+        } else {
+            Err(format!("expected identifier, but got {:?}", next_token))
+        }
     }
 
     fn consume(&mut self) -> &Token {

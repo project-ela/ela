@@ -18,13 +18,21 @@ impl Codegen {
 
     fn generate(&mut self, ast: AST) -> Result<String, String> {
         self.gen(".intel_syntax noprefix");
-        self.gen(".global main");
-        self.gen("main:");
-        self.gen_expression(ast)?;
-        self.gen("  pop eax");
-        self.gen("  ret");
-
+        self.gen_function(ast)?;
         Ok(self.output.clone())
+    }
+
+    fn gen_function(&mut self, ast: AST) -> Result<(), String> {
+        if let AST::Function { name, body } = ast {
+            self.gen(&format!(".global {}", name));
+            self.gen_label(name);
+            self.gen_expression(*body)?;
+            self.gen("  pop eax");
+            self.gen("  ret");
+            Ok(())
+        } else {
+            Err(format!("expected function, but got {:?}", ast))
+        }
     }
 
     fn gen_expression(&mut self, ast: AST) -> Result<(), String> {
@@ -50,8 +58,13 @@ impl Codegen {
                 self.gen_expression(*rhs)?;
                 self.gen_div();
             }
+            x => return Err(format!("unexpected node: {:?}", x)),
         }
         Ok(())
+    }
+
+    fn gen_label(&mut self, name: String) {
+        self.gen(&format!("{}:", name));
     }
 
     fn gen_integer(&mut self, value: u32) {
