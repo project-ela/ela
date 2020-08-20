@@ -38,7 +38,10 @@ impl Tokenizer {
             }
             x if self.is_ident(x) => {
                 let name = self.consume_ident();
-                return Ok(Token::Ident { name });
+                return match find_keyword(&name) {
+                    Some(token) => Ok(token),
+                    None => Ok(Token::Ident { name }),
+                };
             }
             x => return Err(format!("unexpected char: {}", x)),
         };
@@ -97,5 +100,24 @@ impl Tokenizer {
 
     fn is_eof(&self) -> bool {
         self.pos >= self.source.len()
+    }
+}
+
+fn find_keyword(ident: &String) -> Option<Token> {
+    match ident.as_str() {
+        "push" => Some(Token::Push),
+        "pop" => Some(Token::Pop),
+        "add" => Some(Token::Add),
+        "sub" => Some(Token::Sub),
+        "imul" => Some(Token::IMul),
+        "idiv" => Some(Token::IDiv),
+        "xor" => Some(Token::Xor),
+        "ret" => Some(Token::Ret),
+
+        "eax" => Some(Token::Eax),
+        "ecx" => Some(Token::Ecx),
+        "edx" => Some(Token::Edx),
+
+        _ => None,
     }
 }
