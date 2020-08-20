@@ -1,0 +1,129 @@
+use crate::instruction::{Instruction, Opcode, Operand, Register};
+use crate::token::Token;
+
+struct Parser {
+    pos: usize,
+    tokens: Vec<Token>,
+}
+
+pub fn parse(tokens: Vec<Token>) -> Result<Vec<Instruction>, String> {
+    let mut parser = Parser::new(tokens);
+    parser.parse()
+}
+
+impl Parser {
+    fn new(tokens: Vec<Token>) -> Self {
+        Self { pos: 0, tokens }
+    }
+
+    fn parse(&mut self) -> Result<Vec<Instruction>, String> {
+        let mut insts = Vec::new();
+        loop {
+            if self.is_eof() {
+                break;
+            }
+
+            match self.peek() {
+                Token::Ident { name: _ } => {}
+                _ => {
+                    insts.push(self.parse_inst()?);
+                    continue;
+                }
+            }
+
+            let ident = self.consume_ident()?;
+
+            if ident.chars().next().unwrap() == '.' {
+                let arg = self.consume_ident()?;
+                insts.push(Instruction::PseudoOp { name: ident, arg });
+                continue;
+            }
+
+            if self.peek() == &Token::Colon {
+                self.consume();
+                insts.push(Instruction::Label { name: ident });
+                continue;
+            }
+        }
+        Ok(insts)
+    }
+
+    fn parse_inst(&mut self) -> Result<Instruction, String> {
+        let token = self.consume();
+        match token {
+            Token::Ret => {
+                let opcode = token_to_opcode(token)?;
+                Ok(Instruction::NullaryOp(opcode))
+            }
+            Token::Push | Token::Pop | Token::IMul | Token::IDiv => {
+                let opcode = token_to_opcode(token)?;
+                let operand1 = self.parse_operand()?;
+                Ok(Instruction::UnaryOp(opcode, operand1))
+            }
+            Token::Add | Token::Sub | Token::Xor => {
+                let opcode = token_to_opcode(token)?;
+                let operand1 = self.parse_operand()?;
+                self.expect(&Token::Commna)?;
+                let operand2 = self.parse_operand()?;
+                Ok(Instruction::BinaryOp(opcode, operand1, operand2))
+            }
+            x => Err(format!("unexpected token: {:?}", x)),
+        }
+    }
+
+    fn parse_operand(&mut self) -> Result<Operand, String> {
+        match self.consume() {
+            Token::Integer { value } => Ok(Operand::Immidiate { value: *value }),
+            Token::Eax => Ok(Operand::Register { reg: Register::Eax }),
+            Token::Ecx => Ok(Operand::Register { reg: Register::Ecx }),
+            Token::Edx => Ok(Operand::Register { reg: Register::Edx }),
+            x => Err(format!("unexpected token: {:?}", x)),
+        }
+    }
+
+    fn expect(&mut self, token: &Token) -> Result<&Token, String> {
+        let next_token = self.consume();
+        if next_token == token {
+            Ok(next_token)
+        } else {
+            Err(format!("expected {:?}, but got {:?}", token, next_token))
+        }
+    }
+
+    fn peek(&self) -> &Token {
+        self.tokens.get(self.pos).unwrap_or(&Token::EOF)
+    }
+
+    fn consume_ident(&mut self) -> Result<String, String> {
+        let next_token = self.consume();
+        if let Token::Ident { name } = next_token {
+            Ok(name.to_string())
+        } else {
+            Err(format!("expected identifier, but got {:?}", next_token))
+        }
+    }
+
+    fn consume(&mut self) -> &Token {
+        let token = self.tokens.get(self.pos).unwrap_or(&Token::EOF);
+        self.pos += 1;
+        token
+    }
+
+    fn is_eof(&mut self) -> bool {
+        self.peek() == &Token::EOF
+    }
+}
+
+fn token_to_opcode(token: &Token) -> Result<Opcode, String> {
+    match token {
+        Token::Push => Ok(Opcode::Push),
+        Token::Pop => Ok(Opcode::Pop),
+        Token::Add => Ok(Opcode::Add),
+        Token::Sub => Ok(Opcode::Sub),
+        Token::IMul => Ok(Opcode::IMul),
+        Token::IDiv => Ok(Opcode::IDiv),
+        Token::Xor => Ok(Opcode::Xor),
+        Token::Ret => Ok(Opcode::Ret),
+        x => Err(format!("unexpected token: {:?}", x)),
+    }
+}

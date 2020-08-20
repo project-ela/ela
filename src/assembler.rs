@@ -1,3 +1,4 @@
+use crate::parser::parse;
 use crate::tokenizer::tokenize;
 use std::fs;
 
@@ -16,6 +17,6 @@ pub fn assemble_to_file(input_file: String, output_file: String) -> Result<(), S
 }
 
 pub fn assemble(source: String) -> Result<Vec<u8>, String> {
-    tokenize(source)?;
+    tokenize(source).and_then(|tokens| parse(tokens))?;
     Ok(Vec::new())
 }
