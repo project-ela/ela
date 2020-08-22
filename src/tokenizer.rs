@@ -87,7 +87,7 @@ impl Tokenizer {
     }
 
     fn peek_char(&mut self) -> char {
-        self.source[self.pos..].chars().next().unwrap()
+        self.source[self.pos..].chars().next().unwrap_or(' ')
     }
 
     fn consume_char(&mut self) -> char {
