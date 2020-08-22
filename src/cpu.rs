@@ -23,7 +23,7 @@ pub struct CPU {
     eip: u32,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Register {
     EAX,
     ECX,
@@ -34,6 +34,13 @@ pub enum Register {
     ESI,
     EDI,
     EIP,
+}
+
+pub enum EFLAGS {
+    CF = 0,
+    ZF = 6,
+    SF = 7,
+    OF = 11,
 }
 
 impl From<u8> for Register {
@@ -85,14 +92,64 @@ impl CPU {
         }
     }
 
-    pub fn dump(&self) {
-        print!("EAX: {:4X}, ", self.eax);
-        print!("ECX: {:4X}, ", self.ecx);
-        print!("EDX: {:4X}, ", self.edx);
-        println!("EBX: {:4X}, ", self.ebx);
-        print!("ESP: {:4X}, ", self.esp);
-        print!("EBP: {:4X}, ", self.ebp);
-        print!("ESI: {:4X}, ", self.esi);
-        println!("EDI: {:4X}, ", self.edi);
+    pub fn get_eflag(&self, flag: EFLAGS) -> bool {
+        let bit = flag as u32;
+        let value = self.eflags & (1 << bit);
+        return value != 0;
+    }
+
+    pub fn set_eflag(&mut self, flag: EFLAGS, value: bool) {
+        let bit = flag as u32;
+        if value {
+            self.eflags |= 1 << bit;
+        } else {
+            self.eflags &= !(1 << bit);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_register(cpu: &CPU, expected: [u32; 8]) {
+        assert_eq!(cpu.get_register(Register::EAX), expected[0]);
+        assert_eq!(cpu.get_register(Register::ECX), expected[1]);
+        assert_eq!(cpu.get_register(Register::EDX), expected[2]);
+        assert_eq!(cpu.get_register(Register::EBX), expected[3]);
+        assert_eq!(cpu.get_register(Register::ESP), expected[4]);
+        assert_eq!(cpu.get_register(Register::EBP), expected[5]);
+        assert_eq!(cpu.get_register(Register::ESI), expected[6]);
+        assert_eq!(cpu.get_register(Register::EDI), expected[7]);
+    }
+
+    #[test]
+    fn registers() {
+        let mut cpu = CPU::new();
+        test_register(&cpu, [0, 0, 0, 0, 0, 0, 0, 0]);
+
+        cpu.set_register(Register::EAX, 0x42);
+        test_register(&cpu, [0x42, 0, 0, 0, 0, 0, 0, 0]);
+
+        cpu.set_register(Register::ECX, 0xdeadbeef);
+        test_register(&cpu, [0x42, 0xdeadbeef, 0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn eflags() {
+        let mut cpu = CPU::new();
+        assert_eq!(cpu.eflags, 0b00000000000000000000000000000000);
+
+        cpu.set_eflag(EFLAGS::SF, true);
+        assert_eq!(cpu.eflags, 0b00000000000000000000000010000000);
+        assert_eq!(cpu.get_eflag(EFLAGS::SF), true);
+
+        cpu.set_eflag(EFLAGS::CF, true);
+        assert_eq!(cpu.eflags, 0b00000000000000000000000010000001);
+        assert_eq!(cpu.get_eflag(EFLAGS::CF), true);
+
+        cpu.set_eflag(EFLAGS::SF, false);
+        assert_eq!(cpu.eflags, 0b00000000000000000000000000000001);
+        assert_eq!(cpu.get_eflag(EFLAGS::SF), false);
     }
 }

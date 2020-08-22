@@ -1,5 +1,5 @@
 use crate::cpu::Register::*;
-use crate::cpu::{Register, CPU};
+use crate::cpu::{Register, CPU, EFLAGS};
 use crate::instruction::RM;
 use std::fs::File;
 use std::io::Read;
@@ -129,13 +129,60 @@ impl Emulator {
         self.get_memory32(esp as usize)
     }
 
+    pub fn update_eflags_add(&mut self, lhs: u32, rhs: u32, result: u64) {
+        self.update_eflags_sub(lhs, rhs, result);
+    }
+
+    pub fn update_eflags_sub(&mut self, lhs: u32, rhs: u32, result: u64) {
+        let lhs_sign = lhs >> 31;
+        let rhs_sign = rhs >> 31;
+        let result_sign = (result >> 31) as u32;
+        self.cpu.set_eflag(EFLAGS::CF, (result >> 32) != 0);
+        self.cpu.set_eflag(EFLAGS::ZF, result == 0);
+        self.cpu.set_eflag(EFLAGS::SF, result_sign != 0);
+        self.cpu.set_eflag(
+            EFLAGS::OF,
+            (lhs_sign != rhs_sign) && (lhs_sign != result_sign),
+        );
+    }
+
+    pub fn update_eflags_xor(&mut self, result: u64) {
+        let result_sign = (result >> 31) as u32;
+        self.cpu.set_eflag(EFLAGS::CF, false);
+        self.cpu.set_eflag(EFLAGS::ZF, result != 0);
+        self.cpu.set_eflag(EFLAGS::SF, result_sign != 0);
+        self.cpu.set_eflag(EFLAGS::OF, false);
+    }
+
     pub fn dump(&self) {
         println!("----------------------------------------");
         println!("EIP: {:4X}", self.get_register(EIP));
         println!("Opcode: {:X}", self.get_code8(0));
 
-        self.cpu.dump();
+        self.dump_eflags();
+        self.dump_registers();
         self.dump_stack();
+    }
+
+    pub fn dump_eflags(&self) {
+        println!(
+            "flag: [Carry: {}, Zero: {}, Sign: {}, Overflow: {}]",
+            self.cpu.get_eflag(EFLAGS::CF),
+            self.cpu.get_eflag(EFLAGS::ZF),
+            self.cpu.get_eflag(EFLAGS::SF),
+            self.cpu.get_eflag(EFLAGS::OF),
+        );
+    }
+
+    pub fn dump_registers(&self) {
+        print!("EAX: {:4X}, ", self.cpu.get_register(Register::EAX));
+        print!("ECX: {:4X}, ", self.cpu.get_register(Register::ECX));
+        print!("EDX: {:4X}, ", self.cpu.get_register(Register::EDX));
+        println!("EBX: {:4X}, ", self.cpu.get_register(Register::EBX));
+        print!("ESP: {:4X}, ", self.cpu.get_register(Register::ESP));
+        print!("EBP: {:4X}, ", self.cpu.get_register(Register::EBP));
+        print!("ESI: {:4X}, ", self.cpu.get_register(Register::ESI));
+        println!("EDI: {:4X}, ", self.cpu.get_register(Register::EDI));
     }
 
     pub fn dump_stack(&self) {
@@ -144,5 +191,32 @@ impl Emulator {
             let esp = self.get_register(ESP) as usize;
             println!("0x{:4X}: {:X}", esp + 4 * i, self.get_memory32(esp + 4 * i));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_eflags_sub() {
+        let mut emu = Emulator::new(0x7c00, 0x7c00);
+        emu.update_eflags_sub(10, 5, 5);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::CF), false);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::ZF), false);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::SF), false);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::OF), false);
+
+        emu.update_eflags_sub(5, 10, (-5 as i64) as u64);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::CF), true);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::ZF), false);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::SF), true);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::OF), false);
+
+        emu.update_eflags_sub(10, 10, 0);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::CF), false);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::ZF), true);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::SF), false);
+        assert_eq!(emu.cpu.get_eflag(EFLAGS::OF), false);
     }
 }
