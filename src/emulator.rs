@@ -129,6 +129,10 @@ impl Emulator {
         self.get_memory32(esp as usize)
     }
 
+    pub fn update_eflags_add(&mut self, lhs: u32, rhs: u32, result: u64) {
+        self.update_eflags_sub(lhs, rhs, result);
+    }
+
     pub fn update_eflags_sub(&mut self, lhs: u32, rhs: u32, result: u64) {
         let lhs_sign = lhs >> 31;
         let rhs_sign = rhs >> 31;

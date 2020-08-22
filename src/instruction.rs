@@ -3,6 +3,8 @@ use crate::emulator::Emulator;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Opcode {
+    // 01 /r
+    AddRm32R32(RM, Register),
     // 29 /r
     SubRm32R32(RM, Register),
     // 2B /r
@@ -15,6 +17,8 @@ pub enum Opcode {
     PushImm8(u32),
     // 81 /5 id
     SubRm32Imm32(RM, u32),
+    // 83 /0 ib
+    AddRm32Imm32(RM, u32),
     // 89 /r
     MovRm32R32(RM, Register),
     // 8B /r
@@ -54,6 +58,12 @@ pub enum RM {
 impl Emulator {
     pub fn decode(&mut self) -> Opcode {
         match self.get_code8(0) {
+            0x01 => {
+                self.inc_eip(1);
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                Opcode::AddRm32R32(rm, Register::from(modrm.reg))
+            }
             0x29 => {
                 self.inc_eip(1);
                 let modrm = self.parse_modrm();
@@ -87,6 +97,16 @@ impl Emulator {
                 let rm = self.calc_rm(&modrm);
                 let value = self.get_code8(0);
                 Opcode::SubRm32Imm32(rm, value as u32)
+            }
+            0x83 => {
+                self.inc_eip(1);
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                let value = self.get_code8(0);
+                match modrm.reg {
+                    0b000 => Opcode::AddRm32Imm32(rm, value as u32),
+                    o => panic!("Not implemented: {:X}", o),
+                }
             }
             0x89 => {
                 self.inc_eip(1);
@@ -141,6 +161,13 @@ impl Emulator {
 
     pub fn exec(&mut self, opcode: Opcode) {
         match opcode {
+            Opcode::AddRm32R32(rm, reg) => {
+                let lhs = self.get_rm(rm);
+                let rhs = self.get_register(reg);
+                let result = (lhs as u64).wrapping_add(rhs as u64);
+                self.update_eflags_add(lhs, rhs, result);
+                self.set_rm(rm, result as u32);
+            }
             Opcode::SubRm32R32(rm, reg) => {
                 let lhs = self.get_rm(rm);
                 let rhs = self.get_register(reg);
@@ -165,6 +192,12 @@ impl Emulator {
                 let lhs = self.get_rm(rm);
                 let result = (lhs as u64).wrapping_sub(value as u64);
                 self.update_eflags_sub(lhs, value, result);
+                self.set_rm(rm, result as u32);
+            }
+            Opcode::AddRm32Imm32(rm, value) => {
+                let lhs = self.get_rm(rm);
+                let result = (lhs as u64).wrapping_add(value as u64);
+                self.update_eflags_add(lhs, value, result);
                 self.set_rm(rm, result as u32);
             }
             Opcode::MovRm32R32(rm, reg) => self.set_rm(rm, self.get_register(reg)),
