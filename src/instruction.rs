@@ -33,6 +33,10 @@ pub enum Opcode {
     MovRm32Imm32(RM, u32),
     // EB cb
     ShortJump(u8),
+    // F7 /5
+    IMulRm32(RM),
+    // F7 /7
+    IDivRm32(RM),
     // FF /6
     PushRm32(RM),
 }
@@ -149,6 +153,16 @@ impl Emulator {
                 // add 2 because of 'cb'
                 Opcode::ShortJump(diff + 2)
             }
+            0xF7 => {
+                self.inc_eip(1);
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                match modrm.reg {
+                    0b101 => Opcode::IMulRm32(rm),
+                    0b111 => Opcode::IDivRm32(rm),
+                    o => panic!("Not implemented: {:X}", o),
+            }
+            }
             0xFF => {
                 self.inc_eip(1);
                 let modrm = self.parse_modrm();
@@ -210,6 +224,20 @@ impl Emulator {
             Opcode::MovR32Imm32(reg, value) => self.set_register(reg, value),
             Opcode::MovRm32Imm32(rm, value) => self.set_rm(rm, value),
             Opcode::ShortJump(diff) => self.inc_eip(diff as u32),
+            Opcode::IMulRm32(rm) => {
+                let lhs = self.get_register(Register::EAX);
+                let rhs = self.get_rm(rm);
+                let result = lhs.wrapping_mul(rhs);
+                //TODO: update eflags
+                self.set_register(Register::EAX, result);
+            }
+            Opcode::IDivRm32(rm) => {
+                let lhs = self.get_register(Register::EAX);
+                let rhs = self.get_rm(rm);
+                let result = lhs.wrapping_div(rhs);
+                //TODO: update eflags
+                self.set_register(Register::EAX, result);
+            }
             Opcode::PushRm32(rm) => self.push32(self.get_rm(rm)),
         }
     }
