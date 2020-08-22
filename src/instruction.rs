@@ -33,6 +33,8 @@ pub enum Opcode {
     Nop,
     // B8+ rd id
     MovR32Imm32(Register, u32),
+    // C3
+    Ret,
     // C7 /0 id
     MovRm32Imm32(RM, u32),
     // EB cb
@@ -151,6 +153,7 @@ impl Emulator {
                 self.inc_eip(5);
                 Opcode::MovR32Imm32(Register::from(reg), value)
             }
+            0xC3 => Opcode::Ret,
             0xC7 => {
                 self.inc_eip(1);
                 let modrm = self.parse_modrm();
@@ -172,7 +175,7 @@ impl Emulator {
                     0b101 => Opcode::IMulRm32(rm),
                     0b111 => Opcode::IDivRm32(rm),
                     o => panic!("Not implemented: {:X}", o),
-            }
+                }
             }
             0xFF => {
                 self.inc_eip(1);
@@ -246,6 +249,11 @@ impl Emulator {
             }
             Opcode::Nop => {}
             Opcode::MovR32Imm32(reg, value) => self.set_register(reg, value),
+            Opcode::Ret => {
+                let value = self.get_register(Register::EAX);
+                println!("Exited with {}", value);
+                std::process::exit(0);
+            }
             Opcode::MovRm32Imm32(rm, value) => self.set_rm(rm, value),
             Opcode::ShortJump(diff) => self.inc_eip(diff as u32),
             Opcode::IMulRm32(rm) => {
