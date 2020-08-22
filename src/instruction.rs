@@ -9,6 +9,8 @@ pub enum Opcode {
     SubRm32R32(RM, Register),
     // 2B /r
     SubR32Rm32(Register, RM),
+    // 31 /r
+    XorR32Rm32(Register, RM),
     // 50+rd
     PushR32(Register),
     // 58
@@ -19,6 +21,8 @@ pub enum Opcode {
     SubRm32Imm32(RM, u32),
     // 83 /0 ib
     AddRm32Imm32(RM, u32),
+    // 83 /6 ib0xc5c9799fL
+    XorRm32Imm32(RM, u32),
     // 89 /r
     MovRm32R32(RM, Register),
     // 8B /r
@@ -80,6 +84,12 @@ impl Emulator {
                 let rm = self.calc_rm(&modrm);
                 Opcode::SubR32Rm32(Register::from(modrm.reg), rm)
             }
+            0x31 => {
+                self.inc_eip(1);
+                let modrm = self.parse_modrm();
+                let rm = self.calc_rm(&modrm);
+                Opcode::XorR32Rm32(Register::from(modrm.reg), rm)
+            }
             0x50..=0x57 => {
                 let reg = self.get_code8(0) - 0x50;
                 self.inc_eip(1);
@@ -109,6 +119,7 @@ impl Emulator {
                 let value = self.get_code8(0);
                 match modrm.reg {
                     0b000 => Opcode::AddRm32Imm32(rm, value as u32),
+                    0b110 => Opcode::XorRm32Imm32(rm, value as u32),
                     o => panic!("Not implemented: {:X}", o),
                 }
             }
@@ -196,6 +207,13 @@ impl Emulator {
                 self.update_eflags_sub(lhs, rhs, result);
                 self.set_register(reg, result as u32);
             }
+            Opcode::XorR32Rm32(reg, rm) => {
+                let lhs = self.get_register(reg);
+                let rhs = self.get_rm(rm);
+                let result = lhs ^ rhs;
+                self.update_eflags_xor(result as u64);
+                self.set_register(reg, result);
+            }
             Opcode::PushR32(reg) => self.push32(self.get_register(reg)),
             Opcode::PopR32(reg) => {
                 let value = self.pop32();
@@ -213,6 +231,12 @@ impl Emulator {
                 let result = (lhs as u64).wrapping_add(value as u64);
                 self.update_eflags_add(lhs, value, result);
                 self.set_rm(rm, result as u32);
+            }
+            Opcode::XorRm32Imm32(rm, value) => {
+                let lhs = self.get_rm(rm);
+                let result = lhs ^ value;
+                self.update_eflags_xor(result as u64);
+                self.set_rm(rm, result);
             }
             Opcode::MovRm32R32(rm, reg) => self.set_rm(rm, self.get_register(reg)),
             Opcode::MovR32Rm32(reg, rm) => self.set_register(reg, self.get_rm(rm)),

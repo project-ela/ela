@@ -146,6 +146,14 @@ impl Emulator {
         );
     }
 
+    pub fn update_eflags_xor(&mut self, result: u64) {
+        let result_sign = (result >> 31) as u32;
+        self.cpu.set_eflag(EFLAGS::CF, false);
+        self.cpu.set_eflag(EFLAGS::ZF, result != 0);
+        self.cpu.set_eflag(EFLAGS::SF, result_sign != 0);
+        self.cpu.set_eflag(EFLAGS::OF, false);
+    }
+
     pub fn dump(&self) {
         println!("----------------------------------------");
         println!("EIP: {:4X}", self.get_register(EIP));
