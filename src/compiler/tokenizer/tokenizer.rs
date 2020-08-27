@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::compiler::tokenizer::token::Token;
 
 pub struct Tokenizer {
     pos: usize,

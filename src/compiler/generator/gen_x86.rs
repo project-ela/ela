@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::compiler::parser::ast::{AstExpression, AstStatement, Function, Operator, Program};
 
 struct Codegen {
     output: String,

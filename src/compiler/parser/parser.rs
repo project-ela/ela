@@ -1,5 +1,8 @@
-use crate::ast::*;
-use crate::token::Token;
+use crate::compiler::{
+    parser::ast::{AstExpression, AstStatement, Function, Operator, Program},
+    tokenizer::token::Token,
+};
+
 pub struct Parser {
     pos: usize,
     tokens: Vec<Token>,
