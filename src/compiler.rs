@@ -1,6 +1,10 @@
-use crate::codegen::generate;
-use crate::parser::parse;
-use crate::tokenizer::tokenize;
+pub mod generator;
+pub mod parser;
+pub mod tokenizer;
+
+use crate::compiler::generator::gen_x86::generate;
+use crate::compiler::parser::parser::parse;
+use crate::compiler::tokenizer::tokenizer::tokenize;
 use std::fs;
 
 pub fn compile_to_file(input_file: String, output_file: String) -> Result<(), String> {
