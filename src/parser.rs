@@ -24,10 +24,10 @@ impl Parser {
     }
 
     fn parse_function(&mut self) -> Result<Function, String> {
-        self.expect(&Token::Func)?;
+        self.expect(Token::Func)?;
         let name = self.consume_ident()?;
-        self.expect(&Token::LParen)?;
-        self.expect(&Token::RParen)?;
+        self.expect(Token::LParen)?;
+        self.expect(Token::RParen)?;
         let body = self.parse_statement()?;
         Ok(Function { name, body })
     }
@@ -37,7 +37,7 @@ impl Parser {
             Token::LBrace => {
                 let mut stmts = Vec::new();
                 loop {
-                    if self.peek() == &Token::RBrace {
+                    if self.peek() == Token::RBrace {
                         self.consume();
                         break;
                     }
@@ -54,7 +54,7 @@ impl Parser {
             Token::If => {
                 let cond = self.parse_expression()?;
                 let then = self.parse_statement()?;
-                let els = if self.peek() == &Token::Else {
+                let els = if self.peek() == Token::Else {
                     self.consume();
                     let els = self.parse_statement()?;
                     Some(Box::new(els))
@@ -211,17 +211,17 @@ impl Parser {
 
     fn parse_primary(&mut self) -> Result<AstExpression, String> {
         match self.consume() {
-            Token::IntLiteral { value } => Ok(AstExpression::Integer { value: *value }),
+            Token::IntLiteral { value } => Ok(AstExpression::Integer { value: value }),
             Token::LParen => {
                 let expr = self.parse_add()?;
-                self.expect(&Token::RParen)?;
+                self.expect(Token::RParen)?;
                 Ok(expr)
             }
             x => Err(format!("unexpected token: {:?}", x)),
         }
     }
 
-    fn expect(&mut self, token: &Token) -> Result<&Token, String> {
+    fn expect(&mut self, token: Token) -> Result<Token, String> {
         let next_token = self.consume();
         if next_token == token {
             Ok(next_token)
@@ -230,12 +230,16 @@ impl Parser {
         }
     }
 
-    fn is_eof(&mut self) -> bool {
-        self.peek() == &Token::EOF
+    fn is_eof(&self) -> bool {
+        self.peek() == Token::EOF
     }
 
-    fn peek(&mut self) -> &Token {
-        self.tokens.get(self.pos).unwrap_or(&Token::EOF)
+    fn peek(&self) -> Token {
+        if self.pos >= self.tokens.len() {
+            Token::EOF
+        } else {
+            self.tokens.get(self.pos).unwrap().clone()
+        }
     }
 
     fn consume_ident(&mut self) -> Result<String, String> {
@@ -247,9 +251,9 @@ impl Parser {
         }
     }
 
-    fn consume(&mut self) -> &Token {
+    fn consume(&mut self) -> Token {
         let token = self.tokens.get(self.pos).unwrap_or(&Token::EOF);
         self.pos += 1;
-        token
+        token.clone()
     }
 }
