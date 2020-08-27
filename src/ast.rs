@@ -39,46 +39,25 @@ pub enum AstExpression {
         value: u32,
     },
 
-    Add {
+    BinaryOp {
+        op: Operator,
         lhs: Box<AstExpression>,
         rhs: Box<AstExpression>,
     },
-    Sub {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
-    Mul {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
-    Div {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
+}
 
-    Equal {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
-    NotEqual {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
+#[derive(Debug)]
+pub enum Operator {
+    Add,
+    Sub,
+    Mul,
+    Div,
 
-    Lt {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
-    Lte {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
-    Gt {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
-    Gte {
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
-    },
+    Equal,
+    NotEqual,
+
+    Lt,
+    Lte,
+    Gt,
+    Gte,
 }

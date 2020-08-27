@@ -71,55 +71,21 @@ impl Codegen {
     fn gen_expression(&mut self, ast: AstExpression) -> Result<(), String> {
         match ast {
             AstExpression::Integer { value } => self.gen_integer(value),
-            AstExpression::Add { lhs, rhs } => {
+            AstExpression::BinaryOp { op, lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
-                self.gen_add();
-            }
-            AstExpression::Sub { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_sub();
-            }
-            AstExpression::Mul { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_mul();
-            }
-            AstExpression::Div { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_div();
-            }
-            AstExpression::Equal { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_compare("sete");
-            }
-            AstExpression::NotEqual { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_compare("setne");
-            }
-            AstExpression::Lt { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_compare("setl");
-            }
-            AstExpression::Lte { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_compare("setle");
-            }
-            AstExpression::Gt { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_compare("setg");
-            }
-            AstExpression::Gte { lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
-                self.gen_compare("setge");
+                match op {
+                    Operator::Add => self.gen_add(),
+                    Operator::Sub => self.gen_sub(),
+                    Operator::Mul => self.gen_mul(),
+                    Operator::Div => self.gen_div(),
+                    Operator::Equal => self.gen_compare("sete"),
+                    Operator::NotEqual => self.gen_compare("setne"),
+                    Operator::Lt => self.gen_compare("setl"),
+                    Operator::Lte => self.gen_compare("setle"),
+                    Operator::Gt => self.gen_compare("setg"),
+                    Operator::Gte => self.gen_compare("setge"),
+                }
             }
         }
         Ok(())

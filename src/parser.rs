@@ -10,6 +10,17 @@ pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
     parser.parse()
 }
 
+macro_rules! new_binop {
+    ($self: expr, $op: expr, $lhs: expr, $rhs: expr) => {{
+        $self.consume();
+        AstExpression::BinaryOp {
+            op: $op,
+            lhs: Box::new($lhs),
+            rhs: Box::new($rhs),
+        }
+    }};
+}
+
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
         Self { pos: 0, tokens }
@@ -80,18 +91,10 @@ impl Parser {
         loop {
             match self.peek() {
                 Token::Equal => {
-                    self.consume();
-                    node = AstExpression::Equal {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_relation()?),
-                    }
+                    node = new_binop!(self, Operator::Equal, node, self.parse_relation()?)
                 }
                 Token::NotEqual => {
-                    self.consume();
-                    node = AstExpression::NotEqual {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_relation()?),
-                    }
+                    node = new_binop!(self, Operator::NotEqual, node, self.parse_relation()?)
                 }
                 _ => break,
             }
@@ -104,34 +107,10 @@ impl Parser {
         let mut node = self.parse_add()?;
         loop {
             match self.peek() {
-                Token::Lt => {
-                    self.consume();
-                    node = AstExpression::Lt {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_add()?),
-                    }
-                }
-                Token::Lte => {
-                    self.consume();
-                    node = AstExpression::Lte {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_add()?),
-                    }
-                }
-                Token::Gt => {
-                    self.consume();
-                    node = AstExpression::Gt {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_add()?),
-                    }
-                }
-                Token::Gte => {
-                    self.consume();
-                    node = AstExpression::Gte {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_add()?),
-                    }
-                }
+                Token::Lt => node = new_binop!(self, Operator::Lt, node, self.parse_add()?),
+                Token::Lte => node = new_binop!(self, Operator::Lte, node, self.parse_add()?),
+                Token::Gt => node = new_binop!(self, Operator::Gt, node, self.parse_add()?),
+                Token::Gte => node = new_binop!(self, Operator::Gte, node, self.parse_add()?),
                 _ => break,
             }
         }
@@ -143,20 +122,8 @@ impl Parser {
         let mut node = self.parse_mul()?;
         loop {
             match self.peek() {
-                Token::Plus => {
-                    self.consume();
-                    node = AstExpression::Add {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_mul()?),
-                    }
-                }
-                Token::Minus => {
-                    self.consume();
-                    node = AstExpression::Sub {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_mul()?),
-                    }
-                }
+                Token::Plus => node = new_binop!(self, Operator::Add, node, self.parse_mul()?),
+                Token::Minus => node = new_binop!(self, Operator::Sub, node, self.parse_mul()?),
                 _ => break,
             }
         }
@@ -169,19 +136,9 @@ impl Parser {
         loop {
             match self.peek() {
                 Token::Asterisk => {
-                    self.consume();
-                    node = AstExpression::Mul {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_unary()?),
-                    }
+                    node = new_binop!(self, Operator::Mul, node, self.parse_unary()?)
                 }
-                Token::Slash => {
-                    self.consume();
-                    node = AstExpression::Div {
-                        lhs: Box::new(node),
-                        rhs: Box::new(self.parse_unary()?),
-                    }
-                }
+                Token::Slash => node = new_binop!(self, Operator::Div, node, self.parse_unary()?),
                 _ => break,
             }
         }
@@ -191,20 +148,18 @@ impl Parser {
 
     fn parse_unary(&mut self) -> Result<AstExpression, String> {
         match self.peek() {
-            Token::Plus => {
-                self.consume();
-                Ok(AstExpression::Add {
-                    lhs: Box::new(AstExpression::Integer { value: 0 }),
-                    rhs: Box::new(self.parse_unary()?),
-                })
-            }
-            Token::Minus => {
-                self.consume();
-                Ok(AstExpression::Sub {
-                    lhs: Box::new(AstExpression::Integer { value: 0 }),
-                    rhs: Box::new(self.parse_unary()?),
-                })
-            }
+            Token::Plus => Ok(new_binop!(
+                self,
+                Operator::Add,
+                AstExpression::Integer { value: 0 },
+                self.parse_unary()?
+            )),
+            Token::Minus => Ok(new_binop!(
+                self,
+                Operator::Sub,
+                AstExpression::Integer { value: 0 },
+                self.parse_unary()?
+            )),
             _ => Ok(self.parse_primary()?),
         }
     }
