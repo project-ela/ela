@@ -1,13 +1,13 @@
-use crate::ast::AST;
+use crate::ast::*;
 
 struct Codegen {
     output: String,
     label_num: u32,
 }
 
-pub fn generate(ast: AST) -> Result<String, String> {
+pub fn generate(program: Program) -> Result<String, String> {
     let mut codegen = Codegen::new();
-    codegen.generate(ast)
+    codegen.generate(program)
 }
 
 impl Codegen {
@@ -18,38 +18,36 @@ impl Codegen {
         }
     }
 
-    fn generate(&mut self, ast: AST) -> Result<String, String> {
+    fn generate(&mut self, program: Program) -> Result<String, String> {
         self.gen(".intel_syntax noprefix");
-        self.gen_function(ast)?;
+        for function in program.functions {
+            self.gen_function(function)?;
+        }
         Ok(self.output.clone())
     }
 
-    fn gen_function(&mut self, ast: AST) -> Result<(), String> {
-        if let AST::Function { name, body } = ast {
-            self.gen(&format!(".global {}", name));
-            self.gen_label(name);
-            self.gen_statement(*body)?;
-            Ok(())
-        } else {
-            Err(format!("expected function, but got {:?}", ast))
-        }
+    fn gen_function(&mut self, function: Function) -> Result<(), String> {
+        self.gen(&format!(".global {}", function.name));
+        self.gen_label(function.name);
+        self.gen_statement(function.body)?;
+        Ok(())
     }
 
-    fn gen_statement(&mut self, ast: AST) -> Result<(), String> {
+    fn gen_statement(&mut self, ast: AstStatement) -> Result<(), String> {
         match ast {
-            AST::Block { stmts } => {
+            AstStatement::Block { stmts } => {
                 for stmt in stmts {
                     self.gen_statement(stmt)?;
                 }
                 Ok(())
             }
-            AST::Return { value } => {
+            AstStatement::Return { value } => {
                 self.gen_expression(*value)?;
                 self.gen("  pop eax");
                 self.gen("  ret");
                 Ok(())
             }
-            AST::If { cond, then, els } => {
+            AstStatement::If { cond, then, els } => {
                 self.gen_expression(*cond)?;
                 self.gen("  pop eax");
                 self.gen("  cmp eax, 0");
@@ -67,64 +65,62 @@ impl Codegen {
                 self.gen_label(label_merge);
                 Ok(())
             }
-            x => return Err(format!("unexpected node: {:?}", x)),
         }
     }
 
-    fn gen_expression(&mut self, ast: AST) -> Result<(), String> {
+    fn gen_expression(&mut self, ast: AstExpression) -> Result<(), String> {
         match ast {
-            AST::Integer { value } => self.gen_integer(value),
-            AST::Add { lhs, rhs } => {
+            AstExpression::Integer { value } => self.gen_integer(value),
+            AstExpression::Add { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_add();
             }
-            AST::Sub { lhs, rhs } => {
+            AstExpression::Sub { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_sub();
             }
-            AST::Mul { lhs, rhs } => {
+            AstExpression::Mul { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_mul();
             }
-            AST::Div { lhs, rhs } => {
+            AstExpression::Div { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_div();
             }
-            AST::Equal { lhs, rhs } => {
+            AstExpression::Equal { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_compare("sete");
             }
-            AST::NotEqual { lhs, rhs } => {
+            AstExpression::NotEqual { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_compare("setne");
             }
-            AST::Lt { lhs, rhs } => {
+            AstExpression::Lt { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_compare("setl");
             }
-            AST::Lte { lhs, rhs } => {
+            AstExpression::Lte { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_compare("setle");
             }
-            AST::Gt { lhs, rhs } => {
+            AstExpression::Gt { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_compare("setg");
             }
-            AST::Gte { lhs, rhs } => {
+            AstExpression::Gte { lhs, rhs } => {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 self.gen_compare("setge");
             }
-            x => return Err(format!("unexpected node: {:?}", x)),
         }
         Ok(())
     }

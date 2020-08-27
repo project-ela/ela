@@ -1,66 +1,84 @@
 #[derive(Debug)]
-pub enum AST {
-    Function {
-        name: String,
-        body: Box<AST>,
-    },
+pub struct Program {
+    pub functions: Vec<Function>,
+}
+
+impl Program {
+    pub fn new() -> Self {
+        Self {
+            functions: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Function {
+    pub name: String,
+    pub body: AstStatement,
+}
+
+#[derive(Debug)]
+pub enum AstStatement {
     Block {
-        stmts: Vec<AST>,
+        stmts: Vec<AstStatement>,
     },
 
     Return {
-        value: Box<AST>,
+        value: Box<AstExpression>,
     },
     If {
-        cond: Box<AST>,
-        then: Box<AST>,
-        els: Option<Box<AST>>,
+        cond: Box<AstExpression>,
+        then: Box<AstStatement>,
+        els: Option<Box<AstStatement>>,
     },
+}
 
+#[derive(Debug)]
+pub enum AstExpression {
     Integer {
         value: u32,
     },
 
     Add {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
     Sub {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
     Mul {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
     Div {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
 
     Equal {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
     NotEqual {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
 
     Lt {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
     Lte {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
     Gt {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
     Gte {
-        lhs: Box<AST>,
-        rhs: Box<AST>,
+        lhs: Box<AstExpression>,
+        rhs: Box<AstExpression>,
     },
 }

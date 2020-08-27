@@ -1,11 +1,11 @@
-use crate::ast::AST;
+use crate::ast::*;
 use crate::token::Token;
 pub struct Parser {
     pos: usize,
     tokens: Vec<Token>,
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<AST, String> {
+pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -15,23 +15,24 @@ impl Parser {
         Self { pos: 0, tokens }
     }
 
-    fn parse(&mut self) -> Result<AST, String> {
-        self.parse_function()
+    fn parse(&mut self) -> Result<Program, String> {
+        let mut program = Program::new();
+        while !self.is_eof() {
+            program.functions.push(self.parse_function()?);
+        }
+        Ok(program)
     }
 
-    fn parse_function(&mut self) -> Result<AST, String> {
+    fn parse_function(&mut self) -> Result<Function, String> {
         self.expect(&Token::Func)?;
         let name = self.consume_ident()?;
         self.expect(&Token::LParen)?;
         self.expect(&Token::RParen)?;
         let body = self.parse_statement()?;
-        Ok(AST::Function {
-            name,
-            body: Box::new(body),
-        })
+        Ok(Function { name, body })
     }
 
-    fn parse_statement(&mut self) -> Result<AST, String> {
+    fn parse_statement(&mut self) -> Result<AstStatement, String> {
         match self.consume() {
             Token::LBrace => {
                 let mut stmts = Vec::new();
@@ -42,11 +43,11 @@ impl Parser {
                     }
                     stmts.push(self.parse_statement()?);
                 }
-                Ok(AST::Block { stmts })
+                Ok(AstStatement::Block { stmts })
             }
             Token::Return => {
                 let value = self.parse_expression()?;
-                Ok(AST::Return {
+                Ok(AstStatement::Return {
                     value: Box::new(value),
                 })
             }
@@ -60,7 +61,7 @@ impl Parser {
                 } else {
                     None
                 };
-                Ok(AST::If {
+                Ok(AstStatement::If {
                     cond: Box::new(cond),
                     then: Box::new(then),
                     els,
@@ -70,24 +71,24 @@ impl Parser {
         }
     }
 
-    fn parse_expression(&mut self) -> Result<AST, String> {
+    fn parse_expression(&mut self) -> Result<AstExpression, String> {
         self.parse_equal()
     }
 
-    fn parse_equal(&mut self) -> Result<AST, String> {
+    fn parse_equal(&mut self) -> Result<AstExpression, String> {
         let mut node = self.parse_relation()?;
         loop {
             match self.peek() {
                 Token::Equal => {
                     self.consume();
-                    node = AST::Equal {
+                    node = AstExpression::Equal {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_relation()?),
                     }
                 }
                 Token::NotEqual => {
                     self.consume();
-                    node = AST::NotEqual {
+                    node = AstExpression::NotEqual {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_relation()?),
                     }
@@ -99,34 +100,34 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_relation(&mut self) -> Result<AST, String> {
+    fn parse_relation(&mut self) -> Result<AstExpression, String> {
         let mut node = self.parse_add()?;
         loop {
             match self.peek() {
                 Token::Lt => {
                     self.consume();
-                    node = AST::Lt {
+                    node = AstExpression::Lt {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_add()?),
                     }
                 }
                 Token::Lte => {
                     self.consume();
-                    node = AST::Lte {
+                    node = AstExpression::Lte {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_add()?),
                     }
                 }
                 Token::Gt => {
                     self.consume();
-                    node = AST::Gt {
+                    node = AstExpression::Gt {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_add()?),
                     }
                 }
                 Token::Gte => {
                     self.consume();
-                    node = AST::Gte {
+                    node = AstExpression::Gte {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_add()?),
                     }
@@ -138,20 +139,20 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_add(&mut self) -> Result<AST, String> {
+    fn parse_add(&mut self) -> Result<AstExpression, String> {
         let mut node = self.parse_mul()?;
         loop {
             match self.peek() {
                 Token::Plus => {
                     self.consume();
-                    node = AST::Add {
+                    node = AstExpression::Add {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_mul()?),
                     }
                 }
                 Token::Minus => {
                     self.consume();
-                    node = AST::Sub {
+                    node = AstExpression::Sub {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_mul()?),
                     }
@@ -163,20 +164,20 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_mul(&mut self) -> Result<AST, String> {
+    fn parse_mul(&mut self) -> Result<AstExpression, String> {
         let mut node = self.parse_unary()?;
         loop {
             match self.peek() {
                 Token::Asterisk => {
                     self.consume();
-                    node = AST::Mul {
+                    node = AstExpression::Mul {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_unary()?),
                     }
                 }
                 Token::Slash => {
                     self.consume();
-                    node = AST::Div {
+                    node = AstExpression::Div {
                         lhs: Box::new(node),
                         rhs: Box::new(self.parse_unary()?),
                     }
@@ -188,19 +189,19 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_unary(&mut self) -> Result<AST, String> {
+    fn parse_unary(&mut self) -> Result<AstExpression, String> {
         match self.peek() {
             Token::Plus => {
                 self.consume();
-                Ok(AST::Add {
-                    lhs: Box::new(AST::Integer { value: 0 }),
+                Ok(AstExpression::Add {
+                    lhs: Box::new(AstExpression::Integer { value: 0 }),
                     rhs: Box::new(self.parse_unary()?),
                 })
             }
             Token::Minus => {
                 self.consume();
-                Ok(AST::Sub {
-                    lhs: Box::new(AST::Integer { value: 0 }),
+                Ok(AstExpression::Sub {
+                    lhs: Box::new(AstExpression::Integer { value: 0 }),
                     rhs: Box::new(self.parse_unary()?),
                 })
             }
@@ -208,9 +209,9 @@ impl Parser {
         }
     }
 
-    fn parse_primary(&mut self) -> Result<AST, String> {
+    fn parse_primary(&mut self) -> Result<AstExpression, String> {
         match self.consume() {
-            Token::IntLiteral { value } => Ok(AST::Integer { value: *value }),
+            Token::IntLiteral { value } => Ok(AstExpression::Integer { value: *value }),
             Token::LParen => {
                 let expr = self.parse_add()?;
                 self.expect(&Token::RParen)?;
@@ -227,6 +228,10 @@ impl Parser {
         } else {
             Err(format!("expected {:?}, but got {:?}", token, next_token))
         }
+    }
+
+    fn is_eof(&mut self) -> bool {
+        self.peek() == &Token::EOF
     }
 
     fn peek(&mut self) -> &Token {
