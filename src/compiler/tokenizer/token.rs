@@ -8,6 +8,10 @@ pub enum Token {
     If,
     Else,
 
+    And,
+    Or,
+    Xor,
+
     Equal,
     NotEqual,
 

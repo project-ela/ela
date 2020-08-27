@@ -36,6 +36,14 @@ try 1 "func main() { return ((1)) }"
 try 2 "func main() { return --+---++-2 }"
 try 3 "func main() { return -3 * -1 }"
 
+try 0 "func main() { return 1 & 0 }"
+try 1 "func main() { return 1 & 1 }"
+try 0 "func main() { return 0 | 0 }"
+try 1 "func main() { return 1 | 0 }"
+try 0 "func main() { return 1 ^ 1 }"
+try 1 "func main() { return 1 ^ 0 }"
+
+
 try 0 "func main() { return 0 == 1 }"
 try 1 "func main() { return 1 == 1 }"
 try 1 "func main() { return 0 != 1 }"

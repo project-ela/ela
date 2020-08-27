@@ -43,6 +43,9 @@ impl Tokenizer {
             '-' => Ok(Token::Minus),
             '*' => Ok(Token::Asterisk),
             '/' => Ok(Token::Slash),
+            '&' => Ok(Token::And),
+            '|' => Ok(Token::Or),
+            '^' => Ok(Token::Xor),
             '=' => {
                 self.consume_char();
                 match self.peek_char() {

@@ -75,10 +75,13 @@ impl Codegen {
                 self.gen_expression(*lhs)?;
                 self.gen_expression(*rhs)?;
                 match op {
-                    Operator::Add => self.gen_add(),
-                    Operator::Sub => self.gen_sub(),
+                    Operator::Add => self.gen_binop("add"),
+                    Operator::Sub => self.gen_binop("sub"),
                     Operator::Mul => self.gen_mul(),
                     Operator::Div => self.gen_div(),
+                    Operator::And => self.gen_binop("and"),
+                    Operator::Or => self.gen_binop("or"),
+                    Operator::Xor => self.gen_binop("xor"),
                     Operator::Equal => self.gen_compare("sete"),
                     Operator::NotEqual => self.gen_compare("setne"),
                     Operator::Lt => self.gen_compare("setl"),
@@ -99,20 +102,6 @@ impl Codegen {
         self.gen(&format!("  push {}", value));
     }
 
-    fn gen_add(&mut self) {
-        self.gen("  pop ecx");
-        self.gen("  pop eax");
-        self.gen("  add eax, ecx");
-        self.gen("  push eax");
-    }
-
-    fn gen_sub(&mut self) {
-        self.gen("  pop ecx");
-        self.gen("  pop eax");
-        self.gen("  sub eax, ecx");
-        self.gen("  push eax");
-    }
-
     fn gen_mul(&mut self) {
         self.gen("  pop ecx");
         self.gen("  pop eax");
@@ -125,6 +114,13 @@ impl Codegen {
         self.gen("  pop eax");
         self.gen("  xor edx, edx");
         self.gen("  idiv ecx");
+        self.gen("  push eax");
+    }
+
+    fn gen_binop(&mut self, op: &str) {
+        self.gen("  pop ecx");
+        self.gen("  pop eax");
+        self.gen(format!("  {} eax, ecx", op).as_str());
         self.gen("  push eax");
     }
 
