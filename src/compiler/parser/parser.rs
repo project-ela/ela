@@ -86,7 +86,43 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Result<AstExpression, String> {
-        self.parse_equal()
+        self.parse_bitor()
+    }
+
+    fn parse_bitor(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_bitxor()?;
+        loop {
+            match self.peek() {
+                Token::Or => node = new_binop!(self, Operator::Or, node, self.parse_bitxor()?),
+                _ => break,
+            }
+        }
+
+        Ok(node)
+    }
+
+    fn parse_bitxor(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_bitand()?;
+        loop {
+            match self.peek() {
+                Token::Xor => node = new_binop!(self, Operator::Xor, node, self.parse_bitand()?),
+                _ => break,
+            }
+        }
+
+        Ok(node)
+    }
+
+    fn parse_bitand(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_equal()?;
+        loop {
+            match self.peek() {
+                Token::And => node = new_binop!(self, Operator::And, node, self.parse_equal()?),
+                _ => break,
+            }
+        }
+
+        Ok(node)
     }
 
     fn parse_equal(&mut self) -> Result<AstExpression, String> {

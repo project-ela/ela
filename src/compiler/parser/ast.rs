@@ -53,6 +53,10 @@ pub enum Operator {
     Mul,
     Div,
 
+    And,
+    Or,
+    Xor,
+
     Equal,
     NotEqual,
 
