@@ -1,5 +1,8 @@
 use crate::compiler::{
-    parser::ast::{AstExpression, AstStatement, Context, Function, Operator, Program},
+    parser::{
+        ast::{AstExpression, AstStatement, Function, Operator, Program},
+        context::Context,
+    },
     tokenizer::token::Token,
 };
 
