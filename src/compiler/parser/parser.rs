@@ -47,6 +47,7 @@ impl Parser {
         self.expect(Token::LParen)?;
         self.expect(Token::RParen)?;
         let body = self.parse_statement(ctx)?;
+        ctx.add_function(&name);
         Ok(Function {
             name,
             body,
