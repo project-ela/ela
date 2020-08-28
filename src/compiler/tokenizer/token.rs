@@ -33,5 +33,7 @@ pub enum Token {
     LBrace,
     RBrace,
 
+    Colon,
+
     EOF,
 }

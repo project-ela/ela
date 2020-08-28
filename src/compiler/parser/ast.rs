@@ -1,4 +1,4 @@
-use crate::compiler::parser::context::Context;
+use crate::compiler::parser::context::{Context, Type};
 
 #[derive(Debug)]
 pub struct Program {
@@ -28,6 +28,7 @@ pub enum AstStatement {
 
     Declare {
         name: String,
+        typ: Type,
         value: Box<AstExpression>,
     },
     Assign {

@@ -1,7 +1,7 @@
 use crate::compiler::{
     parser::{
         ast::{AstExpression, AstStatement, Function, Operator, Program},
-        context::Context,
+        context::{Context, Type},
     },
     tokenizer::token::Token,
 };
@@ -35,6 +35,8 @@ impl Parser {
     fn parse(&mut self) -> Result<Program, String> {
         let mut program = Program::new();
         let mut ctx = Context::new();
+        ctx.add_type(&"int".to_string(), Type::Int);
+        ctx.add_type(&"bool".to_string(), Type::Bool);
         while !self.is_eof() {
             program.functions.push(self.parse_function(&mut ctx)?);
         }
@@ -46,8 +48,10 @@ impl Parser {
         let name = self.consume_ident()?;
         self.expect(Token::LParen)?;
         self.expect(Token::RParen)?;
+        self.expect(Token::Colon)?;
+        let typ = self.consume_type(ctx)?;
         let body = self.parse_statement(ctx)?;
-        ctx.add_function(&name);
+        ctx.add_function(&name, &typ);
         Ok(Function {
             name,
             body,
@@ -70,11 +74,14 @@ impl Parser {
             }
             Token::Var => {
                 let name = self.consume_ident()?;
+                self.expect(Token::Colon)?;
+                let typ = self.consume_type(ctx)?;
                 self.expect(Token::Assign)?;
                 let value = self.parse_expression(ctx)?;
-                ctx.add_variable(&name);
+                ctx.add_variable(&name, &typ);
                 Ok(AstStatement::Declare {
                     name,
+                    typ,
                     value: Box::new(value),
                 })
             }
@@ -279,6 +286,14 @@ impl Parser {
             Ok(name.to_string())
         } else {
             Err(format!("expected identifier, but got {:?}", next_token))
+        }
+    }
+
+    fn consume_type(&mut self, ctx: &mut Context) -> Result<Type, String> {
+        let typ_name = self.consume_ident()?;
+        match ctx.find_type(&typ_name) {
+            Some(typ) => Ok(typ.clone()),
+            None => Err(format!("undefined type: {}", typ_name)),
         }
     }
 
