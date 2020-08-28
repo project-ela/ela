@@ -4,9 +4,12 @@ pub enum Token {
     Ident { name: String },
 
     Func,
+    Var,
     Return,
     If,
     Else,
+
+    Assign,
 
     And,
     Or,

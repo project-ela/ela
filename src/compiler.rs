@@ -23,5 +23,5 @@ pub fn compile_to_file(input_file: String, output_file: String) -> Result<(), St
 pub fn compile(source: String) -> Result<String, String> {
     tokenize(source)
         .and_then(|tokens| parse(tokens))
-        .and_then(|ast| generate(ast))
+        .and_then(|program| generate(program))
 }
