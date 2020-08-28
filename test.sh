@@ -106,3 +106,10 @@ try 15 "func main() {
   var b = 5
   return a + b
 }"
+
+try 0 "func main() {
+  var a = 10
+  var b = a
+  a = -10
+  return a + b
+}"

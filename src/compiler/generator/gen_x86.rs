@@ -43,7 +43,7 @@ impl Codegen {
                     self.gen_statement(stmt, function)?;
                 }
             }
-            AstStatement::Declare { name, value } => {
+            AstStatement::Declare { name, value } | AstStatement::Assign { name, value } => {
                 self.gen_expression(&*value, function)?;
                 let variable = function.ctx.find_variable(&name).unwrap();
                 self.gen("  pop eax");

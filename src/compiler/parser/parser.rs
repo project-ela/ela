@@ -74,6 +74,18 @@ impl Parser {
                     value: Box::new(value),
                 })
             }
+            Token::Ident { name } => {
+                if ctx.find_variable(&name).is_none() {
+                    return Err(format!("undefined variable: {}", name));
+                }
+
+                self.expect(Token::Assign)?;
+                let value = self.parse_expression(ctx)?;
+                Ok(AstStatement::Assign {
+                    name,
+                    value: Box::new(value),
+                })
+            }
             Token::Return => {
                 let value = self.parse_expression(ctx)?;
                 Ok(AstStatement::Return {
