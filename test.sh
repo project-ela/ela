@@ -95,3 +95,14 @@ try 1 "func main() {
     return 0
   }
 }"
+
+try 10 "func main() {
+  var a = 10
+  return a
+}"
+
+try 15 "func main() {
+  var a = 10
+  var b = 5
+  return a + b
+}"

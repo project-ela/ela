@@ -28,52 +28,64 @@ impl Codegen {
 
     fn gen_function(&mut self, function: Function) -> Result<(), String> {
         self.gen(&format!(".global {}", function.name));
-        self.gen_label(function.name);
-        self.gen_statement(function.body)?;
+        self.gen_label(&function.name);
+        self.gen("  push ebp");
+        self.gen("  mov ebp, esp");
+        self.gen(format!("  sub ebp, {}", function.ctx.cur_offset).as_str());
+        self.gen_statement(&function.body, &function)?;
         Ok(())
     }
 
-    fn gen_statement(&mut self, ast: AstStatement) -> Result<(), String> {
+    fn gen_statement(&mut self, ast: &AstStatement, function: &Function) -> Result<(), String> {
         match ast {
             AstStatement::Block { stmts } => {
                 for stmt in stmts {
-                    self.gen_statement(stmt)?;
+                    self.gen_statement(stmt, function)?;
                 }
-                Ok(())
+            }
+            AstStatement::Declare { name, value } => {
+                self.gen_expression(&*value, function)?;
+                let variable = function.ctx.find_variable(&name).unwrap();
+                self.gen("  pop eax");
+                self.gen(format!("  mov [ebp-{}], eax", variable.offset).as_str());
             }
             AstStatement::Return { value } => {
-                self.gen_expression(*value)?;
+                self.gen_expression(&*value, function)?;
                 self.gen("  pop eax");
+                self.gen("  pop ebp");
                 self.gen("  ret");
-                Ok(())
             }
             AstStatement::If { cond, then, els } => {
-                self.gen_expression(*cond)?;
+                self.gen_expression(&*cond, function)?;
                 self.gen("  pop eax");
                 self.gen("  cmp eax, 0");
                 let label_else = self.next_label();
                 let label_merge = self.next_label();
                 self.gen(format!("  je {}", label_else).as_str());
 
-                self.gen_statement(*then)?;
+                self.gen_statement(&*then, function)?;
                 self.gen(format!("  jmp {}", label_merge).as_str());
 
-                self.gen_label(label_else);
+                self.gen_label(&label_else);
                 if let Some(els) = els {
-                    self.gen_statement(*els)?;
+                    self.gen_statement(&*els, function)?;
                 }
-                self.gen_label(label_merge);
-                Ok(())
+                self.gen_label(&label_merge);
             }
         }
+        Ok(())
     }
 
-    fn gen_expression(&mut self, ast: AstExpression) -> Result<(), String> {
+    fn gen_expression(&mut self, ast: &AstExpression, function: &Function) -> Result<(), String> {
         match ast {
-            AstExpression::Integer { value } => self.gen_integer(value),
+            AstExpression::Integer { value } => self.gen_integer(*value),
+            AstExpression::Ident { name } => {
+                let variable = function.ctx.find_variable(&name).unwrap();
+                self.gen(format!("  push [ebp-{}]", variable.offset).as_str());
+            }
             AstExpression::BinaryOp { op, lhs, rhs } => {
-                self.gen_expression(*lhs)?;
-                self.gen_expression(*rhs)?;
+                self.gen_expression(&*lhs, function)?;
+                self.gen_expression(&*rhs, function)?;
                 match op {
                     Operator::Add => self.gen_binop("add"),
                     Operator::Sub => self.gen_binop("sub"),
@@ -94,7 +106,7 @@ impl Codegen {
         Ok(())
     }
 
-    fn gen_label(&mut self, name: String) {
+    fn gen_label(&mut self, name: &String) {
         self.gen(&format!("{}:", name));
     }
 

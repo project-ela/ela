@@ -53,7 +53,7 @@ impl Tokenizer {
                         self.consume_char();
                         Ok(Token::Equal)
                     }
-                    x => Err(format!("expected '=', but got '{}'", x)),
+                    _ => return Ok(Token::Assign),
                 }
             }
             '!' => {
@@ -148,6 +148,7 @@ impl Tokenizer {
 fn find_keyword(ident: &String) -> Option<Token> {
     match ident.as_str() {
         "func" => Some(Token::Func),
+        "var" => Some(Token::Var),
         "return" => Some(Token::Return),
         "if" => Some(Token::If),
         "else" => Some(Token::Else),
