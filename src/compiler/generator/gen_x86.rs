@@ -31,7 +31,7 @@ impl Codegen {
         self.gen_label(&function.name);
         self.gen("  push ebp");
         self.gen("  mov ebp, esp");
-        self.gen(format!("  sub ebp, {}", function.ctx.cur_offset).as_str());
+        self.gen(format!("  sub esp, {}", function.ctx.cur_offset).as_str());
         self.gen_statement(&function.body, &function)?;
         Ok(())
     }
@@ -52,6 +52,7 @@ impl Codegen {
             AstStatement::Return { value } => {
                 self.gen_expression(&*value, function)?;
                 self.gen("  pop eax");
+                self.gen("  mov esp, ebp");
                 self.gen("  pop ebp");
                 self.gen("  ret");
             }
