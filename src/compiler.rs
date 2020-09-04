@@ -1,5 +1,4 @@
-use crate::frontend::lexer::tokenize;
-use crate::frontend::parser::parse;
+use crate::frontend::{lexer, parser, pass::symbol_pass};
 use std::fs;
 
 pub fn compile_to_file(input_file: String, output_file: String) -> Result<(), String> {
@@ -18,8 +17,9 @@ pub fn compile_to_file(input_file: String, output_file: String) -> Result<(), St
 }
 
 pub fn compile(source: String) -> Result<(), String> {
-    let tokens = tokenize(source)?;
-    let nodes = parse(tokens)?;
-    println!("{:?}", nodes);
+    let tokens = lexer::tokenize(source)?;
+    let program = parser::parse(tokens)?;
+    symbol_pass::apply(&program)?;
+    println!("{:?}", program);
     Ok(())
 }
