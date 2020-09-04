@@ -1,4 +1,5 @@
 use crate::{
+    backend::regalloc,
     frontend::{lexer, parser, pass::symbol_pass},
     middleend::tacgen,
 };
@@ -24,6 +25,7 @@ pub fn compile(source: String) -> Result<(), String> {
     let program = parser::parse(tokens)?;
     symbol_pass::apply(&program)?;
     let program = tacgen::generate(program)?;
+    let program = regalloc::alloc_register(program);
     println!("{:?}", program);
     Ok(())
 }
