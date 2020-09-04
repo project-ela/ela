@@ -1,9 +1,12 @@
-use crate::compiler::{
+pub mod ast;
+pub mod context;
+
+use crate::frontend::{
+    lexer::token::Token,
     parser::{
         ast::{AstExpression, AstStatement, Function, Operator, Program},
         context::{Context, Type},
     },
-    tokenizer::token::Token,
 };
 
 pub struct Parser {

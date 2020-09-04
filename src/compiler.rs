@@ -1,10 +1,6 @@
-pub mod generator;
-pub mod parser;
-pub mod tokenizer;
-
-use crate::compiler::generator::gen_x86::generate;
-use crate::compiler::parser::parser::parse;
-use crate::compiler::tokenizer::tokenizer::tokenize;
+use crate::backend::codegen::gen_x86::generate;
+use crate::frontend::lexer::tokenize;
+use crate::frontend::parser::parse;
 use std::fs;
 
 pub fn compile_to_file(input_file: String, output_file: String) -> Result<(), String> {

@@ -1,4 +1,6 @@
-use crate::compiler::tokenizer::token::Token;
+pub mod token;
+
+use crate::frontend::lexer::token::Token;
 
 pub struct Tokenizer {
     pos: usize,

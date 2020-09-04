@@ -1,4 +1,4 @@
-use crate::compiler::parser::context::{Context, Type};
+use crate::frontend::parser::context::{Context, Type};
 
 #[derive(Debug)]
 pub struct Program {
