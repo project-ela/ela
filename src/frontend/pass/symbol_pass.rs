@@ -138,7 +138,9 @@ impl SymbolPass {
                 self.apply_expression(value);
             }
             AstStatement::If { cond, then, els } => {
-                self.apply_expression(cond);
+                if self.apply_expression(cond) != Some(Type::Bool) {
+                    self.issue("expression in if statement should be typed bool".to_string());
+                }
                 self.apply_statement(then);
                 if let Some(els) = els {
                     self.apply_statement(els);
