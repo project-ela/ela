@@ -48,7 +48,7 @@ pub enum AstStatement {
 #[derive(Debug)]
 pub enum AstExpression {
     Integer {
-        value: u32,
+        value: i32,
     },
     Bool {
         value: bool,

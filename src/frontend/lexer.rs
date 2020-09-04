@@ -117,7 +117,7 @@ impl Tokenizer {
         result
     }
 
-    fn consume_number(&mut self) -> u32 {
+    fn consume_number(&mut self) -> i32 {
         let mut result = String::new();
         while !self.is_eof() && self.peek_char().is_digit(10) {
             result.push(self.consume_char());

@@ -236,7 +236,7 @@ impl Parser {
 
     fn parse_primary(&mut self) -> Result<AstExpression, String> {
         match self.consume() {
-            Token::IntLiteral { value } => Ok(AstExpression::Integer { value: value }),
+            Token::IntLiteral { value } => Ok(AstExpression::Integer { value }),
             Token::False => Ok(AstExpression::Bool { value: false }),
             Token::True => Ok(AstExpression::Bool { value: true }),
             Token::Ident { name } => Ok(AstExpression::Ident { name }),

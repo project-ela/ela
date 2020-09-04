@@ -60,7 +60,7 @@ pub enum Tac {
 #[derive(Debug, Clone)]
 pub enum Operand {
     Reg(RegisterInfo),
-    Const(u32),
+    Const(i32),
     Variable(u32),
 }
 

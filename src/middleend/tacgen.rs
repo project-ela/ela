@@ -166,7 +166,7 @@ impl TacGen {
                 let dst = Operand::Reg(self.next_reg());
                 func.body.push(Tac::Move {
                     dst: dst.clone(),
-                    src: Operand::Const(value as u32),
+                    src: Operand::Const(value as i32),
                 });
                 Ok(dst)
             }
