@@ -8,7 +8,7 @@ use crate::{
     },
 };
 
-pub struct Parser {
+struct Parser {
     pos: usize,
     tokens: Vec<Token>,
 }

@@ -2,7 +2,7 @@ pub mod token;
 
 use crate::frontend::lexer::token::Token;
 
-pub struct Tokenizer {
+struct Tokenizer {
     pos: usize,
     source: String,
 }
