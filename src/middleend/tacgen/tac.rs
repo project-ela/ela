@@ -60,7 +60,7 @@ pub enum Tac {
 #[derive(Debug, Clone)]
 pub enum Operand {
     Reg(RegisterInfo),
-    Const(u32),
+    Const(i32),
     Variable(u32),
 }
 
@@ -100,7 +100,7 @@ impl TacProgram {
         for function in &self.functions {
             s.push_str(format!("func {} {{\n", function.name).as_str());
             s.push_str(function.dump().as_str());
-            s.push_str("}}\n");
+            s.push_str("}\n");
         }
         s
     }
