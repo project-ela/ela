@@ -1,4 +1,7 @@
-use crate::{common::types::Type, frontend::parser::ast::*};
+use crate::{
+    common::{operator::Operator, types::Type},
+    frontend::parser::ast::*,
+};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 

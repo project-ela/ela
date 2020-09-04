@@ -1,4 +1,4 @@
-use crate::common::types::Type;
+use crate::common::{operator::Operator, types::Type};
 
 #[derive(Debug)]
 pub struct Program {
@@ -59,24 +59,4 @@ pub enum AstExpression {
         lhs: Box<AstExpression>,
         rhs: Box<AstExpression>,
     },
-}
-
-#[derive(Debug)]
-pub enum Operator {
-    Add,
-    Sub,
-    Mul,
-    Div,
-
-    And,
-    Or,
-    Xor,
-
-    Equal,
-    NotEqual,
-
-    Lt,
-    Lte,
-    Gt,
-    Gte,
 }

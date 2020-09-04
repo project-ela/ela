@@ -1,10 +1,10 @@
 pub mod ast;
 
 use crate::{
-    common::types::Type,
+    common::{operator::Operator, types::Type},
     frontend::{
         lexer::token::Token,
-        parser::ast::{AstExpression, AstStatement, Function, Operator, Program},
+        parser::ast::{AstExpression, AstStatement, Function, Program},
     },
 };
 

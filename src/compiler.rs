@@ -1,4 +1,7 @@
-use crate::frontend::{lexer, parser, pass::symbol_pass};
+use crate::{
+    frontend::{lexer, parser, pass::symbol_pass},
+    middleend::tacgen,
+};
 use std::fs;
 
 pub fn compile_to_file(input_file: String, output_file: String) -> Result<(), String> {
@@ -20,6 +23,7 @@ pub fn compile(source: String) -> Result<(), String> {
     let tokens = lexer::tokenize(source)?;
     let program = parser::parse(tokens)?;
     symbol_pass::apply(&program)?;
+    let program = tacgen::generate(program)?;
     println!("{:?}", program);
     Ok(())
 }
