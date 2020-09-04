@@ -4,17 +4,18 @@ try() {
   expected=$1
   source=$2
 
-  echo "$source" > tmp.vd
+  echo "$source" | tee tmp.vd
   cargo run tmp.vd tmp.s 2> /dev/null
   gcc -m32 tmp.s -o tmp
   ./tmp
   actual=$?
   if [ "$actual" != "$expected" ]; then
-    echo "$source => $expected expected, but got $actual"
+    echo "==> $expected expected, but got $actual"
     exit 1
   else
-    echo "$source => $expected"
+    echo "==> $expected"
   fi
+  echo
 }
 
 try 0 "func main(): int { return 0 }"
