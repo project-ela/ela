@@ -93,3 +93,64 @@ pub enum Register {
     Edx,
     Ebx,
 }
+
+impl TacProgram {
+    pub fn dump(&self) -> String {
+        let mut s = String::new();
+        for function in &self.functions {
+            s.push_str(format!("func {} {{\n", function.name).as_str());
+            s.push_str(function.dump().as_str());
+            s.push_str("}}\n");
+        }
+        s
+    }
+}
+
+impl TacFunction {
+    pub fn dump(&self) -> String {
+        let mut s = String::new();
+        for tac in &self.body {
+            s.push_str(tac.dump().as_str());
+            s.push('\n');
+        }
+        s
+    }
+}
+
+impl Tac {
+    pub fn dump(&self) -> String {
+        match self {
+            Tac::BinOp { op, dst, lhs, rhs } => {
+                format!("  {} = {} {:?} {}", dst.dump(), lhs.dump(), op, rhs.dump())
+            }
+            Tac::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
+            Tac::Jump { label_index } => format!("  jmp label {}", label_index),
+            Tac::JumpIfNot { label_index, cond } => {
+                format!("  jmpif {}, label {}", cond.dump(), label_index)
+            }
+            Tac::Label { index } => format!("{}:", index),
+            Tac::Ret { src } => format!("  ret {}", src.dump()),
+        }
+    }
+}
+
+impl Operand {
+    pub fn dump(&self) -> String {
+        match self {
+            Operand::Reg(info) => format!("%{}", info.virtual_index),
+            Operand::Const(value) => format!("{}", value),
+            Operand::Variable(offset) => format!("var({})", offset),
+        }
+    }
+}
+
+impl Register {
+    pub fn dump(&self) -> &'static str {
+        match self {
+            Register::Eax => "eax",
+            Register::Ecx => "ecx",
+            Register::Edx => "edx",
+            Register::Ebx => "ebx",
+        }
+    }
+}
