@@ -162,6 +162,14 @@ impl TacGen {
                 });
                 Ok(dst)
             }
+            AstExpression::Bool { value } => {
+                let dst = Operand::Reg(self.next_reg());
+                func.body.push(Tac::Move {
+                    dst: dst.clone(),
+                    src: Operand::Const(value as u32),
+                });
+                Ok(dst)
+            }
             AstExpression::Ident { name } => {
                 let offset = self.ctx.find_variable(&name);
                 Ok(Operand::Variable(offset))

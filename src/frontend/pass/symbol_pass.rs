@@ -111,37 +111,58 @@ impl SymbolPass {
     fn apply_function(&mut self, funciton: &Function) {
         self.ctx.add_function(funciton.name.to_owned(), Type::Int);
         self.ctx.push_ctx();
-        self.apply_statement(&funciton.body);
+        self.apply_statement(&funciton.body, &funciton.ret_typ);
         self.ctx.pop_ctx();
     }
 
-    fn apply_statement(&mut self, stmt: &AstStatement) {
+    fn apply_statement(&mut self, stmt: &AstStatement, ret_typ: &Type) {
         match stmt {
             AstStatement::Block { stmts } => {
                 self.ctx.push_ctx();
                 for stmt in stmts {
-                    self.apply_statement(stmt);
+                    self.apply_statement(stmt, ret_typ);
                 }
                 self.ctx.pop_ctx();
             }
             AstStatement::Declare { name, typ, value } => {
-                self.apply_expression(value);
+                match self.apply_expression(value) {
+                    Some(value_typ) => {
+                        if &value_typ != typ {
+                            self.issue(format!("type mismatch {} and {}", typ, value_typ));
+                        }
+                    }
+                    None => {}
+                }
                 self.ctx.add_variable(name.to_owned(), typ.clone());
             }
             AstStatement::Assign { name, value } => {
-                if self.ctx.find_variable(name).is_none() {
-                    self.issue(format!("undefined variable: {}", name));
+                let value_typ = self.apply_expression(value);
+                let var_typ = self.ctx.find_variable(name);
+                match (var_typ, value_typ) {
+                    (Some(var_typ), Some(value_typ)) => {
+                        if var_typ != &value_typ {
+                            self.issue(format!("type mismatch {} and {}", var_typ, value_typ));
+                        }
+                    }
+                    (None, _) => self.issue(format!("undefined variable: {}", name)),
+                    _ => {}
                 }
-                self.apply_expression(value);
             }
-            AstStatement::Return { value } => {
-                self.apply_expression(value);
-            }
+            AstStatement::Return { value } => match self.apply_expression(value) {
+                Some(value_typ) => {
+                    if &value_typ != ret_typ {
+                        self.issue(format!("type mismatch {} and {}", ret_typ, value_typ));
+                    }
+                }
+                None => {}
+            },
             AstStatement::If { cond, then, els } => {
-                self.apply_expression(cond);
-                self.apply_statement(then);
+                if self.apply_expression(cond) != Some(Type::Bool) {
+                    self.issue("expression in if statement should be typed bool".to_string());
+                }
+                self.apply_statement(then, ret_typ);
                 if let Some(els) = els {
-                    self.apply_statement(els);
+                    self.apply_statement(els, ret_typ);
                 }
             }
         }
@@ -151,6 +172,7 @@ impl SymbolPass {
         use Operator::*;
         match expr {
             AstExpression::Integer { .. } => Some(Type::Int),
+            AstExpression::Bool { .. } => Some(Type::Bool),
             AstExpression::Ident { name } => match self.ctx.find_variable(name) {
                 Some(typ) => Some(typ.clone()),
                 None => {
@@ -166,8 +188,8 @@ impl SymbolPass {
                     return None;
                 }
                 Some(match op {
-                    Add | Sub | Mul | Div | And | Or | Xor | Equal | NotEqual | Lt | Lte | Gt
-                    | Gte => Type::Int,
+                    Add | Sub | Mul | Div | And | Or | Xor => Type::Int,
+                    Equal | NotEqual | Lt | Lte | Gt | Gte => Type::Bool,
                 })
             }
         }

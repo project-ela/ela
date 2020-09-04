@@ -237,6 +237,8 @@ impl Parser {
     fn parse_primary(&mut self) -> Result<AstExpression, String> {
         match self.consume() {
             Token::IntLiteral { value } => Ok(AstExpression::Integer { value: value }),
+            Token::False => Ok(AstExpression::Bool { value: false }),
+            Token::True => Ok(AstExpression::Bool { value: true }),
             Token::Ident { name } => Ok(AstExpression::Ident { name }),
             Token::LParen => {
                 let expr = self.parse_add()?;
@@ -281,6 +283,7 @@ impl Parser {
         let typ_name = self.consume_ident()?;
         match typ_name.as_str() {
             "int" => Ok(Type::Int),
+            "bool" => Ok(Type::Bool),
             x => return Err(format!("{} is not a type name", x)),
         }
     }
