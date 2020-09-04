@@ -1,4 +1,4 @@
-use crate::frontend::parser::context::{Context, Type};
+use crate::common::types::Type;
 
 #[derive(Debug)]
 pub struct Program {
@@ -16,8 +16,8 @@ impl Program {
 #[derive(Debug)]
 pub struct Function {
     pub name: String,
+    pub ret_typ: Type,
     pub body: AstStatement,
-    pub ctx: Context,
 }
 
 #[derive(Debug)]
