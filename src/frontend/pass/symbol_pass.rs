@@ -111,16 +111,16 @@ impl SymbolPass {
     fn apply_function(&mut self, funciton: &Function) {
         self.ctx.add_function(funciton.name.to_owned(), Type::Int);
         self.ctx.push_ctx();
-        self.apply_statement(&funciton.body);
+        self.apply_statement(&funciton.body, &funciton.ret_typ);
         self.ctx.pop_ctx();
     }
 
-    fn apply_statement(&mut self, stmt: &AstStatement) {
+    fn apply_statement(&mut self, stmt: &AstStatement, ret_typ: &Type) {
         match stmt {
             AstStatement::Block { stmts } => {
                 self.ctx.push_ctx();
                 for stmt in stmts {
-                    self.apply_statement(stmt);
+                    self.apply_statement(stmt, ret_typ);
                 }
                 self.ctx.pop_ctx();
             }
@@ -134,16 +134,21 @@ impl SymbolPass {
                 }
                 self.apply_expression(value);
             }
-            AstStatement::Return { value } => {
-                self.apply_expression(value);
-            }
+            AstStatement::Return { value } => match self.apply_expression(value) {
+                Some(value_typ) => {
+                    if &value_typ != ret_typ {
+                        self.issue(format!("type mismatch {} and {}", ret_typ, value_typ));
+                    }
+                }
+                None => {}
+            },
             AstStatement::If { cond, then, els } => {
                 if self.apply_expression(cond) != Some(Type::Bool) {
                     self.issue("expression in if statement should be typed bool".to_string());
                 }
-                self.apply_statement(then);
+                self.apply_statement(then, ret_typ);
                 if let Some(els) = els {
-                    self.apply_statement(els);
+                    self.apply_statement(els, ret_typ);
                 }
             }
         }

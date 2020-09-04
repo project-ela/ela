@@ -283,6 +283,7 @@ impl Parser {
         let typ_name = self.consume_ident()?;
         match typ_name.as_str() {
             "int" => Ok(Type::Int),
+            "bool" => Ok(Type::Bool),
             x => return Err(format!("{} is not a type name", x)),
         }
     }
