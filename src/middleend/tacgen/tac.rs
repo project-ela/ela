@@ -100,7 +100,7 @@ impl TacProgram {
         for function in &self.functions {
             s.push_str(format!("func {} {{\n", function.name).as_str());
             s.push_str(function.dump().as_str());
-            s.push_str("}}\n");
+            s.push_str("}\n");
         }
         s
     }
