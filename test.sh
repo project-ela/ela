@@ -33,7 +33,7 @@ try 38 "func main(): int { return 3 + 5 * 7 }"
 try 56 "func main(): int { return (3 + 5) * 7 }"
 try 1 "func main(): int { return ((1)) }"
 
-try 2 "func main(): int { return --+---++-2 }"
+try 2 "func main(): int { return --2 }"
 try 3 "func main(): int { return -3 * -1 }"
 
 try 0 "func main(): int { return 1 & 0 }"
