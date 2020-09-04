@@ -1,7 +1,7 @@
 use crate::{
     backend::{gen_x86, regalloc},
     frontend::{lexer, parser, pass::symbol_pass},
-    middleend::tacgen,
+    middleend::{optimize::constant_folding, tacgen},
 };
 use std::fs;
 
@@ -22,6 +22,7 @@ pub fn compile(source: String) -> Result<String, String> {
     let tokens = lexer::tokenize(source)?;
     let program = parser::parse(tokens)?;
     symbol_pass::apply(&program)?;
+    let program = constant_folding::optimize(program);
     let program = tacgen::generate(program)?;
     let program = regalloc::alloc_register(program)?;
     let output = gen_x86::generate(program)?;
