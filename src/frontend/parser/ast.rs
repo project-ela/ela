@@ -50,6 +50,9 @@ pub enum AstExpression {
     Integer {
         value: u32,
     },
+    Bool {
+        value: bool,
+    },
     Ident {
         name: String,
     },

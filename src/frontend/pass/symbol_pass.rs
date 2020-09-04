@@ -151,6 +151,7 @@ impl SymbolPass {
         use Operator::*;
         match expr {
             AstExpression::Integer { .. } => Some(Type::Int),
+            AstExpression::Bool { .. } => Some(Type::Bool),
             AstExpression::Ident { name } => match self.ctx.find_variable(name) {
                 Some(typ) => Some(typ.clone()),
                 None => {
@@ -166,8 +167,8 @@ impl SymbolPass {
                     return None;
                 }
                 Some(match op {
-                    Add | Sub | Mul | Div | And | Or | Xor | Equal | NotEqual | Lt | Lte | Gt
-                    | Gte => Type::Int,
+                    Add | Sub | Mul | Div | And | Or | Xor => Type::Int,
+                    Equal | NotEqual | Lt | Lte | Gt | Gte => Type::Bool,
                 })
             }
         }

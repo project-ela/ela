@@ -59,7 +59,7 @@ try 0 "func main(): int { return 0 >= 1 }"
 try 1 "func main(): int { return 1 >= 1 }"
 
 try 1 "func main(): int {
-  if 1 == 1 {
+  if true {
     return 1
   } else {
     return 0
@@ -67,7 +67,7 @@ try 1 "func main(): int {
 }"
 
 try 0 "func main(): int {
-  if 0 == 1 {
+  if false {
     return 1
   } else {
     return 0
@@ -75,8 +75,8 @@ try 0 "func main(): int {
 }"
 
 try 2 "func main(): int {
-  if 1 == 1 {
-    if 1 == 1 {
+  if true {
+    if true {
       return 2
     }
     return 1
@@ -86,8 +86,8 @@ try 2 "func main(): int {
 }"
 
 try 1 "func main(): int {
-  if 1 == 1 {
-    if 0 == 1 {
+  if true {
+    if false {
       return 2
     }
     return 1

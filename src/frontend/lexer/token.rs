@@ -8,6 +8,8 @@ pub enum Token {
     Return,
     If,
     Else,
+    False,
+    True,
 
     Assign,
 

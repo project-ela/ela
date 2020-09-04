@@ -155,6 +155,8 @@ fn find_keyword(ident: &String) -> Option<Token> {
         "return" => Some(Token::Return),
         "if" => Some(Token::If),
         "else" => Some(Token::Else),
+        "false" => Some(Token::False),
+        "true" => Some(Token::True),
         _ => None,
     }
 }
