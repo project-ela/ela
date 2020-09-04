@@ -1,6 +1,8 @@
-use crate::compiler::tokenizer::token::Token;
+pub mod token;
 
-pub struct Tokenizer {
+use crate::frontend::lexer::token::Token;
+
+struct Tokenizer {
     pos: usize,
     source: String,
 }
@@ -46,6 +48,7 @@ impl Tokenizer {
             '&' => Ok(Token::And),
             '|' => Ok(Token::Or),
             '^' => Ok(Token::Xor),
+            ':' => Ok(Token::Colon),
             '=' => {
                 self.consume_char();
                 match self.peek_char() {

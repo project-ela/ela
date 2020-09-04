@@ -1,10 +1,8 @@
-pub mod generator;
-pub mod parser;
-pub mod tokenizer;
-
-use crate::compiler::generator::gen_x86::generate;
-use crate::compiler::parser::parser::parse;
-use crate::compiler::tokenizer::tokenizer::tokenize;
+use crate::{
+    backend::{gen_x86, regalloc},
+    frontend::{lexer, parser, pass::symbol_pass},
+    middleend::tacgen,
+};
 use std::fs;
 
 pub fn compile_to_file(input_file: String, output_file: String) -> Result<(), String> {
@@ -21,7 +19,11 @@ pub fn compile_to_file(input_file: String, output_file: String) -> Result<(), St
 }
 
 pub fn compile(source: String) -> Result<String, String> {
-    tokenize(source)
-        .and_then(|tokens| parse(tokens))
-        .and_then(|program| generate(program))
+    let tokens = lexer::tokenize(source)?;
+    let program = parser::parse(tokens)?;
+    symbol_pass::apply(&program)?;
+    let program = tacgen::generate(program)?;
+    let program = regalloc::alloc_register(program)?;
+    let output = gen_x86::generate(program)?;
+    Ok(output)
 }

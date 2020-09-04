@@ -1,0 +1,151 @@
+use crate::{common::operator::Operator, middleend::tacgen::tac::*};
+
+struct GenX86 {
+    output: String,
+}
+
+pub fn generate(program: TacProgram) -> Result<String, String> {
+    let mut generator = GenX86::new();
+    generator.generate(program)
+}
+
+impl GenX86 {
+    fn new() -> Self {
+        Self {
+            output: String::new(),
+        }
+    }
+
+    fn generate(&mut self, program: TacProgram) -> Result<String, String> {
+        self.gen(".intel_syntax noprefix");
+        for function in program.functions {
+            self.gen_function(function)?;
+        }
+        Ok(self.output.to_owned())
+    }
+
+    fn gen_function(&mut self, funciton: TacFunction) -> Result<(), String> {
+        self.gen(format!(".global {}", funciton.name).as_str());
+        self.gen(format!("{}:", funciton.name).as_str());
+        self.gen("  push ebp");
+        self.gen("  mov ebp, esp");
+        for tac in funciton.body {
+            self.gen_tac(tac, &funciton.name)?;
+        }
+        self.gen(format!(".L.{}.ret:", funciton.name).as_str());
+        self.gen("  mov esp, ebp");
+        self.gen("  pop ebp");
+        self.gen("  ret");
+        Ok(())
+    }
+
+    fn gen_tac(&mut self, tac: Tac, func_name: &String) -> Result<(), String> {
+        match tac {
+            Tac::Label { index } => self.gen(format!(".L.{}:", index).as_str()),
+            Tac::BinOp { op, dst, lhs, rhs } => {
+                // r0 = r1 <op> r2 -> r1 = r0; r1 = r1 <op> r2
+                self.gen(format!("  mov {}, {}", opr(&dst), opr(&lhs)).as_str());
+
+                match op {
+                    Operator::Add => self.gen_binop("add", dst, rhs),
+                    Operator::Sub => self.gen_binop("sub", dst, rhs),
+                    Operator::Mul => self.gen_binop("imul", dst, rhs),
+                    Operator::Div => self.gen_div(dst, rhs),
+                    Operator::And => self.gen_binop("and", dst, rhs),
+                    Operator::Or => self.gen_binop("or", dst, rhs),
+                    Operator::Xor => self.gen_binop("xor", dst, rhs),
+                    Operator::Equal => self.gen_compare("sete", dst, rhs),
+                    Operator::NotEqual => self.gen_compare("setne", dst, rhs),
+                    Operator::Lt => self.gen_compare("setl", dst, rhs),
+                    Operator::Lte => self.gen_compare("setle", dst, rhs),
+                    Operator::Gt => self.gen_compare("setg", dst, rhs),
+                    Operator::Gte => self.gen_compare("setge", dst, rhs),
+                }
+            }
+            Tac::Move { dst, src } => {
+                self.gen(format!("  mov {}, {}", opr(&dst), opr(&src)).as_str())
+            }
+            Tac::Jump { label_index } => self.gen(format!("  jmp .L.{}", label_index).as_str()),
+            Tac::JumpIfNot { label_index, cond } => {
+                self.gen(format!("  cmp {}, 0", opr(&cond)).as_str());
+                self.gen(format!("  je .L.{}", label_index).as_str());
+            }
+            Tac::Ret { src } => {
+                self.gen(format!("  mov eax, {}", opr(&src)).as_str());
+                self.gen(format!("  jmp .L.{}.ret", func_name).as_str());
+            }
+        }
+        Ok(())
+    }
+
+    fn gen_binop(&mut self, op: &str, lhs: Operand, rhs: Operand) {
+        self.gen(format!("  {} {}, {}", op, opr(&lhs), opr(&rhs)).as_str())
+    }
+
+    fn gen_div(&mut self, lhs: Operand, rhs: Operand) {
+        let mut is_eax = false;
+        if let Operand::Reg(reg) = &lhs {
+            if reg.physical_index.unwrap() == Register::Eax {
+                is_eax = true;
+            }
+        }
+        if !is_eax {
+            self.gen("  push eax");
+        }
+        self.gen("  push ecx");
+        self.gen("  push edx");
+        self.gen(format!("  mov eax, {}", opr(&lhs)).as_str());
+        self.gen(format!("  mov ecx, {}", opr(&rhs)).as_str());
+        self.gen("  xor edx, edx");
+        self.gen("  idiv ecx");
+        self.gen(format!("  mov {}, eax", opr(&lhs)).as_str());
+        self.gen("  pop edx");
+        self.gen("  pop ecx");
+        if !is_eax {
+            self.gen("  pop eax");
+        }
+    }
+
+    fn gen_compare(&mut self, op: &str, lhs: Operand, rhs: Operand) {
+        self.gen(format!("  cmp {}, {}", opr(&lhs), opr(&rhs)).as_str());
+        self.gen(format!("  {} {}", op, opr8(&lhs)).as_str());
+    }
+
+    fn gen(&mut self, s: &str) {
+        self.output.push_str(s);
+        self.output.push_str("\n");
+    }
+}
+
+fn opr(operand: &Operand) -> String {
+    match operand {
+        Operand::Const(value) => format!("{}", value),
+        Operand::Reg(info) => format!("{}", reg(&info.physical_index.unwrap())),
+        Operand::Variable(offset) => format!("[ebp-{}]", offset),
+    }
+}
+
+fn opr8(operand: &Operand) -> String {
+    match operand {
+        Operand::Reg(reg) => reg8(reg.physical_index.unwrap()).to_owned(),
+        _ => unreachable!(),
+    }
+}
+
+fn reg(reg: &Register) -> &'static str {
+    match reg {
+        Register::Eax => "eax",
+        Register::Ecx => "ecx",
+        Register::Edx => "edx",
+        Register::Ebx => "ebx",
+    }
+}
+
+fn reg8(reg: Register) -> &'static str {
+    match reg {
+        Register::Eax => "al",
+        Register::Ecx => "cl",
+        Register::Edx => "dl",
+        Register::Ebx => "bl",
+    }
+}

@@ -1,9 +1,14 @@
-use crate::compiler::{
-    parser::ast::{AstExpression, AstStatement, Context, Function, Operator, Program},
-    tokenizer::token::Token,
+pub mod ast;
+
+use crate::{
+    common::{operator::Operator, types::Type},
+    frontend::{
+        lexer::token::Token,
+        parser::ast::{AstExpression, AstStatement, Function, Program},
+    },
 };
 
-pub struct Parser {
+struct Parser {
     pos: usize,
     tokens: Vec<Token>,
 }
@@ -31,27 +36,28 @@ impl Parser {
 
     fn parse(&mut self) -> Result<Program, String> {
         let mut program = Program::new();
-        let mut ctx = Context::new();
         while !self.is_eof() {
-            program.functions.push(self.parse_function(&mut ctx)?);
+            program.functions.push(self.parse_function()?);
         }
         Ok(program)
     }
 
-    fn parse_function(&mut self, ctx: &mut Context) -> Result<Function, String> {
+    fn parse_function(&mut self) -> Result<Function, String> {
         self.expect(Token::Func)?;
         let name = self.consume_ident()?;
         self.expect(Token::LParen)?;
         self.expect(Token::RParen)?;
-        let body = self.parse_statement(ctx)?;
+        self.expect(Token::Colon)?;
+        let ret_typ = self.consume_type()?;
+        let body = self.parse_statement()?;
         Ok(Function {
             name,
+            ret_typ,
             body,
-            ctx: ctx.clone(),
         })
     }
 
-    fn parse_statement(&mut self, ctx: &mut Context) -> Result<AstStatement, String> {
+    fn parse_statement(&mut self) -> Result<AstStatement, String> {
         match self.consume() {
             Token::LBrace => {
                 let mut stmts = Vec::new();
@@ -60,44 +66,42 @@ impl Parser {
                         self.consume();
                         break;
                     }
-                    stmts.push(self.parse_statement(ctx)?);
+                    stmts.push(self.parse_statement()?);
                 }
                 Ok(AstStatement::Block { stmts })
             }
             Token::Var => {
                 let name = self.consume_ident()?;
+                self.expect(Token::Colon)?;
+                let typ = self.consume_type()?;
                 self.expect(Token::Assign)?;
-                let value = self.parse_expression(ctx)?;
-                ctx.add_variable(&name);
+                let value = self.parse_expression()?;
                 Ok(AstStatement::Declare {
                     name,
+                    typ,
                     value: Box::new(value),
                 })
             }
             Token::Ident { name } => {
-                if ctx.find_variable(&name).is_none() {
-                    return Err(format!("undefined variable: {}", name));
-                }
-
                 self.expect(Token::Assign)?;
-                let value = self.parse_expression(ctx)?;
+                let value = self.parse_expression()?;
                 Ok(AstStatement::Assign {
                     name,
                     value: Box::new(value),
                 })
             }
             Token::Return => {
-                let value = self.parse_expression(ctx)?;
+                let value = self.parse_expression()?;
                 Ok(AstStatement::Return {
                     value: Box::new(value),
                 })
             }
             Token::If => {
-                let cond = self.parse_expression(ctx)?;
-                let then = self.parse_statement(ctx)?;
+                let cond = self.parse_expression()?;
+                let then = self.parse_statement()?;
                 let els = if self.peek() == Token::Else {
                     self.consume();
-                    let els = self.parse_statement(ctx)?;
+                    let els = self.parse_statement()?;
                     Some(Box::new(els))
                 } else {
                     None
@@ -112,15 +116,15 @@ impl Parser {
         }
     }
 
-    fn parse_expression(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
-        self.parse_bitor(ctx)
+    fn parse_expression(&mut self) -> Result<AstExpression, String> {
+        self.parse_bitor()
     }
 
-    fn parse_bitor(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
-        let mut node = self.parse_bitxor(ctx)?;
+    fn parse_bitor(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_bitxor()?;
         loop {
             match self.peek() {
-                Token::Or => node = new_binop!(self, Operator::Or, node, self.parse_bitxor(ctx)?),
+                Token::Or => node = new_binop!(self, Operator::Or, node, self.parse_bitxor()?),
                 _ => break,
             }
         }
@@ -128,11 +132,11 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_bitxor(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
-        let mut node = self.parse_bitand(ctx)?;
+    fn parse_bitxor(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_bitand()?;
         loop {
             match self.peek() {
-                Token::Xor => node = new_binop!(self, Operator::Xor, node, self.parse_bitand(ctx)?),
+                Token::Xor => node = new_binop!(self, Operator::Xor, node, self.parse_bitand()?),
                 _ => break,
             }
         }
@@ -140,11 +144,11 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_bitand(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
-        let mut node = self.parse_equal(ctx)?;
+    fn parse_bitand(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_equal()?;
         loop {
             match self.peek() {
-                Token::And => node = new_binop!(self, Operator::And, node, self.parse_equal(ctx)?),
+                Token::And => node = new_binop!(self, Operator::And, node, self.parse_equal()?),
                 _ => break,
             }
         }
@@ -152,15 +156,15 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_equal(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
-        let mut node = self.parse_relation(ctx)?;
+    fn parse_equal(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_relation()?;
         loop {
             match self.peek() {
                 Token::Equal => {
-                    node = new_binop!(self, Operator::Equal, node, self.parse_relation(ctx)?)
+                    node = new_binop!(self, Operator::Equal, node, self.parse_relation()?)
                 }
                 Token::NotEqual => {
-                    node = new_binop!(self, Operator::NotEqual, node, self.parse_relation(ctx)?)
+                    node = new_binop!(self, Operator::NotEqual, node, self.parse_relation()?)
                 }
                 _ => break,
             }
@@ -169,14 +173,14 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_relation(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
-        let mut node = self.parse_add(ctx)?;
+    fn parse_relation(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_add()?;
         loop {
             match self.peek() {
-                Token::Lt => node = new_binop!(self, Operator::Lt, node, self.parse_add(ctx)?),
-                Token::Lte => node = new_binop!(self, Operator::Lte, node, self.parse_add(ctx)?),
-                Token::Gt => node = new_binop!(self, Operator::Gt, node, self.parse_add(ctx)?),
-                Token::Gte => node = new_binop!(self, Operator::Gte, node, self.parse_add(ctx)?),
+                Token::Lt => node = new_binop!(self, Operator::Lt, node, self.parse_add()?),
+                Token::Lte => node = new_binop!(self, Operator::Lte, node, self.parse_add()?),
+                Token::Gt => node = new_binop!(self, Operator::Gt, node, self.parse_add()?),
+                Token::Gte => node = new_binop!(self, Operator::Gte, node, self.parse_add()?),
                 _ => break,
             }
         }
@@ -184,12 +188,12 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_add(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
-        let mut node = self.parse_mul(ctx)?;
+    fn parse_add(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_mul()?;
         loop {
             match self.peek() {
-                Token::Plus => node = new_binop!(self, Operator::Add, node, self.parse_mul(ctx)?),
-                Token::Minus => node = new_binop!(self, Operator::Sub, node, self.parse_mul(ctx)?),
+                Token::Plus => node = new_binop!(self, Operator::Add, node, self.parse_mul()?),
+                Token::Minus => node = new_binop!(self, Operator::Sub, node, self.parse_mul()?),
                 _ => break,
             }
         }
@@ -197,16 +201,14 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_mul(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
-        let mut node = self.parse_unary(ctx)?;
+    fn parse_mul(&mut self) -> Result<AstExpression, String> {
+        let mut node = self.parse_unary()?;
         loop {
             match self.peek() {
                 Token::Asterisk => {
-                    node = new_binop!(self, Operator::Mul, node, self.parse_unary(ctx)?)
+                    node = new_binop!(self, Operator::Mul, node, self.parse_unary()?)
                 }
-                Token::Slash => {
-                    node = new_binop!(self, Operator::Div, node, self.parse_unary(ctx)?)
-                }
+                Token::Slash => node = new_binop!(self, Operator::Div, node, self.parse_unary()?),
                 _ => break,
             }
         }
@@ -214,33 +216,30 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_unary(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
+    fn parse_unary(&mut self) -> Result<AstExpression, String> {
         match self.peek() {
             Token::Plus => Ok(new_binop!(
                 self,
                 Operator::Add,
                 AstExpression::Integer { value: 0 },
-                self.parse_unary(ctx)?
+                self.parse_unary()?
             )),
             Token::Minus => Ok(new_binop!(
                 self,
                 Operator::Sub,
                 AstExpression::Integer { value: 0 },
-                self.parse_unary(ctx)?
+                self.parse_unary()?
             )),
-            _ => Ok(self.parse_primary(ctx)?),
+            _ => Ok(self.parse_primary()?),
         }
     }
 
-    fn parse_primary(&mut self, ctx: &mut Context) -> Result<AstExpression, String> {
+    fn parse_primary(&mut self) -> Result<AstExpression, String> {
         match self.consume() {
             Token::IntLiteral { value } => Ok(AstExpression::Integer { value: value }),
-            Token::Ident { name } => match ctx.find_variable(&name) {
-                Some(_) => Ok(AstExpression::Ident { name }),
-                None => Err(format!("undefined variable: {}", name)),
-            },
+            Token::Ident { name } => Ok(AstExpression::Ident { name }),
             Token::LParen => {
-                let expr = self.parse_add(ctx)?;
+                let expr = self.parse_add()?;
                 self.expect(Token::RParen)?;
                 Ok(expr)
             }
@@ -275,6 +274,14 @@ impl Parser {
             Ok(name.to_string())
         } else {
             Err(format!("expected identifier, but got {:?}", next_token))
+        }
+    }
+
+    fn consume_type(&mut self) -> Result<Type, String> {
+        let typ_name = self.consume_ident()?;
+        match typ_name.as_str() {
+            "int" => Ok(Type::Int),
+            x => return Err(format!("{} is not a type name", x)),
         }
     }
 
