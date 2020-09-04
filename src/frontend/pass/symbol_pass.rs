@@ -125,14 +125,28 @@ impl SymbolPass {
                 self.ctx.pop_ctx();
             }
             AstStatement::Declare { name, typ, value } => {
-                self.apply_expression(value);
+                match self.apply_expression(value) {
+                    Some(value_typ) => {
+                        if &value_typ != typ {
+                            self.issue(format!("type mismatch {} and {}", typ, value_typ));
+                        }
+                    }
+                    None => {}
+                }
                 self.ctx.add_variable(name.to_owned(), typ.clone());
             }
             AstStatement::Assign { name, value } => {
-                if self.ctx.find_variable(name).is_none() {
-                    self.issue(format!("undefined variable: {}", name));
+                let value_typ = self.apply_expression(value);
+                let var_typ = self.ctx.find_variable(name);
+                match (var_typ, value_typ) {
+                    (Some(var_typ), Some(value_typ)) => {
+                        if var_typ != &value_typ {
+                            self.issue(format!("type mismatch {} and {}", var_typ, value_typ));
+                        }
+                    }
+                    (None, _) => self.issue(format!("undefined variable: {}", name)),
+                    _ => {}
                 }
-                self.apply_expression(value);
             }
             AstStatement::Return { value } => match self.apply_expression(value) {
                 Some(value_typ) => {
