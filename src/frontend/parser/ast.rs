@@ -73,4 +73,7 @@ pub enum AstExpression {
         lhs: Box<AstExpression>,
         rhs: Box<AstExpression>,
     },
+    Call {
+        name: String,
+    },
 }

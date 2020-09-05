@@ -94,6 +94,7 @@ fn opt_expression(expression: AstExpression) -> AstExpression {
                 },
             }
         }
+        AstExpression::Call { .. } => expression,
     }
 }
 

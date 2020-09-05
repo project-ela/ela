@@ -158,3 +158,11 @@ int {
   /*/
   return 1
 }"
+
+try 2 "func hoge(): int { return 1 }
+func fuga(): int { return hoge() }
+func main(): int { return hoge() + fuga() }"
+
+try 40 "func hoge(): int { return 1 * 2 + 3 * 4 }
+func fuga(): int { return 3 * 4 + 1 * hoge() }
+func main(): int { return hoge() + fuga() }"

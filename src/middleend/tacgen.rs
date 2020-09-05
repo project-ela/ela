@@ -88,8 +88,7 @@ impl TacGen {
     }
 
     fn gen_function(&mut self, func: Function) -> Result<TacFunction, String> {
-        self.ctx.clear_ctx();
-        self.stack_offset = 0;
+        self.init();
         let mut tac_func = TacFunction::new(func.name.to_owned());
         self.gen_statement(func.body, &mut tac_func)?;
         Ok(tac_func)
@@ -219,6 +218,14 @@ impl TacGen {
                 });
                 Ok(dst)
             }
+            AstExpression::Call { name } => {
+                let dst = Operand::Reg(self.next_reg());
+                func.body.push(Tac::Call {
+                    dst: dst.clone(),
+                    name,
+                });
+                Ok(dst)
+            }
         }
     }
 
@@ -237,6 +244,13 @@ impl TacGen {
         });
         func.body.push(Tac::Move { dst, src: src_reg });
         Ok(())
+    }
+
+    fn init(&mut self) {
+        self.reg = 0;
+        self.label = 0;
+        self.stack_offset = 0;
+        self.ctx.clear_ctx();
     }
 
     fn next_reg(&mut self) -> RegisterInfo {

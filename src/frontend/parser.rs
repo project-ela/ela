@@ -273,7 +273,14 @@ impl Parser {
             Token::IntLiteral { value } => Ok(AstExpression::Integer { value }),
             Token::False => Ok(AstExpression::Bool { value: false }),
             Token::True => Ok(AstExpression::Bool { value: true }),
-            Token::Ident { name } => Ok(AstExpression::Ident { name }),
+            Token::Ident { name } => match self.peek() {
+                Token::LParen => {
+                    self.consume();
+                    self.expect(Token::RParen)?;
+                    Ok(AstExpression::Call { name })
+                }
+                _ => Ok(AstExpression::Ident { name }),
+            },
             Token::LParen => {
                 let expr = self.parse_add()?;
                 self.expect(Token::RParen)?;

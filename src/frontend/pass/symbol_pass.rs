@@ -211,6 +211,13 @@ impl SymbolPass {
                     Equal | NotEqual | Lt | Lte | Gt | Gte => Type::Bool,
                 })
             }
+            AstExpression::Call { name } => match self.ctx.find_function(name) {
+                Some(typ) => Some(typ.clone()),
+                None => {
+                    self.issue(format!("undefined function: {}", name));
+                    None
+                }
+            },
         }
     }
 

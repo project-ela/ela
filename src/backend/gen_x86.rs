@@ -32,10 +32,16 @@ impl GenX86 {
         self.gen(format!("{}:", funciton.name).as_str());
         self.gen("  push ebp");
         self.gen("  mov ebp, esp");
+        self.gen("  push ecx");
+        self.gen("  push edx");
+        self.gen("  push ebx");
         for tac in funciton.body {
             self.gen_tac(tac, &funciton.name)?;
         }
         self.gen(format!(".L.{}.ret:", funciton.name).as_str());
+        self.gen("  pop ebx");
+        self.gen("  pop edx");
+        self.gen("  pop ecx");
         self.gen("  mov esp, ebp");
         self.gen("  pop ebp");
         self.gen("  ret");
@@ -69,6 +75,22 @@ impl GenX86 {
                     BinaryOperator::Lte => self.gen_compare("setle", dst, rhs),
                     BinaryOperator::Gt => self.gen_compare("setg", dst, rhs),
                     BinaryOperator::Gte => self.gen_compare("setge", dst, rhs),
+                }
+            }
+            Tac::Call { dst, name } => {
+                let mut is_eax = false;
+                if let Operand::Reg(reg) = &dst {
+                    if reg.physical_index.unwrap() == Register::Eax {
+                        is_eax = true;
+                    }
+                }
+                if !is_eax {
+                    self.gen("  push eax");
+                }
+                self.gen(format!("  call {}", name).as_str());
+                self.gen(format!("  mov {}, eax", opr(&dst)).as_str());
+                if !is_eax {
+                    self.gen("  pop eax");
                 }
             }
             Tac::Move { dst, src } => {

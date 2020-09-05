@@ -42,6 +42,10 @@ pub enum Tac {
         lhs: Operand,
         rhs: Operand,
     },
+    Call {
+        dst: Operand,
+        name: String,
+    },
     Move {
         dst: Operand,
         src: Operand,
@@ -128,6 +132,7 @@ impl Tac {
             Tac::BinOp { op, dst, lhs, rhs } => {
                 format!("  {} = {} {:?} {}", dst.dump(), lhs.dump(), op, rhs.dump())
             }
+            Tac::Call { dst, name } => format!("  {} = call {}", dst.dump(), name),
             Tac::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
             Tac::Jump { label_index } => format!("  jmp label {}", label_index),
             Tac::JumpIfNot { label_index, cond } => {

@@ -39,6 +39,9 @@ impl RegAlloc {
                         self.kill_operand(rhs);
                         self.alloc_operand(dst);
                     }
+                    Tac::Call { dst, .. } => {
+                        self.alloc_operand(dst);
+                    }
                     Tac::Move { dst, src } => {
                         self.alloc_operand(dst);
                         self.get_operand(src);
@@ -58,6 +61,7 @@ impl RegAlloc {
                     }
                 }
             }
+            self.reg_map.clear();
         }
         program
     }
