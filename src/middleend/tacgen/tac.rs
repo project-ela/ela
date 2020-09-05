@@ -106,7 +106,7 @@ impl TacProgram {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         for function in &self.functions {
-            s.push_str(format!("func {} {{\n", function.name).as_str());
+            s.push_str(format!("func {}() {{\n", function.name).as_str());
             s.push_str(function.dump().as_str());
             s.push_str("}\n");
         }
@@ -147,7 +147,11 @@ impl Tac {
 impl Operand {
     pub fn dump(&self) -> String {
         match self {
-            Operand::Reg(info) => format!("%{}", info.virtual_index),
+            Operand::Reg(info) => format!(
+                "%{}({})",
+                info.virtual_index,
+                info.physical_index.map_or("none", |reg| reg.dump())
+            ),
             Operand::Const(value) => format!("{}", value),
             Operand::Variable(offset) => format!("var({})", offset),
         }
