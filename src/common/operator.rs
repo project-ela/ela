@@ -1,5 +1,10 @@
 #[derive(Debug, Copy, Clone)]
-pub enum Operator {
+pub enum UnaryOperator {
+    Not,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum BinaryOperator {
     Add,
     Sub,
     Mul,

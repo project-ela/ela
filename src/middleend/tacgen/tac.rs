@@ -1,4 +1,4 @@
-use crate::common::operator::Operator;
+use crate::common::operator::{BinaryOperator, UnaryOperator};
 
 #[derive(Debug)]
 pub struct TacProgram {
@@ -32,8 +32,12 @@ impl TacFunction {
 
 #[derive(Debug, Clone)]
 pub enum Tac {
+    UnOp {
+        op: UnaryOperator,
+        src: Operand,
+    },
     BinOp {
-        op: Operator,
+        op: BinaryOperator,
         dst: Operand,
         lhs: Operand,
         rhs: Operand,
@@ -120,13 +124,14 @@ impl TacFunction {
 impl Tac {
     pub fn dump(&self) -> String {
         match self {
+            Tac::UnOp { op, src } => format!("  {} = {:?} {}", src.dump(), op, src.dump()),
             Tac::BinOp { op, dst, lhs, rhs } => {
                 format!("  {} = {} {:?} {}", dst.dump(), lhs.dump(), op, rhs.dump())
             }
             Tac::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
             Tac::Jump { label_index } => format!("  jmp label {}", label_index),
             Tac::JumpIfNot { label_index, cond } => {
-                format!("  jmpif {}, label {}", cond.dump(), label_index)
+                format!("  jmpifnot {}, label {}", cond.dump(), label_index)
             }
             Tac::Label { index } => format!("{}:", index),
             Tac::Ret { src } => format!("  ret {}", src.dump()),

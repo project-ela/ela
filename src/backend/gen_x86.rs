@@ -1,4 +1,7 @@
-use crate::{common::operator::Operator, middleend::tacgen::tac::*};
+use crate::{
+    common::operator::{BinaryOperator, UnaryOperator},
+    middleend::tacgen::tac::*,
+};
 
 struct GenX86 {
     output: String,
@@ -42,24 +45,30 @@ impl GenX86 {
     fn gen_tac(&mut self, tac: Tac, func_name: &String) -> Result<(), String> {
         match tac {
             Tac::Label { index } => self.gen(format!(".L.{}:", index).as_str()),
+            Tac::UnOp { op, src } => match op {
+                UnaryOperator::Not => {
+                    self.gen(format!("  cmp {}, 0", opr(&src)).as_str());
+                    self.gen(format!("  sete {}", opr8(&src)).as_str());
+                }
+            },
             Tac::BinOp { op, dst, lhs, rhs } => {
                 // r0 = r1 <op> r2 -> r1 = r0; r1 = r1 <op> r2
                 self.gen(format!("  mov {}, {}", opr(&dst), opr(&lhs)).as_str());
 
                 match op {
-                    Operator::Add => self.gen_binop("add", dst, rhs),
-                    Operator::Sub => self.gen_binop("sub", dst, rhs),
-                    Operator::Mul => self.gen_binop("imul", dst, rhs),
-                    Operator::Div => self.gen_div(dst, rhs),
-                    Operator::And => self.gen_binop("and", dst, rhs),
-                    Operator::Or => self.gen_binop("or", dst, rhs),
-                    Operator::Xor => self.gen_binop("xor", dst, rhs),
-                    Operator::Equal => self.gen_compare("sete", dst, rhs),
-                    Operator::NotEqual => self.gen_compare("setne", dst, rhs),
-                    Operator::Lt => self.gen_compare("setl", dst, rhs),
-                    Operator::Lte => self.gen_compare("setle", dst, rhs),
-                    Operator::Gt => self.gen_compare("setg", dst, rhs),
-                    Operator::Gte => self.gen_compare("setge", dst, rhs),
+                    BinaryOperator::Add => self.gen_binop("add", dst, rhs),
+                    BinaryOperator::Sub => self.gen_binop("sub", dst, rhs),
+                    BinaryOperator::Mul => self.gen_binop("imul", dst, rhs),
+                    BinaryOperator::Div => self.gen_div(dst, rhs),
+                    BinaryOperator::And => self.gen_binop("and", dst, rhs),
+                    BinaryOperator::Or => self.gen_binop("or", dst, rhs),
+                    BinaryOperator::Xor => self.gen_binop("xor", dst, rhs),
+                    BinaryOperator::Equal => self.gen_compare("sete", dst, rhs),
+                    BinaryOperator::NotEqual => self.gen_compare("setne", dst, rhs),
+                    BinaryOperator::Lt => self.gen_compare("setl", dst, rhs),
+                    BinaryOperator::Lte => self.gen_compare("setle", dst, rhs),
+                    BinaryOperator::Gt => self.gen_compare("setg", dst, rhs),
+                    BinaryOperator::Gte => self.gen_compare("setge", dst, rhs),
                 }
             }
             Tac::Move { dst, src } => {

@@ -16,6 +16,7 @@ pub enum Token {
     And,
     Or,
     Xor,
+    Not,
 
     Equal,
     NotEqual,

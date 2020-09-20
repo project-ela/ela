@@ -66,7 +66,7 @@ impl Tokenizer {
                         self.consume_char();
                         Ok(Token::NotEqual)
                     }
-                    x => Err(format!("expected '=', but got '{}'", x)),
+                    _ => return Ok(Token::Not),
                 }
             }
             '<' => {

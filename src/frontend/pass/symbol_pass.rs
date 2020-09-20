@@ -1,5 +1,5 @@
 use crate::{
-    common::{operator::Operator, types::Type},
+    common::{operator::BinaryOperator, types::Type},
     frontend::parser::ast::*,
 };
 use std::collections::HashMap;
@@ -169,7 +169,7 @@ impl SymbolPass {
     }
 
     fn apply_expression(&mut self, expr: &AstExpression) -> Option<Type> {
-        use Operator::*;
+        use BinaryOperator::*;
         match expr {
             AstExpression::Integer { .. } => Some(Type::Int),
             AstExpression::Bool { .. } => Some(Type::Bool),
@@ -177,6 +177,13 @@ impl SymbolPass {
                 Some(typ) => Some(typ.clone()),
                 None => {
                     self.issue(format!("undefined variable: {}", name));
+                    None
+                }
+            },
+            AstExpression::UnaryOp { op, expr } => match self.apply_expression(expr)? {
+                Type::Bool => Some(Type::Bool),
+                typ => {
+                    self.issue(format!("cannot {:?} {:?}", op, typ));
                     None
                 }
             },
@@ -188,7 +195,13 @@ impl SymbolPass {
                     return None;
                 }
                 Some(match op {
-                    Add | Sub | Mul | Div | And | Or | Xor => Type::Int,
+                    Add | Sub | Mul | Div | And | Or | Xor => match lhs_typ {
+                        Type::Int => Type::Int,
+                        _ => {
+                            self.issue(format!("cannot {:?} {:?} and {:?}", op, lhs_typ, rhs_typ));
+                            return None;
+                        }
+                    },
                     Equal | NotEqual | Lt | Lte | Gt | Gte => Type::Bool,
                 })
             }

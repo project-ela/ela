@@ -1,7 +1,10 @@
 pub mod ast;
 
 use crate::{
-    common::{operator::Operator, types::Type},
+    common::{
+        operator::{BinaryOperator, UnaryOperator},
+        types::Type,
+    },
     frontend::{
         lexer::token::Token,
         parser::ast::{AstExpression, AstStatement, Function, Program},
@@ -16,6 +19,16 @@ struct Parser {
 pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
     let mut parser = Parser::new(tokens);
     parser.parse()
+}
+
+macro_rules! new_unop {
+    ($self: expr, $op: expr, $expr: expr) => {{
+        $self.consume();
+        AstExpression::UnaryOp {
+            op: $op,
+            expr: Box::new($expr),
+        }
+    }};
 }
 
 macro_rules! new_binop {
@@ -124,7 +137,9 @@ impl Parser {
         let mut node = self.parse_bitxor()?;
         loop {
             match self.peek() {
-                Token::Or => node = new_binop!(self, Operator::Or, node, self.parse_bitxor()?),
+                Token::Or => {
+                    node = new_binop!(self, BinaryOperator::Or, node, self.parse_bitxor()?)
+                }
                 _ => break,
             }
         }
@@ -136,7 +151,9 @@ impl Parser {
         let mut node = self.parse_bitand()?;
         loop {
             match self.peek() {
-                Token::Xor => node = new_binop!(self, Operator::Xor, node, self.parse_bitand()?),
+                Token::Xor => {
+                    node = new_binop!(self, BinaryOperator::Xor, node, self.parse_bitand()?)
+                }
                 _ => break,
             }
         }
@@ -148,7 +165,9 @@ impl Parser {
         let mut node = self.parse_equal()?;
         loop {
             match self.peek() {
-                Token::And => node = new_binop!(self, Operator::And, node, self.parse_equal()?),
+                Token::And => {
+                    node = new_binop!(self, BinaryOperator::And, node, self.parse_equal()?)
+                }
                 _ => break,
             }
         }
@@ -161,10 +180,10 @@ impl Parser {
         loop {
             match self.peek() {
                 Token::Equal => {
-                    node = new_binop!(self, Operator::Equal, node, self.parse_relation()?)
+                    node = new_binop!(self, BinaryOperator::Equal, node, self.parse_relation()?)
                 }
                 Token::NotEqual => {
-                    node = new_binop!(self, Operator::NotEqual, node, self.parse_relation()?)
+                    node = new_binop!(self, BinaryOperator::NotEqual, node, self.parse_relation()?)
                 }
                 _ => break,
             }
@@ -177,10 +196,10 @@ impl Parser {
         let mut node = self.parse_add()?;
         loop {
             match self.peek() {
-                Token::Lt => node = new_binop!(self, Operator::Lt, node, self.parse_add()?),
-                Token::Lte => node = new_binop!(self, Operator::Lte, node, self.parse_add()?),
-                Token::Gt => node = new_binop!(self, Operator::Gt, node, self.parse_add()?),
-                Token::Gte => node = new_binop!(self, Operator::Gte, node, self.parse_add()?),
+                Token::Lt => node = new_binop!(self, BinaryOperator::Lt, node, self.parse_add()?),
+                Token::Lte => node = new_binop!(self, BinaryOperator::Lte, node, self.parse_add()?),
+                Token::Gt => node = new_binop!(self, BinaryOperator::Gt, node, self.parse_add()?),
+                Token::Gte => node = new_binop!(self, BinaryOperator::Gte, node, self.parse_add()?),
                 _ => break,
             }
         }
@@ -192,8 +211,12 @@ impl Parser {
         let mut node = self.parse_mul()?;
         loop {
             match self.peek() {
-                Token::Plus => node = new_binop!(self, Operator::Add, node, self.parse_mul()?),
-                Token::Minus => node = new_binop!(self, Operator::Sub, node, self.parse_mul()?),
+                Token::Plus => {
+                    node = new_binop!(self, BinaryOperator::Add, node, self.parse_mul()?)
+                }
+                Token::Minus => {
+                    node = new_binop!(self, BinaryOperator::Sub, node, self.parse_mul()?)
+                }
                 _ => break,
             }
         }
@@ -206,9 +229,11 @@ impl Parser {
         loop {
             match self.peek() {
                 Token::Asterisk => {
-                    node = new_binop!(self, Operator::Mul, node, self.parse_unary()?)
+                    node = new_binop!(self, BinaryOperator::Mul, node, self.parse_unary()?)
                 }
-                Token::Slash => node = new_binop!(self, Operator::Div, node, self.parse_unary()?),
+                Token::Slash => {
+                    node = new_binop!(self, BinaryOperator::Div, node, self.parse_unary()?)
+                }
                 _ => break,
             }
         }
@@ -220,16 +245,17 @@ impl Parser {
         match self.peek() {
             Token::Plus => Ok(new_binop!(
                 self,
-                Operator::Add,
+                BinaryOperator::Add,
                 AstExpression::Integer { value: 0 },
                 self.parse_unary()?
             )),
             Token::Minus => Ok(new_binop!(
                 self,
-                Operator::Sub,
+                BinaryOperator::Sub,
                 AstExpression::Integer { value: 0 },
                 self.parse_unary()?
             )),
+            Token::Not => Ok(new_unop!(self, UnaryOperator::Not, self.parse_unary()?)),
             _ => Ok(self.parse_primary()?),
         }
     }

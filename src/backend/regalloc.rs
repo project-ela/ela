@@ -24,6 +24,9 @@ impl RegAlloc {
             for tac in function.body.iter_mut() {
                 match tac {
                     Tac::Label { .. } => {}
+                    Tac::UnOp { op: _, ref mut src } => {
+                        self.get_operand(src);
+                    }
                     Tac::BinOp {
                         op: _,
                         ref mut dst,
