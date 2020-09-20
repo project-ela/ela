@@ -98,6 +98,16 @@ try 1 "func main(): int {
   }
 }"
 
+try 2 "func main(): int {
+  if false {
+    return 0
+  } else if false {
+    return 1
+  } else {
+    return 2
+  }
+}"
+
 try 10 "func main(): int {
   var a: int = 10
   return a
