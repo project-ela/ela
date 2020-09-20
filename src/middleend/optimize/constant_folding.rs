@@ -40,7 +40,10 @@ fn opt_statement(statement: AstStatement) -> Option<AstStatement> {
             value: Box::new(opt_expression(*value)),
         }),
         AstStatement::Return { value } => Some(AstStatement::Return {
-            value: Box::new(opt_expression(*value)),
+            value: match value {
+                Some(value) => Some(Box::new(opt_expression(*value))),
+                None => None,
+            },
         }),
         AstStatement::If { cond, then, els } => {
             let cond = opt_expression(*cond);

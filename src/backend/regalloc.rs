@@ -56,10 +56,13 @@ impl RegAlloc {
                         self.get_operand(cond);
                         self.kill_operand(cond);
                     }
-                    Tac::Ret { src } => {
-                        self.get_operand(src);
-                        self.kill_operand(src);
-                    }
+                    Tac::Ret { src } => match src {
+                        Some(src) => {
+                            self.get_operand(src);
+                            self.kill_operand(src);
+                        }
+                        None => {}
+                    },
                 }
             }
             self.reg_map.clear();

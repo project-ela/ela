@@ -116,12 +116,15 @@ impl Parser {
                 }
                 x => Err(format!("unexpected token: {:?}", x)),
             },
-            Token::Return => {
-                let value = self.parse_expression()?;
-                Ok(AstStatement::Return {
-                    value: Box::new(value),
-                })
-            }
+            Token::Return => Ok(AstStatement::Return {
+                value: match self.parse_expression() {
+                    Ok(expr) => Some(Box::new(expr)),
+                    Err(_) => {
+                        self.pos -= 1;
+                        None
+                    }
+                },
+            }),
             Token::If => {
                 let cond = self.parse_expression()?;
                 let then = self.parse_statement()?;

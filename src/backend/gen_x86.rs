@@ -105,7 +105,9 @@ impl GenX86 {
                 self.gen(format!("  je .L.{}", label_index).as_str());
             }
             Tac::Ret { src } => {
-                self.gen(format!("  mov eax, {}", opr(&src)).as_str());
+                if let Some(src) = src {
+                    self.gen(format!("  mov eax, {}", opr(&src)).as_str());
+                }
                 self.gen(format!("  jmp .L.{}.ret", func_name).as_str());
             }
         }

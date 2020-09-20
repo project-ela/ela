@@ -61,7 +61,7 @@ pub enum Tac {
         index: u32,
     },
     Ret {
-        src: Operand,
+        src: Option<Operand>,
     },
 }
 
@@ -142,7 +142,10 @@ impl Tac {
                 format!("  jmpifnot {}, label {}", cond.dump(), label_index)
             }
             Tac::Label { index } => format!("{}:", index),
-            Tac::Ret { src } => format!("  ret {}", src.dump()),
+            Tac::Ret { src } => match src {
+                Some(src) => format!("  ret {}", src.dump()),
+                None => "  ret".to_string(),
+            },
         }
     }
 }

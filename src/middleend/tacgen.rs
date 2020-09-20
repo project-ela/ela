@@ -117,7 +117,10 @@ impl TacGen {
                 self.gen_assign(offset, *value, func)?;
             }
             AstStatement::Return { value } => {
-                let src = self.gen_expression(*value, func)?;
+                let src = match value {
+                    Some(value) => Some(self.gen_expression(*value, func)?),
+                    None => None,
+                };
                 func.body.push(Tac::Ret { src });
             }
             AstStatement::If { cond, then, els } => {

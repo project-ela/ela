@@ -39,7 +39,7 @@ pub enum AstStatement {
         value: Box<AstExpression>,
     },
     Return {
-        value: Box<AstExpression>,
+        value: Option<Box<AstExpression>>,
     },
     If {
         cond: Box<AstExpression>,

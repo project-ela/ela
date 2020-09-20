@@ -170,3 +170,15 @@ func main(): int { return hoge() + fuga() }"
 try 1 "
 func hoge() { }
 func main(): int { hoge()hoge()hoge()hoge()hoge() return 1 }"
+
+try 0 "func hoge() {
+  return
+  if false {
+    return
+  }
+}
+
+func main(): int {
+  hoge()
+  return 0
+}"

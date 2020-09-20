@@ -97,6 +97,10 @@ impl SymbolPass {
     }
 
     fn apply(&mut self, program: &Program) -> Result<(), String> {
+        if program.functions.iter().all(|f| f.name != "main") {
+            self.issue("there must be 'main' function".to_string());
+        }
+
         for function in &program.functions {
             if function.name == "main" && function.ret_typ != Type::Int {
                 self.issue("'main' function should return int value".to_string());
@@ -152,14 +156,15 @@ impl SymbolPass {
                     _ => {}
                 }
             }
-            AstStatement::Return { value } => match self.apply_expression(value) {
-                Some(value_typ) => {
-                    if &value_typ != ret_typ {
-                        self.issue(format!("type mismatch {} and {}", ret_typ, value_typ));
+            AstStatement::Return { value } => {
+                if let Some(value) = value {
+                    if let Some(value_typ) = self.apply_expression(value) {
+                        if &value_typ != ret_typ {
+                            self.issue(format!("type mismatch {} and {}", ret_typ, value_typ));
+                        }
                     }
                 }
-                None => {}
-            },
+            }
             AstStatement::If { cond, then, els } => {
                 if self.apply_expression(cond) != Some(Type::Bool) {
                     self.issue("expression in if statement should be typed bool".to_string());
