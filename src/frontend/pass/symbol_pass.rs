@@ -165,6 +165,12 @@ impl SymbolPass {
                     self.apply_statement(els, ret_typ);
                 }
             }
+            AstStatement::While { cond, body } => {
+                if self.apply_expression(cond) != Some(Type::Bool) {
+                    self.issue("expression in while statement should be typed bool".to_string());
+                }
+                self.apply_statement(body, ret_typ);
+            }
         }
     }
 

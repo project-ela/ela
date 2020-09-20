@@ -10,6 +10,7 @@ pub enum Token {
     Else,
     False,
     True,
+    While,
 
     Assign,
 
