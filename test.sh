@@ -141,9 +141,10 @@ try 110 "func main(): int {
   return sum
 }"
 
-try 1 " func // hoge
+try 1 "func // hoge
 main(): // bool
 int {
-  // return 0
+  /*/ return 0
+  /*/
   return 1
 }"
