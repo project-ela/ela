@@ -50,6 +50,10 @@ pub enum AstStatement {
         cond: Box<AstExpression>,
         body: Box<AstStatement>,
     },
+    // use this if return type is void
+    Call {
+        name: String,
+    },
 }
 
 #[derive(Debug)]
@@ -73,6 +77,7 @@ pub enum AstExpression {
         lhs: Box<AstExpression>,
         rhs: Box<AstExpression>,
     },
+    // use this if return type isn't void
     Call {
         name: String,
     },

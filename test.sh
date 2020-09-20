@@ -166,3 +166,7 @@ func main(): int { return hoge() + fuga() }"
 try 40 "func hoge(): int { return 1 * 2 + 3 * 4 }
 func fuga(): int { return 3 * 4 + 1 * hoge() }
 func main(): int { return hoge() + fuga() }"
+
+try 1 "
+func hoge() { }
+func main(): int { hoge()hoge()hoge()hoge()hoge() return 1 }"

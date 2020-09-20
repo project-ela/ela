@@ -98,6 +98,9 @@ impl SymbolPass {
 
     fn apply(&mut self, program: &Program) -> Result<(), String> {
         for function in &program.functions {
+            if function.name == "main" && function.ret_typ != Type::Int {
+                self.issue("'main' function should return int value".to_string());
+            }
             self.apply_function(&function);
         }
 
@@ -109,7 +112,8 @@ impl SymbolPass {
     }
 
     fn apply_function(&mut self, funciton: &Function) {
-        self.ctx.add_function(funciton.name.to_owned(), Type::Int);
+        self.ctx
+            .add_function(funciton.name.to_owned(), funciton.ret_typ);
         self.ctx.push_ctx();
         self.apply_statement(&funciton.body, &funciton.ret_typ);
         self.ctx.pop_ctx();
@@ -171,6 +175,9 @@ impl SymbolPass {
                 }
                 self.apply_statement(body, ret_typ);
             }
+            AstStatement::Call { name } => {
+                self.check_call(name);
+            }
         }
     }
 
@@ -211,13 +218,17 @@ impl SymbolPass {
                     Equal | NotEqual | Lt | Lte | Gt | Gte => Type::Bool,
                 })
             }
-            AstExpression::Call { name } => match self.ctx.find_function(name) {
-                Some(typ) => Some(typ.clone()),
-                None => {
-                    self.issue(format!("undefined function: {}", name));
-                    None
-                }
-            },
+            AstExpression::Call { name } => self.check_call(name),
+        }
+    }
+
+    fn check_call(&mut self, name: &String) -> Option<Type> {
+        match self.ctx.find_function(name) {
+            Some(typ) => Some(typ.clone()),
+            None => {
+                self.issue(format!("undefined function: {}", name));
+                None
+            }
         }
     }
 

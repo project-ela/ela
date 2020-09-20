@@ -60,8 +60,13 @@ impl Parser {
         let name = self.consume_ident()?;
         self.expect(Token::LParen)?;
         self.expect(Token::RParen)?;
-        self.expect(Token::Colon)?;
-        let ret_typ = self.consume_type()?;
+        let ret_typ = match self.peek() {
+            Token::Colon => {
+                self.consume();
+                self.consume_type()?
+            }
+            _ => Type::Void,
+        };
         let body = self.parse_statement()?;
         Ok(Function {
             name,
@@ -95,14 +100,22 @@ impl Parser {
                     value: Box::new(value),
                 })
             }
-            Token::Ident { name } => {
-                self.expect(Token::Assign)?;
-                let value = self.parse_expression()?;
-                Ok(AstStatement::Assign {
-                    name,
-                    value: Box::new(value),
-                })
-            }
+            Token::Ident { name } => match self.peek() {
+                Token::Assign => {
+                    self.consume();
+                    let value = self.parse_expression()?;
+                    Ok(AstStatement::Assign {
+                        name,
+                        value: Box::new(value),
+                    })
+                }
+                Token::LParen => {
+                    self.consume();
+                    self.expect(Token::RParen)?;
+                    Ok(AstStatement::Call { name })
+                }
+                x => Err(format!("unexpected token: {:?}", x)),
+            },
             Token::Return => {
                 let value = self.parse_expression()?;
                 Ok(AstStatement::Return {

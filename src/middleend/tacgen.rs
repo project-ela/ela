@@ -163,6 +163,7 @@ impl TacGen {
 
                 func.body.push(Tac::Label { index: label2 });
             }
+            AstStatement::Call { name } => func.body.push(Tac::Call { dst: None, name }),
         }
         Ok(())
     }
@@ -221,7 +222,7 @@ impl TacGen {
             AstExpression::Call { name } => {
                 let dst = Operand::Reg(self.next_reg());
                 func.body.push(Tac::Call {
-                    dst: dst.clone(),
+                    dst: Some(dst.clone()),
                     name,
                 });
                 Ok(dst)

@@ -64,6 +64,7 @@ fn opt_statement(statement: AstStatement) -> Option<AstStatement> {
             cond: Box::new(opt_expression(*cond)),
             body: Box::new(opt_statement(*body)?),
         }),
+        AstStatement::Call { .. } => Some(statement),
     }
 }
 
