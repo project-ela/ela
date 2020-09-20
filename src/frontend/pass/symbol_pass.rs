@@ -188,7 +188,13 @@ impl SymbolPass {
                     return None;
                 }
                 Some(match op {
-                    Add | Sub | Mul | Div | And | Or | Xor => Type::Int,
+                    Add | Sub | Mul | Div | And | Or | Xor => match lhs_typ {
+                        Type::Int => Type::Int,
+                        _ => {
+                            self.issue(format!("cannot {:?} {:?} and {:?}", op, lhs_typ, rhs_typ));
+                            return None;
+                        }
+                    },
                     Equal | NotEqual | Lt | Lte | Gt | Gte => Type::Bool,
                 })
             }
