@@ -47,20 +47,18 @@ fn opt_statement(statement: AstStatement) -> Option<AstStatement> {
         }),
         AstStatement::If { cond, then, els } => {
             let cond = opt_expression(*cond);
-            if let AstExpression::Bool { value } = cond {
-                match value {
-                    true => opt_statement(*then),
-                    false => match els {
-                        Some(els) => Some(opt_statement(*els)?),
-                        None => None,
-                    },
+            match cond {
+                AstExpression::Bool { value } => {
+                    if value {
+                        opt_statement(*then)
+                    } else {
+                        match els {
+                            Some(els) => Some(opt_statement(*els)?),
+                            None => None,
+                        }
+                    }
                 }
-            } else {
-                Some(AstStatement::If {
-                    cond: Box::new(cond),
-                    then,
-                    els,
-                })
+                _ => unreachable!(),
             }
         }
         AstStatement::While { cond, body } => Some(AstStatement::While {

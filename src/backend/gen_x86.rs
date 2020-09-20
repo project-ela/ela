@@ -156,7 +156,7 @@ impl GenX86 {
 fn opr(operand: &Operand) -> String {
     match operand {
         Operand::Const(value) => format!("{}", value),
-        Operand::Reg(info) => format!("{}", reg(&info.physical_index.unwrap())),
+        Operand::Reg(info) => reg(&info.physical_index.unwrap()).to_string(),
         Operand::Variable(offset) => format!("[ebp-{}]", offset),
     }
 }

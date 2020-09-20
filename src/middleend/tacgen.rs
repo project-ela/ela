@@ -109,7 +109,7 @@ impl TacGen {
                 value,
             } => {
                 let offset = self.alloc_stack();
-                self.ctx.add_variable(name.to_owned(), offset);
+                self.ctx.add_variable(name, offset);
                 self.gen_assign(offset, *value, func)?;
             }
             AstStatement::Assign { name, value } => {

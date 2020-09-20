@@ -159,13 +159,8 @@ impl Parser {
 
     fn parse_bitor(&mut self) -> Result<AstExpression, String> {
         let mut node = self.parse_bitxor()?;
-        loop {
-            match self.peek() {
-                Token::Or => {
-                    node = new_binop!(self, BinaryOperator::Or, node, self.parse_bitxor()?)
-                }
-                _ => break,
-            }
+        while let Token::Or = self.peek() {
+            node = new_binop!(self, BinaryOperator::Or, node, self.parse_bitxor()?)
         }
 
         Ok(node)
@@ -173,13 +168,8 @@ impl Parser {
 
     fn parse_bitxor(&mut self) -> Result<AstExpression, String> {
         let mut node = self.parse_bitand()?;
-        loop {
-            match self.peek() {
-                Token::Xor => {
-                    node = new_binop!(self, BinaryOperator::Xor, node, self.parse_bitand()?)
-                }
-                _ => break,
-            }
+        while let Token::Xor = self.peek() {
+            node = new_binop!(self, BinaryOperator::Xor, node, self.parse_bitand()?)
         }
 
         Ok(node)
@@ -187,13 +177,8 @@ impl Parser {
 
     fn parse_bitand(&mut self) -> Result<AstExpression, String> {
         let mut node = self.parse_equal()?;
-        loop {
-            match self.peek() {
-                Token::And => {
-                    node = new_binop!(self, BinaryOperator::And, node, self.parse_equal()?)
-                }
-                _ => break,
-            }
+        while let Token::And = self.peek() {
+            node = new_binop!(self, BinaryOperator::And, node, self.parse_equal()?)
         }
 
         Ok(node)
@@ -330,7 +315,7 @@ impl Parser {
     fn consume_ident(&mut self) -> Result<String, String> {
         let next_token = self.consume();
         if let Token::Ident { name } = next_token {
-            Ok(name.to_string())
+            Ok(name)
         } else {
             Err(format!("expected identifier, but got {:?}", next_token))
         }
@@ -341,7 +326,7 @@ impl Parser {
         match typ_name.as_str() {
             "int" => Ok(Type::Int),
             "bool" => Ok(Type::Bool),
-            x => return Err(format!("{} is not a type name", x)),
+            x => Err(format!("{} is not a type name", x)),
         }
     }
 

@@ -133,15 +133,12 @@ impl SymbolPass {
                 self.ctx.pop_ctx();
             }
             AstStatement::Declare { name, typ, value } => {
-                match self.apply_expression(value) {
-                    Some(value_typ) => {
-                        if &value_typ != typ {
-                            self.issue(format!("type mismatch {} and {}", typ, value_typ));
-                        }
+                if let Some(value_typ) = self.apply_expression(value) {
+                    if &value_typ != typ {
+                        self.issue(format!("type mismatch {} and {}", typ, value_typ));
                     }
-                    None => {}
                 }
-                self.ctx.add_variable(name.to_owned(), typ.clone());
+                self.ctx.add_variable(name.to_owned(), *typ);
             }
             AstStatement::Assign { name, value } => {
                 let value_typ = self.apply_expression(value);
@@ -192,7 +189,7 @@ impl SymbolPass {
             AstExpression::Integer { .. } => Some(Type::Int),
             AstExpression::Bool { .. } => Some(Type::Bool),
             AstExpression::Ident { name } => match self.ctx.find_variable(name) {
-                Some(typ) => Some(typ.clone()),
+                Some(typ) => Some(*typ),
                 None => {
                     self.issue(format!("undefined variable: {}", name));
                     None
@@ -229,7 +226,7 @@ impl SymbolPass {
 
     fn check_call(&mut self, name: &String) -> Option<Type> {
         match self.ctx.find_function(name) {
-            Some(typ) => Some(typ.clone()),
+            Some(typ) => Some(*typ),
             None => {
                 self.issue(format!("undefined function: {}", name));
                 None
