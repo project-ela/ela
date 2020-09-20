@@ -48,7 +48,7 @@ impl Parser {
     }
 
     fn parse(&mut self) -> Result<Program, String> {
-        let mut program = Program::new();
+        let mut program = Program::default();
         while !self.is_eof() {
             program.functions.push(self.parse_function()?);
         }

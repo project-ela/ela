@@ -80,7 +80,7 @@ impl TacGen {
     }
 
     fn generate(&mut self, program: Program) -> Result<TacProgram, String> {
-        let mut tac_program = TacProgram::new();
+        let mut tac_program = TacProgram::default();
         for function in program.functions {
             tac_program.functions.push(self.gen_function(function)?);
         }

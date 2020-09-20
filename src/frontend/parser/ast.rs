@@ -3,17 +3,9 @@ use crate::common::{
     types::Type,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Program {
     pub functions: Vec<Function>,
-}
-
-impl Program {
-    pub fn new() -> Self {
-        Self {
-            functions: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug)]

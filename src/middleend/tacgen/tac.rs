@@ -1,16 +1,8 @@
 use crate::common::operator::{BinaryOperator, UnaryOperator};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TacProgram {
     pub functions: Vec<TacFunction>,
-}
-
-impl TacProgram {
-    pub fn new() -> Self {
-        Self {
-            functions: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug)]
