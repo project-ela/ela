@@ -125,6 +125,14 @@ impl Parser {
                     els,
                 })
             }
+            Token::While => {
+                let cond = self.parse_expression()?;
+                let body = self.parse_statement()?;
+                Ok(AstStatement::While {
+                    cond: Box::new(cond),
+                    body: Box::new(body),
+                })
+            }
             x => Err(format!("unexpected token: {:?}", x)),
         }
     }

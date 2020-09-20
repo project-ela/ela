@@ -144,6 +144,26 @@ impl TacGen {
                     func.body.push(Tac::Label { index: label1 });
                 }
             }
+            AstStatement::While { cond, body } => {
+                let label1 = self.next_label();
+                let label2 = self.next_label();
+
+                // condition
+                func.body.push(Tac::Label { index: label1 });
+                let cond = self.gen_expression(*cond, func)?;
+                func.body.push(Tac::JumpIfNot {
+                    label_index: label2,
+                    cond,
+                });
+
+                // body
+                self.gen_statement(*body, func)?;
+                func.body.push(Tac::Jump {
+                    label_index: label1,
+                });
+
+                func.body.push(Tac::Label { index: label2 });
+            }
         }
         Ok(())
     }

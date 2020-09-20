@@ -46,6 +46,10 @@ pub enum AstStatement {
         then: Box<AstStatement>,
         els: Option<Box<AstStatement>>,
     },
+    While {
+        cond: Box<AstExpression>,
+        body: Box<AstStatement>,
+    },
 }
 
 #[derive(Debug)]

@@ -115,3 +115,28 @@ try 0 "func main(): int {
   a = -10
   return a + b
 }"
+
+try 55 "func main(): int {
+  var sum: int = 0
+  var i: int = 0
+  while i <= 10 {
+    sum = sum + i
+    i = i + 1
+  }
+  return sum
+}"
+
+try 110 "func main(): int {
+  var sum: int = 0
+  var i: int = 0
+  var j: int = 0
+  while i < 2 {
+    j = 0
+    while j <= 10 {
+      sum = sum + j
+      j = j + 1
+    }
+    i = i + 1
+  }
+  return sum
+}"

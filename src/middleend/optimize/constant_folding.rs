@@ -60,6 +60,10 @@ fn opt_statement(statement: AstStatement) -> Option<AstStatement> {
                 })
             }
         }
+        AstStatement::While { cond, body } => Some(AstStatement::While {
+            cond: Box::new(opt_expression(*cond)),
+            body: Box::new(opt_statement(*body)?),
+        }),
     }
 }
 
