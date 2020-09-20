@@ -44,7 +44,14 @@ impl Tokenizer {
             '+' => Ok(Token::Plus),
             '-' => Ok(Token::Minus),
             '*' => Ok(Token::Asterisk),
-            '/' => Ok(Token::Slash),
+            '/' => {
+                self.consume_char();
+                match self.peek_char() {
+                    '/' => self.consume_line_comment(),
+                    _ => return Ok(Token::Slash),
+                }
+                return self.next_token();
+            }
             '&' => Ok(Token::And),
             '|' => Ok(Token::Or),
             '^' => Ok(Token::Xor),
@@ -127,6 +134,12 @@ impl Tokenizer {
 
     fn consume_whitespace(&mut self) {
         while !self.is_eof() && self.peek_char().is_whitespace() {
+            self.consume_char();
+        }
+    }
+
+    fn consume_line_comment(&mut self) {
+        while !self.is_eof() && self.peek_char() != '\n' {
             self.consume_char();
         }
     }
