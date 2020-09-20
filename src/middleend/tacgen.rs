@@ -172,7 +172,12 @@ impl TacGen {
             }
             AstExpression::Ident { name } => {
                 let offset = self.ctx.find_variable(&name);
-                Ok(Operand::Variable(offset))
+                let dst = Operand::Reg(self.next_reg());
+                func.body.push(Tac::Move {
+                    dst: dst.clone(),
+                    src: Operand::Variable(offset),
+                });
+                Ok(dst)
             }
             AstExpression::UnaryOp { op, expr } => {
                 let src = self.gen_expression(*expr, func)?;
