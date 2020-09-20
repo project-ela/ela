@@ -1,7 +1,8 @@
 use std::fmt;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Type {
+    Void,
     Int,
     Bool,
 }
@@ -9,6 +10,7 @@ pub enum Type {
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Type::Void => write!(f, "void"),
             Type::Int => write!(f, "int"),
             Type::Bool => write!(f, "bool"),
         }

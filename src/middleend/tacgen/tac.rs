@@ -1,16 +1,8 @@
 use crate::common::operator::{BinaryOperator, UnaryOperator};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TacProgram {
     pub functions: Vec<TacFunction>,
-}
-
-impl TacProgram {
-    pub fn new() -> Self {
-        Self {
-            functions: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -42,6 +34,10 @@ pub enum Tac {
         lhs: Operand,
         rhs: Operand,
     },
+    Call {
+        dst: Option<Operand>,
+        name: String,
+    },
     Move {
         dst: Operand,
         src: Operand,
@@ -57,7 +53,7 @@ pub enum Tac {
         index: u32,
     },
     Ret {
-        src: Operand,
+        src: Option<Operand>,
     },
 }
 
@@ -102,7 +98,7 @@ impl TacProgram {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         for function in &self.functions {
-            s.push_str(format!("func {} {{\n", function.name).as_str());
+            s.push_str(format!("func {}() {{\n", function.name).as_str());
             s.push_str(function.dump().as_str());
             s.push_str("}\n");
         }
@@ -128,13 +124,20 @@ impl Tac {
             Tac::BinOp { op, dst, lhs, rhs } => {
                 format!("  {} = {} {:?} {}", dst.dump(), lhs.dump(), op, rhs.dump())
             }
+            Tac::Call { dst, name } => match dst {
+                Some(dst) => format!("  {} = call {}", dst.dump(), name),
+                None => format!("  call {}", name),
+            },
             Tac::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
             Tac::Jump { label_index } => format!("  jmp label {}", label_index),
             Tac::JumpIfNot { label_index, cond } => {
                 format!("  jmpifnot {}, label {}", cond.dump(), label_index)
             }
             Tac::Label { index } => format!("{}:", index),
-            Tac::Ret { src } => format!("  ret {}", src.dump()),
+            Tac::Ret { src } => match src {
+                Some(src) => format!("  ret {}", src.dump()),
+                None => "  ret".to_string(),
+            },
         }
     }
 }
@@ -142,7 +145,11 @@ impl Tac {
 impl Operand {
     pub fn dump(&self) -> String {
         match self {
-            Operand::Reg(info) => format!("%{}", info.virtual_index),
+            Operand::Reg(info) => format!(
+                "%{}({})",
+                info.virtual_index,
+                info.physical_index.map_or("none", |reg| reg.dump())
+            ),
             Operand::Const(value) => format!("{}", value),
             Operand::Variable(offset) => format!("var({})", offset),
         }

@@ -41,7 +41,7 @@ impl Context {
         self.last_mut().unwrap().insert(name, offset);
     }
 
-    fn find_variable(&self, name: &String) -> u32 {
+    fn find_variable(&self, name: &str) -> u32 {
         for ctx in self.iter().rev() {
             if ctx.contains_key(name) {
                 return *ctx.get(name).unwrap();
@@ -80,7 +80,7 @@ impl TacGen {
     }
 
     fn generate(&mut self, program: Program) -> Result<TacProgram, String> {
-        let mut tac_program = TacProgram::new();
+        let mut tac_program = TacProgram::default();
         for function in program.functions {
             tac_program.functions.push(self.gen_function(function)?);
         }
@@ -88,8 +88,7 @@ impl TacGen {
     }
 
     fn gen_function(&mut self, func: Function) -> Result<TacFunction, String> {
-        self.ctx.clear_ctx();
-        self.stack_offset = 0;
+        self.init();
         let mut tac_func = TacFunction::new(func.name.to_owned());
         self.gen_statement(func.body, &mut tac_func)?;
         Ok(tac_func)
@@ -110,7 +109,7 @@ impl TacGen {
                 value,
             } => {
                 let offset = self.alloc_stack();
-                self.ctx.add_variable(name.to_owned(), offset);
+                self.ctx.add_variable(name, offset);
                 self.gen_assign(offset, *value, func)?;
             }
             AstStatement::Assign { name, value } => {
@@ -118,7 +117,10 @@ impl TacGen {
                 self.gen_assign(offset, *value, func)?;
             }
             AstStatement::Return { value } => {
-                let src = self.gen_expression(*value, func)?;
+                let src = match value {
+                    Some(value) => Some(self.gen_expression(*value, func)?),
+                    None => None,
+                };
                 func.body.push(Tac::Ret { src });
             }
             AstStatement::If { cond, then, els } => {
@@ -164,6 +166,7 @@ impl TacGen {
 
                 func.body.push(Tac::Label { index: label2 });
             }
+            AstStatement::Call { name } => func.body.push(Tac::Call { dst: None, name }),
         }
         Ok(())
     }
@@ -219,6 +222,14 @@ impl TacGen {
                 });
                 Ok(dst)
             }
+            AstExpression::Call { name } => {
+                let dst = Operand::Reg(self.next_reg());
+                func.body.push(Tac::Call {
+                    dst: Some(dst.clone()),
+                    name,
+                });
+                Ok(dst)
+            }
         }
     }
 
@@ -237,6 +248,13 @@ impl TacGen {
         });
         func.body.push(Tac::Move { dst, src: src_reg });
         Ok(())
+    }
+
+    fn init(&mut self) {
+        self.reg = 0;
+        self.label = 0;
+        self.stack_offset = 0;
+        self.ctx.clear_ctx();
     }
 
     fn next_reg(&mut self) -> RegisterInfo {

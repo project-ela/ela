@@ -45,7 +45,7 @@ impl Context {
         self.last_mut().unwrap().variables.insert(name, typ);
     }
 
-    fn find_function(&self, name: &String) -> Option<&Type> {
+    fn find_function(&self, name: &str) -> Option<&Type> {
         for ctx in self.iter().rev() {
             if ctx.functions.contains_key(name) {
                 return ctx.functions.get(name);
@@ -55,7 +55,7 @@ impl Context {
         return None;
     }
 
-    fn find_variable(&self, name: &String) -> Option<&Type> {
+    fn find_variable(&self, name: &str) -> Option<&Type> {
         for ctx in self.iter().rev() {
             if ctx.variables.contains_key(name) {
                 return ctx.variables.get(name);
@@ -97,7 +97,14 @@ impl SymbolPass {
     }
 
     fn apply(&mut self, program: &Program) -> Result<(), String> {
+        if program.functions.iter().all(|f| f.name != "main") {
+            self.issue("there must be 'main' function".to_string());
+        }
+
         for function in &program.functions {
+            if function.name == "main" && function.ret_typ != Type::Int {
+                self.issue("'main' function should return int value".to_string());
+            }
             self.apply_function(&function);
         }
 
@@ -109,7 +116,8 @@ impl SymbolPass {
     }
 
     fn apply_function(&mut self, funciton: &Function) {
-        self.ctx.add_function(funciton.name.to_owned(), Type::Int);
+        self.ctx
+            .add_function(funciton.name.to_owned(), funciton.ret_typ);
         self.ctx.push_ctx();
         self.apply_statement(&funciton.body, &funciton.ret_typ);
         self.ctx.pop_ctx();
@@ -125,15 +133,12 @@ impl SymbolPass {
                 self.ctx.pop_ctx();
             }
             AstStatement::Declare { name, typ, value } => {
-                match self.apply_expression(value) {
-                    Some(value_typ) => {
-                        if &value_typ != typ {
-                            self.issue(format!("type mismatch {} and {}", typ, value_typ));
-                        }
+                if let Some(value_typ) = self.apply_expression(value) {
+                    if &value_typ != typ {
+                        self.issue(format!("type mismatch {} and {}", typ, value_typ));
                     }
-                    None => {}
                 }
-                self.ctx.add_variable(name.to_owned(), typ.clone());
+                self.ctx.add_variable(name.to_owned(), *typ);
             }
             AstStatement::Assign { name, value } => {
                 let value_typ = self.apply_expression(value);
@@ -148,14 +153,15 @@ impl SymbolPass {
                     _ => {}
                 }
             }
-            AstStatement::Return { value } => match self.apply_expression(value) {
-                Some(value_typ) => {
-                    if &value_typ != ret_typ {
-                        self.issue(format!("type mismatch {} and {}", ret_typ, value_typ));
+            AstStatement::Return { value } => {
+                if let Some(value) = value {
+                    if let Some(value_typ) = self.apply_expression(value) {
+                        if &value_typ != ret_typ {
+                            self.issue(format!("type mismatch {} and {}", ret_typ, value_typ));
+                        }
                     }
                 }
-                None => {}
-            },
+            }
             AstStatement::If { cond, then, els } => {
                 if self.apply_expression(cond) != Some(Type::Bool) {
                     self.issue("expression in if statement should be typed bool".to_string());
@@ -171,6 +177,9 @@ impl SymbolPass {
                 }
                 self.apply_statement(body, ret_typ);
             }
+            AstStatement::Call { name } => {
+                self.check_call(name);
+            }
         }
     }
 
@@ -180,7 +189,7 @@ impl SymbolPass {
             AstExpression::Integer { .. } => Some(Type::Int),
             AstExpression::Bool { .. } => Some(Type::Bool),
             AstExpression::Ident { name } => match self.ctx.find_variable(name) {
-                Some(typ) => Some(typ.clone()),
+                Some(typ) => Some(*typ),
                 None => {
                     self.issue(format!("undefined variable: {}", name));
                     None
@@ -210,6 +219,17 @@ impl SymbolPass {
                     },
                     Equal | NotEqual | Lt | Lte | Gt | Gte => Type::Bool,
                 })
+            }
+            AstExpression::Call { name } => self.check_call(name),
+        }
+    }
+
+    fn check_call(&mut self, name: &str) -> Option<Type> {
+        match self.ctx.find_function(name) {
+            Some(typ) => Some(*typ),
+            None => {
+                self.issue(format!("undefined function: {}", name));
+                None
             }
         }
     }

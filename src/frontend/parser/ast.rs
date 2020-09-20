@@ -3,17 +3,9 @@ use crate::common::{
     types::Type,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Program {
     pub functions: Vec<Function>,
-}
-
-impl Program {
-    pub fn new() -> Self {
-        Self {
-            functions: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -39,7 +31,7 @@ pub enum AstStatement {
         value: Box<AstExpression>,
     },
     Return {
-        value: Box<AstExpression>,
+        value: Option<Box<AstExpression>>,
     },
     If {
         cond: Box<AstExpression>,
@@ -49,6 +41,10 @@ pub enum AstStatement {
     While {
         cond: Box<AstExpression>,
         body: Box<AstStatement>,
+    },
+    // use this if return type is void
+    Call {
+        name: String,
     },
 }
 
@@ -72,5 +68,9 @@ pub enum AstExpression {
         op: BinaryOperator,
         lhs: Box<AstExpression>,
         rhs: Box<AstExpression>,
+    },
+    // use this if return type isn't void
+    Call {
+        name: String,
     },
 }

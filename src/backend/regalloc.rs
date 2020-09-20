@@ -39,6 +39,11 @@ impl RegAlloc {
                         self.kill_operand(rhs);
                         self.alloc_operand(dst);
                     }
+                    Tac::Call { dst, .. } => {
+                        if let Some(dst) = dst {
+                            self.alloc_operand(dst);
+                        }
+                    }
                     Tac::Move { dst, src } => {
                         self.alloc_operand(dst);
                         self.get_operand(src);
@@ -52,12 +57,16 @@ impl RegAlloc {
                         self.get_operand(cond);
                         self.kill_operand(cond);
                     }
-                    Tac::Ret { src } => {
-                        self.get_operand(src);
-                        self.kill_operand(src);
-                    }
+                    Tac::Ret { src } => match src {
+                        Some(src) => {
+                            self.get_operand(src);
+                            self.kill_operand(src);
+                        }
+                        None => {}
+                    },
                 }
             }
+            self.reg_map.clear();
         }
         program
     }
@@ -105,7 +114,7 @@ impl RegAlloc {
     }
 
     fn get_reg(&mut self, virtual_index: u32) -> Register {
-        return *self.reg_map.get(&virtual_index).unwrap();
+        *self.reg_map.get(&virtual_index).unwrap()
     }
 
     fn kill_reg(&mut self, virtual_index: &u32) {

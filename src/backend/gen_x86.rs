@@ -32,17 +32,23 @@ impl GenX86 {
         self.gen(format!("{}:", funciton.name).as_str());
         self.gen("  push ebp");
         self.gen("  mov ebp, esp");
+        self.gen("  push ecx");
+        self.gen("  push edx");
+        self.gen("  push ebx");
         for tac in funciton.body {
             self.gen_tac(tac, &funciton.name)?;
         }
         self.gen(format!(".L.{}.ret:", funciton.name).as_str());
+        self.gen("  pop ebx");
+        self.gen("  pop edx");
+        self.gen("  pop ecx");
         self.gen("  mov esp, ebp");
         self.gen("  pop ebp");
         self.gen("  ret");
         Ok(())
     }
 
-    fn gen_tac(&mut self, tac: Tac, func_name: &String) -> Result<(), String> {
+    fn gen_tac(&mut self, tac: Tac, func_name: &str) -> Result<(), String> {
         match tac {
             Tac::Label { index } => self.gen(format!(".L.{}:", index).as_str()),
             Tac::UnOp { op, src } => match op {
@@ -71,6 +77,25 @@ impl GenX86 {
                     BinaryOperator::Gte => self.gen_compare("setge", dst, rhs),
                 }
             }
+            Tac::Call { dst, name } => match dst {
+                Some(dst) => {
+                    let mut is_eax = false;
+                    if let Operand::Reg(reg) = &dst {
+                        if reg.physical_index.unwrap() == Register::Eax {
+                            is_eax = true;
+                        }
+                    }
+                    if !is_eax {
+                        self.gen("  push eax");
+                    }
+                    self.gen(format!("  call {}", name).as_str());
+                    self.gen(format!("  mov {}, eax", opr(&dst)).as_str());
+                    if !is_eax {
+                        self.gen("  pop eax");
+                    }
+                }
+                None => self.gen(format!("  call {}", name).as_str()),
+            },
             Tac::Move { dst, src } => {
                 self.gen(format!("  mov {}, {}", opr(&dst), opr(&src)).as_str())
             }
@@ -80,7 +105,9 @@ impl GenX86 {
                 self.gen(format!("  je .L.{}", label_index).as_str());
             }
             Tac::Ret { src } => {
-                self.gen(format!("  mov eax, {}", opr(&src)).as_str());
+                if let Some(src) = src {
+                    self.gen(format!("  mov eax, {}", opr(&src)).as_str());
+                }
                 self.gen(format!("  jmp .L.{}.ret", func_name).as_str());
             }
         }
@@ -129,7 +156,7 @@ impl GenX86 {
 fn opr(operand: &Operand) -> String {
     match operand {
         Operand::Const(value) => format!("{}", value),
-        Operand::Reg(info) => format!("{}", reg(&info.physical_index.unwrap())),
+        Operand::Reg(info) => reg(&info.physical_index.unwrap()).to_string(),
         Operand::Variable(offset) => format!("[ebp-{}]", offset),
     }
 }

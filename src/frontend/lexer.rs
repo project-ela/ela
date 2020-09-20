@@ -173,8 +173,8 @@ impl Tokenizer {
     }
 }
 
-fn find_keyword(ident: &String) -> Option<Token> {
-    match ident.as_str() {
+fn find_keyword(ident: &str) -> Option<Token> {
+    match ident {
         "func" => Some(Token::Func),
         "var" => Some(Token::Var),
         "return" => Some(Token::Return),

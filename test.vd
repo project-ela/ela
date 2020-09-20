@@ -1,0 +1,44 @@
+fn assert(actual: int, expected: int): int {
+  if actual != expected {
+    print("$expected expected, but got $actual")
+    exit 1
+  } else {
+    print("{}")
+  }
+}
+
+fn main(): int {
+  assert(0, 0)
+  assert(42, 42)
+  assert(1 + 2, 3)
+  assert(1 + 2 + 3, 6)
+  assert(6 - 1, 5)
+  assert(20 - 5 + 2, 17)
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+  assert(, )
+
+}
