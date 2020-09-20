@@ -41,7 +41,7 @@ impl Context {
         self.last_mut().unwrap().insert(name, offset);
     }
 
-    fn find_variable(&self, name: &String) -> u32 {
+    fn find_variable(&self, name: &str) -> u32 {
         for ctx in self.iter().rev() {
             if ctx.contains_key(name) {
                 return *ctx.get(name).unwrap();

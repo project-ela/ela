@@ -48,7 +48,7 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_tac(&mut self, tac: Tac, func_name: &String) -> Result<(), String> {
+    fn gen_tac(&mut self, tac: Tac, func_name: &str) -> Result<(), String> {
         match tac {
             Tac::Label { index } => self.gen(format!(".L.{}:", index).as_str()),
             Tac::UnOp { op, src } => match op {

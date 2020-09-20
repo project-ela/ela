@@ -45,7 +45,7 @@ impl Context {
         self.last_mut().unwrap().variables.insert(name, typ);
     }
 
-    fn find_function(&self, name: &String) -> Option<&Type> {
+    fn find_function(&self, name: &str) -> Option<&Type> {
         for ctx in self.iter().rev() {
             if ctx.functions.contains_key(name) {
                 return ctx.functions.get(name);
@@ -55,7 +55,7 @@ impl Context {
         return None;
     }
 
-    fn find_variable(&self, name: &String) -> Option<&Type> {
+    fn find_variable(&self, name: &str) -> Option<&Type> {
         for ctx in self.iter().rev() {
             if ctx.variables.contains_key(name) {
                 return ctx.variables.get(name);
@@ -224,7 +224,7 @@ impl SymbolPass {
         }
     }
 
-    fn check_call(&mut self, name: &String) -> Option<Type> {
+    fn check_call(&mut self, name: &str) -> Option<Type> {
         match self.ctx.find_function(name) {
             Some(typ) => Some(*typ),
             None => {
