@@ -126,7 +126,7 @@ impl Tac {
             Tac::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
             Tac::Jump { label_index } => format!("  jmp label {}", label_index),
             Tac::JumpIfNot { label_index, cond } => {
-                format!("  jmpif {}, label {}", cond.dump(), label_index)
+                format!("  jmpifnot {}, label {}", cond.dump(), label_index)
             }
             Tac::Label { index } => format!("{}:", index),
             Tac::Ret { src } => format!("  ret {}", src.dump()),
