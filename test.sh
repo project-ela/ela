@@ -57,6 +57,8 @@ try 0 "func main(): int { if 1 > 1 { return 1 } else { return 0 } }"
 try 1 "func main(): int { if 2 > 1 { return 1 } else { return 0 } }"
 try 0 "func main(): int { if 0 >= 1 { return 1 } else { return 0 } }"
 try 1 "func main(): int { if 1 >= 1 { return 1 } else { return 0 } }"
+try 0 "func main(): int { if !true { return 1 } else { return 0 } }"
+try 1 "func main(): int { if !false { return 1 } else { return 0 } }"
 
 try 1 "func main(): int {
   if true {

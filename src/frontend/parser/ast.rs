@@ -1,4 +1,7 @@
-use crate::common::{operator::Operator, types::Type};
+use crate::common::{
+    operator::{BinaryOperator, UnaryOperator},
+    types::Type,
+};
 
 #[derive(Debug)]
 pub struct Program {
@@ -57,8 +60,12 @@ pub enum AstExpression {
         name: String,
     },
 
+    UnaryOp {
+        op: UnaryOperator,
+        expr: Box<AstExpression>,
+    },
     BinaryOp {
-        op: Operator,
+        op: BinaryOperator,
         lhs: Box<AstExpression>,
         rhs: Box<AstExpression>,
     },
