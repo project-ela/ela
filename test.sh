@@ -1,11 +1,12 @@
 #!/bin/bash
 
-try() {
+do_try() {
   expected=$1
   source=$2
+  option=$3
 
   echo "$source" | tee tmp.vd
-  cargo run tmp.vd tmp.s 2> /dev/null
+  cargo run -- $option tmp.vd tmp.s 2> /dev/null
   gcc -m32 tmp.s -o tmp
   ./tmp
   actual=$?
@@ -16,6 +17,11 @@ try() {
     echo "==> $expected"
   fi
   echo
+}
+
+try() {
+  do_try "$1" "$2" ""
+  do_try "$1" "$2" "--optimize"
 }
 
 try 0 "func main(): int { return 0 }"

@@ -79,13 +79,10 @@ impl Parser {
         match self.consume() {
             Token::LBrace => {
                 let mut stmts = Vec::new();
-                loop {
-                    if self.peek() == Token::RBrace {
-                        self.consume();
-                        break;
-                    }
+                while self.peek() != Token::RBrace {
                     stmts.push(self.parse_statement()?);
                 }
+                self.consume();
                 Ok(AstStatement::Block { stmts })
             }
             Token::Var => {
@@ -128,12 +125,13 @@ impl Parser {
             Token::If => {
                 let cond = self.parse_expression()?;
                 let then = self.parse_statement()?;
-                let els = if self.peek() == Token::Else {
-                    self.consume();
-                    let els = self.parse_statement()?;
-                    Some(Box::new(els))
-                } else {
-                    None
+                let els = match self.peek() {
+                    Token::Else => {
+                        self.consume();
+                        let els = self.parse_statement()?;
+                        Some(Box::new(els))
+                    }
+                    _ => None,
                 };
                 Ok(AstStatement::If {
                     cond: Box::new(cond),
