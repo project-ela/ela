@@ -7,16 +7,11 @@ use crate::{
 use std::fs;
 
 pub fn compile_to_file(config: CompilerConfig) -> Result<(), String> {
-    match fs::read_to_string(&config.input_file) {
-        Ok(source) => {
-            let output = compile(source, &config)?;
-            match fs::write(&config.output_file, output) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(format!("failed to compile: {}", err)),
-            }
-        }
-        Err(err) => Err(format!("failed to compile: {}", err)),
-    }
+    let source = fs::read_to_string(&config.input_file)
+        .map_err(|err| format!("failed to compile: {}", err))?;
+    let output = compile(source, &config)?;
+    fs::write(&config.output_file, output).map_err(|err| format!("failed to compile: {}", err))?;
+    Ok(())
 }
 
 pub fn compile(source: String, config: &CompilerConfig) -> Result<String, String> {
@@ -31,6 +26,7 @@ pub fn compile(source: String, config: &CompilerConfig) -> Result<String, String
     }
 
     symbol_pass::apply(&program)?;
+
     if config.optimize {
         program = constant_folding::optimize(program);
     }

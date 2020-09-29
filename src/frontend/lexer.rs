@@ -20,15 +20,8 @@ impl Tokenizer {
     fn tokenize(&mut self) -> Result<Vec<Token>, String> {
         let mut tokens: Vec<Token> = Vec::new();
 
-        loop {
-            if self.is_eof() {
-                break;
-            }
-
-            match self.next_token() {
-                Ok(token) => tokens.push(token),
-                Err(err) => return Err(err),
-            }
+        while !self.is_eof() {
+            tokens.push(self.next_token()?);
         }
 
         Ok(tokens)
@@ -121,19 +114,19 @@ impl Tokenizer {
     }
 
     fn consume_ident(&mut self) -> String {
-        let mut result = String::new();
+        let mut ident = String::new();
         while !self.is_eof() && self.peek_char().is_alphabetic() {
-            result.push(self.consume_char());
+            ident.push(self.consume_char());
         }
-        result
+        ident
     }
 
     fn consume_number(&mut self) -> i32 {
-        let mut result = String::new();
+        let mut digits = String::new();
         while !self.is_eof() && self.peek_char().is_digit(10) {
-            result.push(self.consume_char());
+            digits.push(self.consume_char());
         }
-        result.parse().unwrap()
+        digits.parse().unwrap()
     }
 
     fn consume_whitespace(&mut self) {

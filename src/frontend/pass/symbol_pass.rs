@@ -25,6 +25,7 @@ impl DerefMut for Context {
     }
 }
 
+#[derive(Default)]
 struct ContextData {
     functions: HashMap<String, Type>,
     variables: HashMap<String, Type>,
@@ -66,20 +67,11 @@ impl Context {
     }
 
     fn push_ctx(&mut self) {
-        self.push(ContextData::new());
+        self.push(ContextData::default());
     }
 
     fn pop_ctx(&mut self) {
         self.pop();
-    }
-}
-
-impl ContextData {
-    fn new() -> Self {
-        Self {
-            functions: HashMap::new(),
-            variables: HashMap::new(),
-        }
     }
 }
 
@@ -98,12 +90,12 @@ impl SymbolPass {
 
     fn apply(&mut self, program: &Program) -> Result<(), String> {
         if program.functions.iter().all(|f| f.name != "main") {
-            self.issue("there must be 'main' function".to_string());
+            self.issue("there must be 'main' function");
         }
 
         for function in &program.functions {
             if function.name == "main" && function.ret_typ != Type::Int {
-                self.issue("'main' function should return int value".to_string());
+                self.issue("'main' function should return int value");
             }
             self.apply_function(&function);
         }
@@ -164,7 +156,7 @@ impl SymbolPass {
             }
             AstStatement::If { cond, then, els } => {
                 if self.apply_expression(cond) != Some(Type::Bool) {
-                    self.issue("expression in if statement should be typed bool".to_string());
+                    self.issue("expression in if statement should be typed bool");
                 }
                 self.apply_statement(then, ret_typ);
                 if let Some(els) = els {
@@ -173,7 +165,7 @@ impl SymbolPass {
             }
             AstStatement::While { cond, body } => {
                 if self.apply_expression(cond) != Some(Type::Bool) {
-                    self.issue("expression in while statement should be typed bool".to_string());
+                    self.issue("expression in while statement should be typed bool");
                 }
                 self.apply_statement(body, ret_typ);
             }
@@ -209,16 +201,16 @@ impl SymbolPass {
                     self.issue(format!("mismatched types {:?} and {:?}", lhs_typ, rhs_typ));
                     return None;
                 }
-                Some(match op {
+                match op {
+                    Equal | NotEqual | Lt | Lte | Gt | Gte => Some(Type::Bool),
                     Add | Sub | Mul | Div | And | Or | Xor => match lhs_typ {
-                        Type::Int => Type::Int,
+                        Type::Int => Some(Type::Int),
                         _ => {
                             self.issue(format!("cannot {:?} {:?} and {:?}", op, lhs_typ, rhs_typ));
-                            return None;
+                            None
                         }
                     },
-                    Equal | NotEqual | Lt | Lte | Gt | Gte => Type::Bool,
-                })
+                }
             }
             AstExpression::Call { name } => self.check_call(name),
         }
@@ -234,7 +226,7 @@ impl SymbolPass {
         }
     }
 
-    fn issue(&mut self, msg: String) {
-        self.issues.push(msg);
+    fn issue<T: Into<String>>(&mut self, msg: T) {
+        self.issues.push(msg.into());
     }
 }
