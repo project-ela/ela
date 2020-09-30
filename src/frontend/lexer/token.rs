@@ -3,6 +3,8 @@ pub enum Token {
     IntLiteral { value: i32 },
     Ident { name: String },
 
+    Comment { content: String },
+
     Func,
     Var,
     Return,
