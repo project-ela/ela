@@ -107,6 +107,11 @@ impl TacGen {
                 name,
                 typ: _,
                 value,
+            }
+            | AstStatement::Val {
+                name,
+                typ: _,
+                value,
             } => {
                 let offset = self.alloc_stack();
                 self.ctx.add_variable(name, offset);

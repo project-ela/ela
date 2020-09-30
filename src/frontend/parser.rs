@@ -85,17 +85,25 @@ impl Parser {
                 self.consume();
                 Ok(AstStatement::Block { stmts })
             }
-            Token::Var => {
+            token @ Token::Var | token @ Token::Val => {
                 let name = self.consume_ident()?;
                 self.expect(Token::Colon)?;
                 let typ = self.consume_type()?;
                 self.expect(Token::Assign)?;
                 let value = self.parse_expression()?;
-                Ok(AstStatement::Var {
-                    name,
-                    typ,
-                    value: Box::new(value),
-                })
+                match token {
+                    Token::Var => Ok(AstStatement::Var {
+                        name,
+                        typ,
+                        value: Box::new(value),
+                    }),
+                    Token::Val => Ok(AstStatement::Val {
+                        name,
+                        typ,
+                        value: Box::new(value),
+                    }),
+                    _ => unreachable!(),
+                }
             }
             Token::Ident { name } => match self.peek() {
                 Token::Assign => {

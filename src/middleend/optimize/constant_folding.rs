@@ -35,6 +35,11 @@ fn opt_statement(statement: AstStatement) -> Option<AstStatement> {
             typ,
             value: Box::new(opt_expression(*value)),
         }),
+        AstStatement::Val { name, typ, value } => Some(AstStatement::Val {
+            name,
+            typ,
+            value: Box::new(opt_expression(*value)),
+        }),
         AstStatement::Assign { name, value } => Some(AstStatement::Assign {
             name,
             value: Box::new(opt_expression(*value)),

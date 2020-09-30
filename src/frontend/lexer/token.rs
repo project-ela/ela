@@ -7,6 +7,7 @@ pub enum Token {
 
     Func,
     Var,
+    Val,
     Return,
     If,
     Else,

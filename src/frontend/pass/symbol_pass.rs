@@ -28,7 +28,13 @@ impl DerefMut for Context {
 #[derive(Default)]
 struct ContextData {
     functions: HashMap<String, Type>,
-    variables: HashMap<String, Type>,
+    variables: HashMap<String, Variable>,
+}
+
+#[derive(Clone)]
+struct Variable {
+    typ: Type,
+    is_const: bool,
 }
 
 impl Context {
@@ -42,8 +48,11 @@ impl Context {
         self.last_mut().unwrap().functions.insert(name, ret_typ);
     }
 
-    fn add_variable(&mut self, name: String, typ: Type) {
-        self.last_mut().unwrap().variables.insert(name, typ);
+    fn add_variable(&mut self, name: String, typ: Type, is_const: bool) {
+        self.last_mut()
+            .unwrap()
+            .variables
+            .insert(name, Variable { typ, is_const });
     }
 
     fn find_function(&self, name: &str) -> Option<&Type> {
@@ -56,7 +65,7 @@ impl Context {
         return None;
     }
 
-    fn find_variable(&self, name: &str) -> Option<&Type> {
+    fn find_variable(&self, name: &str) -> Option<&Variable> {
         for ctx in self.iter().rev() {
             if ctx.variables.contains_key(name) {
                 return ctx.variables.get(name);
@@ -130,15 +139,26 @@ impl SymbolPass {
                         self.issue(format!("type mismatch {} and {}", typ, value_typ));
                     }
                 }
-                self.ctx.add_variable(name.to_owned(), *typ);
+                self.ctx.add_variable(name.to_owned(), *typ, false);
+            }
+            AstStatement::Val { name, typ, value } => {
+                if let Some(value_typ) = self.apply_expression(value) {
+                    if &value_typ != typ {
+                        self.issue(format!("type mismatch {} and {}", typ, value_typ));
+                    }
+                }
+                self.ctx.add_variable(name.to_owned(), *typ, true);
             }
             AstStatement::Assign { name, value } => {
                 let value_typ = self.apply_expression(value);
-                let var_typ = self.ctx.find_variable(name);
-                match (var_typ, value_typ) {
-                    (Some(var_typ), Some(value_typ)) => {
-                        if var_typ != &value_typ {
-                            self.issue(format!("type mismatch {} and {}", var_typ, value_typ));
+                let var = self.ctx.find_variable(name).cloned();
+                match (var, value_typ) {
+                    (Some(var), Some(value_typ)) => {
+                        if var.typ != value_typ {
+                            self.issue(format!("type mismatch {} and {}", var.typ, value_typ));
+                        }
+                        if var.is_const {
+                            self.issue(format!("cannot assign to constant variable '{}'", name));
                         }
                     }
                     (None, _) => self.issue(format!("undefined variable: {}", name)),
@@ -181,7 +201,7 @@ impl SymbolPass {
             AstExpression::Integer { .. } => Some(Type::Int),
             AstExpression::Bool { .. } => Some(Type::Bool),
             AstExpression::Ident { name } => match self.ctx.find_variable(name) {
-                Some(typ) => Some(*typ),
+                Some(var) => Some(var.typ),
                 None => {
                     self.issue(format!("undefined variable: {}", name));
                     None

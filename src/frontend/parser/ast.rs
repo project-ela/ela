@@ -26,6 +26,11 @@ pub enum AstStatement {
         typ: Type,
         value: Box<AstExpression>,
     },
+    Val {
+        name: String,
+        typ: Type,
+        value: Box<AstExpression>,
+    },
     Assign {
         name: String,
         value: Box<AstExpression>,
