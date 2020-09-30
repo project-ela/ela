@@ -132,6 +132,12 @@ try 0 "func main(): int {
   return a + b
 }"
 
+try 20 "func main(): int {
+  val a: int = 10
+  val b: int = a
+  return a + b
+}"
+
 try 55 "func main(): int {
   var sum: int = 0
   var i: int = 0
