@@ -124,7 +124,7 @@ impl SymbolPass {
                 }
                 self.ctx.pop_ctx();
             }
-            AstStatement::Declare { name, typ, value } => {
+            AstStatement::Var { name, typ, value } => {
                 if let Some(value_typ) = self.apply_expression(value) {
                     if &value_typ != typ {
                         self.issue(format!("type mismatch {} and {}", typ, value_typ));

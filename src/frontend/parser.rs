@@ -91,7 +91,7 @@ impl Parser {
                 let typ = self.consume_type()?;
                 self.expect(Token::Assign)?;
                 let value = self.parse_expression()?;
-                Ok(AstStatement::Declare {
+                Ok(AstStatement::Var {
                     name,
                     typ,
                     value: Box::new(value),

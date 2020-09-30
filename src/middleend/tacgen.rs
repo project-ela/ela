@@ -103,7 +103,7 @@ impl TacGen {
                 }
                 self.ctx.pop_ctx();
             }
-            AstStatement::Declare {
+            AstStatement::Var {
                 name,
                 typ: _,
                 value,
