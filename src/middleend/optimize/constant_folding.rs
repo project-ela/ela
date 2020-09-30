@@ -30,7 +30,12 @@ fn opt_statement(statement: AstStatement) -> Option<AstStatement> {
             }
             Some(AstStatement::Block { stmts: new_stmts })
         }
-        AstStatement::Declare { name, typ, value } => Some(AstStatement::Declare {
+        AstStatement::Var { name, typ, value } => Some(AstStatement::Var {
+            name,
+            typ,
+            value: Box::new(opt_expression(*value)),
+        }),
+        AstStatement::Val { name, typ, value } => Some(AstStatement::Val {
             name,
             typ,
             value: Box::new(opt_expression(*value)),

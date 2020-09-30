@@ -21,7 +21,12 @@ pub enum AstStatement {
         stmts: Vec<AstStatement>,
     },
 
-    Declare {
+    Var {
+        name: String,
+        typ: Type,
+        value: Box<AstExpression>,
+    },
+    Val {
         name: String,
         typ: Type,
         value: Box<AstExpression>,

@@ -184,6 +184,7 @@ fn find_keyword(ident: &str) -> Option<Token> {
     match ident {
         "func" => Some(Token::Func),
         "var" => Some(Token::Var),
+        "val" => Some(Token::Val),
         "return" => Some(Token::Return),
         "if" => Some(Token::If),
         "else" => Some(Token::Else),
