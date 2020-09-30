@@ -329,7 +329,15 @@ impl Parser {
     }
 
     fn consume(&mut self) -> Token {
-        let token = self.tokens.get(self.pos).unwrap_or(&Token::EOF);
+        let token = match self.tokens.get(self.pos) {
+            // skip comment
+            Some(Token::Comment { .. }) => {
+                self.pos += 1;
+                return self.consume();
+            }
+            Some(token) => token,
+            None => &Token::EOF,
+        };
         self.pos += 1;
         token.clone()
     }
