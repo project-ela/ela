@@ -6,7 +6,7 @@ fn main() {
     match cli::parse_arguments() {
         Ok(config) => {
             if let Err(err) = compile_to_file(config) {
-                println!("{}", err);
+                println!("failed to compile:\n{}", err);
                 std::process::exit(1);
             }
         }

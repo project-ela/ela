@@ -1,5 +1,8 @@
 use crate::{
-    common::operator::{BinaryOperator, UnaryOperator},
+    common::{
+        error::Error,
+        operator::{BinaryOperator, UnaryOperator},
+    },
     middleend::tacgen::tac::*,
 };
 
@@ -7,7 +10,7 @@ struct GenX86 {
     output: String,
 }
 
-pub fn generate(program: TacProgram) -> Result<String, String> {
+pub fn generate(program: TacProgram) -> Result<String, Error> {
     let mut generator = GenX86::new();
     generator.generate(program)
 }
@@ -19,7 +22,7 @@ impl GenX86 {
         }
     }
 
-    fn generate(&mut self, program: TacProgram) -> Result<String, String> {
+    fn generate(&mut self, program: TacProgram) -> Result<String, Error> {
         self.gen(".intel_syntax noprefix");
         for function in program.functions {
             self.gen_function(function)?;
@@ -27,7 +30,7 @@ impl GenX86 {
         Ok(self.output.to_owned())
     }
 
-    fn gen_function(&mut self, funciton: TacFunction) -> Result<(), String> {
+    fn gen_function(&mut self, funciton: TacFunction) -> Result<(), Error> {
         self.gen(format!(".global {}", funciton.name).as_str());
         self.gen(format!("{}:", funciton.name).as_str());
         self.gen("  push ebp");
@@ -48,7 +51,7 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_tac(&mut self, tac: Tac, func_name: &str) -> Result<(), String> {
+    fn gen_tac(&mut self, tac: Tac, func_name: &str) -> Result<(), Error> {
         match tac {
             Tac::Label { index } => self.gen(format!(".L.{}:", index).as_str()),
             Tac::UnOp { op, src } => match op {

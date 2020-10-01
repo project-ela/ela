@@ -1,5 +1,9 @@
 use crate::{
-    common::{operator::BinaryOperator, types::Type},
+    common::{
+        error::{Error, ErrorKind, Errors},
+        operator::BinaryOperator,
+        types::Type,
+    },
     frontend::parser::ast::*,
 };
 use std::collections::HashMap;
@@ -7,7 +11,7 @@ use std::ops::{Deref, DerefMut};
 
 struct SymbolPass {
     ctx: Context,
-    issues: Vec<String>,
+    issues: Errors,
 }
 
 struct Context(Vec<ContextData>);
@@ -84,35 +88,36 @@ impl Context {
     }
 }
 
-pub fn apply(program: &Program) -> Result<(), String> {
+pub fn apply(program: &Program) -> Result<(), Errors> {
     let mut pass = SymbolPass::new();
-    pass.apply(program)
+    pass.apply(program);
+
+    let issues = pass.issues;
+    if issues.0.is_empty() {
+        Ok(())
+    } else {
+        Err(issues)
+    }
 }
 
 impl SymbolPass {
     fn new() -> Self {
         Self {
             ctx: Context::new(),
-            issues: Vec::new(),
+            issues: Errors::default(),
         }
     }
 
-    fn apply(&mut self, program: &Program) -> Result<(), String> {
+    fn apply(&mut self, program: &Program) {
         if program.functions.iter().all(|f| f.name != "main") {
-            self.issue("there must be 'main' function");
+            self.issue(Error::new(ErrorKind::MainNotFound));
         }
 
         for function in &program.functions {
             if function.name == "main" && function.ret_typ != Type::Int {
-                self.issue("'main' function should return int value");
+                self.issue(Error::new(ErrorKind::MainShouldReturnInt));
             }
             self.apply_function(&function);
-        }
-
-        if self.issues.is_empty() {
-            Ok(())
-        } else {
-            Err(self.issues.join("\n"))
         }
     }
 
@@ -136,7 +141,10 @@ impl SymbolPass {
             AstStatement::Var { name, typ, value } => {
                 if let Some(value_typ) = self.apply_expression(value) {
                     if &value_typ != typ {
-                        self.issue(format!("type mismatch {} and {}", typ, value_typ));
+                        self.issue(Error::new(ErrorKind::TypeMismatch {
+                            lhs: *typ,
+                            rhs: value_typ,
+                        }));
                     }
                 }
                 self.ctx.add_variable(name.to_owned(), *typ, false);
@@ -144,7 +152,10 @@ impl SymbolPass {
             AstStatement::Val { name, typ, value } => {
                 if let Some(value_typ) = self.apply_expression(value) {
                     if &value_typ != typ {
-                        self.issue(format!("type mismatch {} and {}", typ, value_typ));
+                        self.issue(Error::new(ErrorKind::TypeMismatch {
+                            lhs: *typ,
+                            rhs: value_typ,
+                        }));
                     }
                 }
                 self.ctx.add_variable(name.to_owned(), *typ, true);
@@ -155,13 +166,20 @@ impl SymbolPass {
                 match (var, value_typ) {
                     (Some(var), Some(value_typ)) => {
                         if var.typ != value_typ {
-                            self.issue(format!("type mismatch {} and {}", var.typ, value_typ));
+                            self.issue(Error::new(ErrorKind::TypeMismatch {
+                                lhs: var.typ,
+                                rhs: value_typ,
+                            }));
                         }
                         if var.is_const {
-                            self.issue(format!("cannot assign to constant variable '{}'", name));
+                            self.issue(Error::new(ErrorKind::AssignToConstant {
+                                name: name.into(),
+                            }));
                         }
                     }
-                    (None, _) => self.issue(format!("undefined variable: {}", name)),
+                    (None, _) => self.issue(Error::new(ErrorKind::NotDefinedVariable {
+                        name: name.into(),
+                    })),
                     _ => {}
                 }
             }
@@ -169,14 +187,21 @@ impl SymbolPass {
                 if let Some(value) = value {
                     if let Some(value_typ) = self.apply_expression(value) {
                         if &value_typ != ret_typ {
-                            self.issue(format!("type mismatch {} and {}", ret_typ, value_typ));
+                            self.issue(Error::new(ErrorKind::TypeMismatch {
+                                lhs: *ret_typ,
+                                rhs: value_typ,
+                            }));
                         }
                     }
                 }
             }
             AstStatement::If { cond, then, els } => {
-                if self.apply_expression(cond) != Some(Type::Bool) {
-                    self.issue("expression in if statement should be typed bool");
+                match self.apply_expression(cond) {
+                    Some(Type::Bool) | None => {}
+                    Some(x) => self.issue(Error::new(ErrorKind::TypeMismatch {
+                        lhs: x,
+                        rhs: Type::Bool,
+                    })),
                 }
                 self.apply_statement(then, ret_typ);
                 if let Some(els) = els {
@@ -184,8 +209,12 @@ impl SymbolPass {
                 }
             }
             AstStatement::While { cond, body } => {
-                if self.apply_expression(cond) != Some(Type::Bool) {
-                    self.issue("expression in while statement should be typed bool");
+                match self.apply_expression(cond) {
+                    Some(Type::Bool) | None => {}
+                    Some(x) => self.issue(Error::new(ErrorKind::TypeMismatch {
+                        lhs: x,
+                        rhs: Type::Bool,
+                    })),
                 }
                 self.apply_statement(body, ret_typ);
             }
@@ -203,14 +232,16 @@ impl SymbolPass {
             AstExpression::Ident { name } => match self.ctx.find_variable(name) {
                 Some(var) => Some(var.typ),
                 None => {
-                    self.issue(format!("undefined variable: {}", name));
+                    self.issue(Error::new(ErrorKind::NotDefinedVariable {
+                        name: name.into(),
+                    }));
                     None
                 }
             },
             AstExpression::UnaryOp { op, expr } => match self.apply_expression(expr)? {
                 Type::Bool => Some(Type::Bool),
                 typ => {
-                    self.issue(format!("cannot {:?} {:?}", op, typ));
+                    self.issue(Error::new(ErrorKind::UnaryOpErr { op: *op, expr: typ }));
                     None
                 }
             },
@@ -218,7 +249,10 @@ impl SymbolPass {
                 let lhs_typ = self.apply_expression(lhs)?;
                 let rhs_typ = self.apply_expression(rhs)?;
                 if lhs_typ != rhs_typ {
-                    self.issue(format!("mismatched types {:?} and {:?}", lhs_typ, rhs_typ));
+                    self.issue(Error::new(ErrorKind::TypeMismatch {
+                        lhs: lhs_typ,
+                        rhs: rhs_typ,
+                    }));
                     return None;
                 }
                 match op {
@@ -226,7 +260,11 @@ impl SymbolPass {
                     Add | Sub | Mul | Div | And | Or | Xor => match lhs_typ {
                         Type::Int => Some(Type::Int),
                         _ => {
-                            self.issue(format!("cannot {:?} {:?} and {:?}", op, lhs_typ, rhs_typ));
+                            self.issue(Error::new(ErrorKind::BinaryOpErr {
+                                op: *op,
+                                lhs: lhs_typ,
+                                rhs: rhs_typ,
+                            }));
                             None
                         }
                     },
@@ -240,13 +278,15 @@ impl SymbolPass {
         match self.ctx.find_function(name) {
             Some(typ) => Some(*typ),
             None => {
-                self.issue(format!("undefined function: {}", name));
+                self.issue(Error::new(ErrorKind::NotDefinedFunction {
+                    name: name.into(),
+                }));
                 None
             }
         }
     }
 
-    fn issue<T: Into<String>>(&mut self, msg: T) {
-        self.issues.push(msg.into());
+    fn issue(&mut self, err: Error) {
+        self.issues.0.push(err);
     }
 }

@@ -1,7 +1,6 @@
 pub mod tac;
 
-use crate::frontend::parser::ast::*;
-use crate::middleend::tacgen::tac::*;
+use crate::{common::error::Error, frontend::parser::ast::*, middleend::tacgen::tac::*};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
@@ -64,9 +63,9 @@ impl Context {
     }
 }
 
-pub fn generate(program: Program) -> Result<TacProgram, String> {
+pub fn generate(program: Program) -> Result<TacProgram, Error> {
     let mut generator = TacGen::new();
-    generator.generate(program)
+    Ok(generator.generate(program)?)
 }
 
 impl TacGen {
@@ -79,7 +78,7 @@ impl TacGen {
         }
     }
 
-    fn generate(&mut self, program: Program) -> Result<TacProgram, String> {
+    fn generate(&mut self, program: Program) -> Result<TacProgram, Error> {
         let mut tac_program = TacProgram::default();
         for function in program.functions {
             tac_program.functions.push(self.gen_function(function)?);
@@ -87,14 +86,14 @@ impl TacGen {
         Ok(tac_program)
     }
 
-    fn gen_function(&mut self, func: Function) -> Result<TacFunction, String> {
+    fn gen_function(&mut self, func: Function) -> Result<TacFunction, Error> {
         self.init();
         let mut tac_func = TacFunction::new(func.name.to_owned());
         self.gen_statement(func.body, &mut tac_func)?;
         Ok(tac_func)
     }
 
-    fn gen_statement(&mut self, stmt: AstStatement, func: &mut TacFunction) -> Result<(), String> {
+    fn gen_statement(&mut self, stmt: AstStatement, func: &mut TacFunction) -> Result<(), Error> {
         match stmt {
             AstStatement::Block { stmts } => {
                 self.ctx.push_ctx();
@@ -180,7 +179,7 @@ impl TacGen {
         &mut self,
         expr: AstExpression,
         func: &mut TacFunction,
-    ) -> Result<Operand, String> {
+    ) -> Result<Operand, Error> {
         match expr {
             AstExpression::Integer { value } => {
                 let dst = Operand::Reg(self.next_reg());
@@ -243,7 +242,7 @@ impl TacGen {
         offset: u32,
         src: AstExpression,
         func: &mut TacFunction,
-    ) -> Result<(), String> {
+    ) -> Result<(), Error> {
         let dst = Operand::Variable(offset);
         let src = self.gen_expression(src, func)?;
         let src_reg = Operand::Reg(self.next_reg());
