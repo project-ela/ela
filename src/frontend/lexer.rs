@@ -2,7 +2,7 @@ pub mod token;
 
 use crate::{
     common::error::{Error, ErrorKind},
-    frontend::lexer::token::Token,
+    frontend::lexer::token::TokenKind,
 };
 
 struct Tokenizer {
@@ -10,7 +10,7 @@ struct Tokenizer {
     source: String,
 }
 
-pub fn tokenize(source: String) -> Result<Vec<Token>, Error> {
+pub fn tokenize(source: String) -> Result<Vec<TokenKind>, Error> {
     let mut tokenizer = Tokenizer::new(source);
     tokenizer.tokenize()
 }
@@ -20,8 +20,8 @@ impl Tokenizer {
         Tokenizer { pos: 0, source }
     }
 
-    fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
-        let mut tokens: Vec<Token> = Vec::new();
+    fn tokenize(&mut self) -> Result<Vec<TokenKind>, Error> {
+        let mut tokens: Vec<TokenKind> = Vec::new();
 
         while !self.is_eof() {
             tokens.push(self.next_token()?);
@@ -30,46 +30,46 @@ impl Tokenizer {
         Ok(tokens)
     }
 
-    fn next_token(&mut self) -> Result<Token, Error> {
+    fn next_token(&mut self) -> Result<TokenKind, Error> {
         self.consume_whitespace();
         if self.is_eof() {
-            return Ok(Token::EOF);
+            return Ok(TokenKind::EOF);
         }
 
         let token = match self.peek_char() {
-            '+' => Ok(Token::Plus),
-            '-' => Ok(Token::Minus),
-            '*' => Ok(Token::Asterisk),
+            '+' => Ok(TokenKind::Plus),
+            '-' => Ok(TokenKind::Minus),
+            '*' => Ok(TokenKind::Asterisk),
             '/' => {
                 self.consume_char();
                 match self.peek_char() {
                     '/' => {
                         self.consume_char();
-                        Ok(Token::Comment {
+                        Ok(TokenKind::Comment {
                             content: self.consume_line_comment(),
                         })
                     }
                     '*' => {
                         self.consume_char();
-                        Ok(Token::Comment {
+                        Ok(TokenKind::Comment {
                             content: self.consume_block_comment(),
                         })
                     }
-                    _ => Ok(Token::Slash),
+                    _ => Ok(TokenKind::Slash),
                 }
             }
-            '&' => Ok(Token::And),
-            '|' => Ok(Token::Or),
-            '^' => Ok(Token::Xor),
-            ':' => Ok(Token::Colon),
+            '&' => Ok(TokenKind::And),
+            '|' => Ok(TokenKind::Or),
+            '^' => Ok(TokenKind::Xor),
+            ':' => Ok(TokenKind::Colon),
             '=' => {
                 self.consume_char();
                 match self.peek_char() {
                     '=' => {
                         self.consume_char();
-                        Ok(Token::Equal)
+                        Ok(TokenKind::Equal)
                     }
-                    _ => return Ok(Token::Assign),
+                    _ => return Ok(TokenKind::Assign),
                 }
             }
             '!' => {
@@ -77,35 +77,35 @@ impl Tokenizer {
                 match self.peek_char() {
                     '=' => {
                         self.consume_char();
-                        Ok(Token::NotEqual)
+                        Ok(TokenKind::NotEqual)
                     }
-                    _ => return Ok(Token::Not),
+                    _ => return Ok(TokenKind::Not),
                 }
             }
             '<' => {
                 self.consume_char();
                 if self.peek_char() == '=' {
                     self.consume_char();
-                    Ok(Token::Lte)
+                    Ok(TokenKind::Lte)
                 } else {
-                    Ok(Token::Lt)
+                    Ok(TokenKind::Lt)
                 }
             }
             '>' => {
                 self.consume_char();
                 if self.peek_char() == '=' {
                     self.consume_char();
-                    Ok(Token::Gte)
+                    Ok(TokenKind::Gte)
                 } else {
-                    Ok(Token::Gt)
+                    Ok(TokenKind::Gt)
                 }
             }
-            '(' => Ok(Token::LParen),
-            ')' => Ok(Token::RParen),
-            '{' => Ok(Token::LBrace),
-            '}' => Ok(Token::RBrace),
+            '(' => Ok(TokenKind::LParen),
+            ')' => Ok(TokenKind::RParen),
+            '{' => Ok(TokenKind::LBrace),
+            '}' => Ok(TokenKind::RBrace),
             x if x.is_digit(10) => {
-                return Ok(Token::IntLiteral {
+                return Ok(TokenKind::IntLiteral {
                     value: self.consume_number(),
                 })
             }
@@ -113,7 +113,7 @@ impl Tokenizer {
                 let ident = self.consume_ident();
                 return match find_keyword(&ident) {
                     Some(token) => Ok(token),
-                    None => Ok(Token::Ident { name: ident }),
+                    None => Ok(TokenKind::Ident { name: ident }),
                 };
             }
             x => return Err(Error::new(ErrorKind::UnexpectedChar { c: x })),
@@ -183,17 +183,17 @@ impl Tokenizer {
     }
 }
 
-fn find_keyword(ident: &str) -> Option<Token> {
+fn find_keyword(ident: &str) -> Option<TokenKind> {
     match ident {
-        "func" => Some(Token::Func),
-        "var" => Some(Token::Var),
-        "val" => Some(Token::Val),
-        "return" => Some(Token::Return),
-        "if" => Some(Token::If),
-        "else" => Some(Token::Else),
-        "false" => Some(Token::False),
-        "true" => Some(Token::True),
-        "while" => Some(Token::While),
+        "func" => Some(TokenKind::Func),
+        "var" => Some(TokenKind::Var),
+        "val" => Some(TokenKind::Val),
+        "return" => Some(TokenKind::Return),
+        "if" => Some(TokenKind::If),
+        "else" => Some(TokenKind::Else),
+        "false" => Some(TokenKind::False),
+        "true" => Some(TokenKind::True),
+        "while" => Some(TokenKind::While),
         _ => None,
     }
 }

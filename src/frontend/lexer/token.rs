@@ -1,5 +1,5 @@
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Token {
+pub enum TokenKind {
     IntLiteral { value: i32 },
     Ident { name: String },
 

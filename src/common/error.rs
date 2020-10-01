@@ -3,7 +3,7 @@ use crate::{
         operator::{BinaryOperator, UnaryOperator},
         types::Type,
     },
-    frontend::lexer::token::Token,
+    frontend::lexer::token::TokenKind,
 };
 use std::{error, fmt};
 
@@ -16,11 +16,11 @@ pub enum ErrorKind {
 
     // parser
     UnexpectedToken {
-        expected: Option<Token>,
-        actual: Token,
+        expected: Option<TokenKind>,
+        actual: TokenKind,
     },
     ExpectedIdent {
-        actual: Token,
+        actual: TokenKind,
     },
     NotTypeName {
         name: String,
