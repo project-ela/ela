@@ -50,15 +50,15 @@ fn opt_statement(statement: AstStatement) -> Option<AstStatement> {
                 None => None,
             },
         }),
-        AstStatement::If { cond, then, els } => {
-            if let AstExpression::Bool { value } = opt_expression(*cond) {
+        AstStatement::If { cond, then, els } => match opt_expression(*cond) {
+            AstExpression::Bool { value } => {
                 return match (value, els) {
                     (true, _) => opt_statement(*then),
                     (false, els) => els.and_then(|els| opt_statement(*els)),
-                };
+                }
             }
-            unreachable!()
-        }
+            _ => unreachable!(),
+        },
         AstStatement::While { cond, body } => Some(AstStatement::While {
             cond: Box::new(opt_expression(*cond)),
             body: Box::new(opt_statement(*body)?),
