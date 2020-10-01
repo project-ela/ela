@@ -1,13 +1,16 @@
 pub mod token;
 
-use crate::frontend::lexer::token::Token;
+use crate::{
+    common::error::{Error, ErrorKind},
+    frontend::lexer::token::Token,
+};
 
 struct Tokenizer {
     pos: usize,
     source: String,
 }
 
-pub fn tokenize(source: String) -> Result<Vec<Token>, String> {
+pub fn tokenize(source: String) -> Result<Vec<Token>, Error> {
     let mut tokenizer = Tokenizer::new(source);
     tokenizer.tokenize()
 }
@@ -17,7 +20,7 @@ impl Tokenizer {
         Tokenizer { pos: 0, source }
     }
 
-    fn tokenize(&mut self) -> Result<Vec<Token>, String> {
+    fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
         let mut tokens: Vec<Token> = Vec::new();
 
         while !self.is_eof() {
@@ -27,7 +30,7 @@ impl Tokenizer {
         Ok(tokens)
     }
 
-    fn next_token(&mut self) -> Result<Token, String> {
+    fn next_token(&mut self) -> Result<Token, Error> {
         self.consume_whitespace();
         if self.is_eof() {
             return Ok(Token::EOF);
@@ -113,7 +116,7 @@ impl Tokenizer {
                     None => Ok(Token::Ident { name: ident }),
                 };
             }
-            x => return Err(format!("unexpected char: {}", x)),
+            x => return Err(Error::new(ErrorKind::UnexpectedChar { c: x })),
         };
         self.consume_char();
         token

@@ -2,6 +2,7 @@ pub mod ast;
 
 use crate::{
     common::{
+        error::{Error, ErrorKind},
         operator::{BinaryOperator, UnaryOperator},
         types::Type,
     },
@@ -16,7 +17,7 @@ struct Parser {
     tokens: Vec<Token>,
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
+pub fn parse(tokens: Vec<Token>) -> Result<Program, Error> {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -47,7 +48,7 @@ impl Parser {
         Self { pos: 0, tokens }
     }
 
-    fn parse(&mut self) -> Result<Program, String> {
+    fn parse(&mut self) -> Result<Program, Error> {
         let mut program = Program::default();
         while !self.is_eof() {
             program.functions.push(self.parse_function()?);
@@ -55,7 +56,7 @@ impl Parser {
         Ok(program)
     }
 
-    fn parse_function(&mut self) -> Result<Function, String> {
+    fn parse_function(&mut self) -> Result<Function, Error> {
         self.expect(Token::Func)?;
         let name = self.consume_ident()?;
         self.expect(Token::LParen)?;
@@ -75,7 +76,7 @@ impl Parser {
         })
     }
 
-    fn parse_statement(&mut self) -> Result<AstStatement, String> {
+    fn parse_statement(&mut self) -> Result<AstStatement, Error> {
         match self.consume() {
             Token::LBrace => {
                 let mut stmts = Vec::new();
@@ -119,7 +120,10 @@ impl Parser {
                     self.expect(Token::RParen)?;
                     Ok(AstStatement::Call { name })
                 }
-                x => Err(format!("unexpected token: {:?}", x)),
+                x => Err(Error::new(ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                })),
             },
             Token::Return => Ok(AstStatement::Return {
                 value: match self.parse_expression() {
@@ -155,15 +159,18 @@ impl Parser {
                     body: Box::new(body),
                 })
             }
-            x => Err(format!("unexpected token: {:?}", x)),
+            x => Err(Error::new(ErrorKind::UnexpectedToken {
+                expected: None,
+                actual: x,
+            })),
         }
     }
 
-    fn parse_expression(&mut self) -> Result<AstExpression, String> {
+    fn parse_expression(&mut self) -> Result<AstExpression, Error> {
         self.parse_bitor()
     }
 
-    fn parse_bitor(&mut self) -> Result<AstExpression, String> {
+    fn parse_bitor(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_bitxor()?;
         while let Token::Or = self.peek() {
             node = new_binop!(self, BinaryOperator::Or, node, self.parse_bitxor()?)
@@ -172,7 +179,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_bitxor(&mut self) -> Result<AstExpression, String> {
+    fn parse_bitxor(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_bitand()?;
         while let Token::Xor = self.peek() {
             node = new_binop!(self, BinaryOperator::Xor, node, self.parse_bitand()?)
@@ -181,7 +188,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_bitand(&mut self) -> Result<AstExpression, String> {
+    fn parse_bitand(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_equal()?;
         while let Token::And = self.peek() {
             node = new_binop!(self, BinaryOperator::And, node, self.parse_equal()?)
@@ -190,7 +197,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_equal(&mut self) -> Result<AstExpression, String> {
+    fn parse_equal(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_relation()?;
         loop {
             match self.peek() {
@@ -207,7 +214,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_relation(&mut self) -> Result<AstExpression, String> {
+    fn parse_relation(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_add()?;
         loop {
             match self.peek() {
@@ -222,7 +229,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_add(&mut self) -> Result<AstExpression, String> {
+    fn parse_add(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_mul()?;
         loop {
             match self.peek() {
@@ -239,7 +246,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_mul(&mut self) -> Result<AstExpression, String> {
+    fn parse_mul(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_unary()?;
         loop {
             match self.peek() {
@@ -256,7 +263,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_unary(&mut self) -> Result<AstExpression, String> {
+    fn parse_unary(&mut self) -> Result<AstExpression, Error> {
         match self.peek() {
             Token::Plus => Ok(new_binop!(
                 self,
@@ -275,7 +282,7 @@ impl Parser {
         }
     }
 
-    fn parse_primary(&mut self) -> Result<AstExpression, String> {
+    fn parse_primary(&mut self) -> Result<AstExpression, Error> {
         match self.consume() {
             Token::IntLiteral { value } => Ok(AstExpression::Integer { value }),
             Token::False => Ok(AstExpression::Bool { value: false }),
@@ -293,16 +300,22 @@ impl Parser {
                 self.expect(Token::RParen)?;
                 Ok(expr)
             }
-            x => Err(format!("unexpected token: {:?}", x)),
+            x => Err(Error::new(ErrorKind::UnexpectedToken {
+                expected: None,
+                actual: x,
+            })),
         }
     }
 
-    fn expect(&mut self, token: Token) -> Result<Token, String> {
+    fn expect(&mut self, token: Token) -> Result<Token, Error> {
         let next_token = self.consume();
         if next_token == token {
             Ok(next_token)
         } else {
-            Err(format!("expected {:?}, but got {:?}", token, next_token))
+            Err(Error::new(ErrorKind::UnexpectedToken {
+                expected: Some(token),
+                actual: next_token,
+            }))
         }
     }
 
@@ -318,21 +331,21 @@ impl Parser {
         }
     }
 
-    fn consume_ident(&mut self) -> Result<String, String> {
+    fn consume_ident(&mut self) -> Result<String, Error> {
         let next_token = self.consume();
         if let Token::Ident { name } = next_token {
             Ok(name)
         } else {
-            Err(format!("expected identifier, but got {:?}", next_token))
+            Err(Error::new(ErrorKind::ExpectedIdent { actual: next_token }))
         }
     }
 
-    fn consume_type(&mut self) -> Result<Type, String> {
+    fn consume_type(&mut self) -> Result<Type, Error> {
         let typ_name = self.consume_ident()?;
         match typ_name.as_str() {
             "int" => Ok(Type::Int),
             "bool" => Ok(Type::Bool),
-            x => Err(format!("{} is not a type name", x)),
+            x => Err(Error::new(ErrorKind::NotTypeName { name: x.into() })),
         }
     }
 

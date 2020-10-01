@@ -1,4 +1,7 @@
-use crate::middleend::tacgen::tac::*;
+use crate::{
+    common::error::{Error, ErrorKind},
+    middleend::tacgen::tac::*,
+};
 use std::collections::HashMap;
 
 const REGS: [Register; 4] = [Register::Eax, Register::Ecx, Register::Edx, Register::Ebx];
@@ -7,9 +10,9 @@ struct RegAlloc {
     reg_map: HashMap<u32, Register>,
 }
 
-pub fn alloc_register(program: TacProgram) -> Result<TacProgram, String> {
+pub fn alloc_register(program: TacProgram) -> Result<TacProgram, Error> {
     let mut regalloc = RegAlloc::new();
-    Ok(regalloc.alloc_register(program))
+    Ok(regalloc.alloc_register(program)?)
 }
 
 impl RegAlloc {
@@ -19,7 +22,7 @@ impl RegAlloc {
         }
     }
 
-    fn alloc_register(&mut self, mut program: TacProgram) -> TacProgram {
+    fn alloc_register(&mut self, mut program: TacProgram) -> Result<TacProgram, Error> {
         for function in program.functions.iter_mut() {
             for tac in function.body.iter_mut() {
                 match tac {
@@ -37,15 +40,15 @@ impl RegAlloc {
                         self.kill_operand(lhs);
                         self.get_operand(rhs);
                         self.kill_operand(rhs);
-                        self.alloc_operand(dst);
+                        self.alloc_operand(dst)?;
                     }
                     Tac::Call { dst, .. } => {
                         if let Some(dst) = dst {
-                            self.alloc_operand(dst);
+                            self.alloc_operand(dst)?;
                         }
                     }
                     Tac::Move { dst, src } => {
-                        self.alloc_operand(dst);
+                        self.alloc_operand(dst)?;
                         self.get_operand(src);
                         self.kill_operand(src);
                     }
@@ -68,17 +71,19 @@ impl RegAlloc {
             }
             self.reg_map.clear();
         }
-        program
+        Ok(program)
     }
 
-    fn alloc_operand(&mut self, operand: &mut Operand) {
+    fn alloc_operand(&mut self, operand: &mut Operand) -> Result<(), Error> {
         match operand {
             Operand::Const(_) => {}
             Operand::Reg(ref mut info) => {
-                info.physical_index = Some(self.alloc_reg(info.virtual_index));
+                info.physical_index = Some(self.alloc_reg(info.virtual_index)?);
             }
             Operand::Variable(_) => {}
         }
+
+        Ok(())
     }
 
     fn get_operand(&mut self, operand: &mut Operand) {
@@ -101,16 +106,16 @@ impl RegAlloc {
         }
     }
 
-    fn alloc_reg(&mut self, virtual_index: u32) -> Register {
+    fn alloc_reg(&mut self, virtual_index: u32) -> Result<Register, Error> {
         for reg in &REGS {
             if self.reg_map.values().any(|val| val == reg) {
                 continue;
             }
             self.reg_map.insert(virtual_index, *reg);
-            return *reg;
+            return Ok(*reg);
         }
 
-        panic!("Error: registers exhausted");
+        Err(Error::new(ErrorKind::RegistersExhausted))
     }
 
     fn get_reg(&mut self, virtual_index: u32) -> Register {
