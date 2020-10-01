@@ -332,11 +332,7 @@ impl Parser {
     }
 
     fn peek(&self) -> TokenKind {
-        if self.pos >= self.tokens.len() {
-            TokenKind::EOF
-        } else {
-            self.tokens.get(self.pos).unwrap().clone()
-        }
+        self.tokens.get(self.pos).unwrap().clone()
     }
 
     fn consume_ident(&mut self) -> Result<String, Error> {
@@ -358,16 +354,16 @@ impl Parser {
     }
 
     fn consume(&mut self) -> TokenKind {
-        let token = match self.tokens.get(self.pos) {
-            // skip comment
-            Some(TokenKind::Comment { .. }) => {
-                self.pos += 1;
-                return self.consume();
-            }
-            Some(token) => token,
-            None => &TokenKind::EOF,
-        };
-        self.pos += 1;
+        let token = self.tokens.get(self.pos).unwrap();
+        if let TokenKind::Comment { .. } = token {
+            self.pos += 1;
+            return self.consume();
+        }
+
+        if self.pos < self.tokens.len() {
+            self.pos += 1;
+        }
+
         token.clone()
     }
 }
