@@ -1,30 +1,53 @@
 pub mod token;
 
 use crate::{
-    common::error::{Error, ErrorKind},
-    frontend::lexer::token::TokenKind,
+    common::{
+        error::{Error, ErrorKind},
+        pos::Pos,
+    },
+    frontend::lexer::token::{Token, TokenKind},
 };
 
 struct Tokenizer {
-    pos: usize,
-    source: String,
+    source: SourceFile,
+    source_index: usize,
+
+    pos: Pos,
 }
 
-pub fn tokenize(source: String) -> Result<Vec<TokenKind>, Error> {
+pub struct SourceFile {
+    pub filename: String,
+    pub content: String,
+}
+
+pub fn tokenize(source: SourceFile) -> Result<Vec<Token>, Error> {
     let mut tokenizer = Tokenizer::new(source);
     tokenizer.tokenize()
 }
 
 impl Tokenizer {
-    fn new(source: String) -> Tokenizer {
-        Tokenizer { pos: 0, source }
+    fn new(source: SourceFile) -> Tokenizer {
+        let pos = Pos {
+            filename: source.filename.to_owned(),
+            line: 1,
+            column: 1,
+        };
+
+        Tokenizer {
+            source_index: 0,
+            source,
+            pos,
+        }
     }
 
-    fn tokenize(&mut self) -> Result<Vec<TokenKind>, Error> {
-        let mut tokens: Vec<TokenKind> = Vec::new();
+    fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
+        let mut tokens = Vec::new();
 
         while !self.is_eof() {
-            tokens.push(self.next_token()?);
+            tokens.push(Token {
+                kind: self.next_token()?,
+                pos: self.pos.clone(),
+            });
         }
 
         Ok(tokens)
@@ -116,7 +139,12 @@ impl Tokenizer {
                     None => Ok(TokenKind::Ident { name: ident }),
                 };
             }
-            x => return Err(Error::new(ErrorKind::UnexpectedChar { c: x })),
+            x => {
+                return Err(Error::new(
+                    self.pos.clone(),
+                    ErrorKind::UnexpectedChar { c: x },
+                ))
+            }
         };
         self.consume_char();
         token
@@ -167,19 +195,29 @@ impl Tokenizer {
     }
 
     fn peek_char(&mut self) -> char {
-        self.source[self.pos..].chars().next().unwrap()
+        self.source.content[self.source_index..]
+            .chars()
+            .next()
+            .unwrap()
     }
 
     fn consume_char(&mut self) -> char {
-        let mut iter = self.source[self.pos..].char_indices();
+        let mut iter = self.source.content[self.source_index..].char_indices();
         let (_, cur_char) = iter.next().unwrap();
         let (next_pos, _) = iter.next().unwrap_or((1, ' '));
-        self.pos += next_pos;
+
+        self.source_index += next_pos;
+        self.pos.column = 1;
+        if cur_char == '\n' {
+            self.pos.line += 1;
+            self.pos.column = 1;
+        }
+
         cur_char
     }
 
     fn is_eof(&self) -> bool {
-        self.pos >= self.source.len()
+        self.source_index >= self.source.content.len()
     }
 }
 

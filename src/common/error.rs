@@ -1,6 +1,7 @@
 use crate::{
     common::{
         operator::{BinaryOperator, UnaryOperator},
+        pos::Pos,
         types::Type,
     },
     frontend::lexer::token::TokenKind,
@@ -97,11 +98,12 @@ impl fmt::Display for ErrorKind {
 #[derive(Debug)]
 pub struct Error {
     pub kind: ErrorKind,
+    pub pos: Pos,
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind) -> Self {
-        Self { kind }
+    pub fn new(pos: Pos, kind: ErrorKind) -> Self {
+        Self { pos, kind }
     }
 }
 

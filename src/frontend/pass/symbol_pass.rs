@@ -2,6 +2,7 @@ use crate::{
     common::{
         error::{Error, ErrorKind, Errors},
         operator::BinaryOperator,
+        pos::Pos,
         types::Type,
     },
     frontend::parser::ast::*,
@@ -110,12 +111,12 @@ impl SymbolPass {
 
     fn apply(&mut self, program: &Program) {
         if program.functions.iter().all(|f| f.name != "main") {
-            self.issue(Error::new(ErrorKind::MainNotFound));
+            self.issue(Error::new(Pos::default(), ErrorKind::MainNotFound));
         }
 
         for function in &program.functions {
             if function.name == "main" && function.ret_typ != Type::Int {
-                self.issue(Error::new(ErrorKind::MainShouldReturnInt));
+                self.issue(Error::new(Pos::default(), ErrorKind::MainShouldReturnInt));
             }
             self.apply_function(&function);
         }
@@ -141,10 +142,13 @@ impl SymbolPass {
             AstStatement::Var { name, typ, value } => {
                 if let Some(value_typ) = self.apply_expression(value) {
                     if &value_typ != typ {
-                        self.issue(Error::new(ErrorKind::TypeMismatch {
-                            lhs: *typ,
-                            rhs: value_typ,
-                        }));
+                        self.issue(Error::new(
+                            Pos::default(),
+                            ErrorKind::TypeMismatch {
+                                lhs: *typ,
+                                rhs: value_typ,
+                            },
+                        ));
                     }
                 }
                 self.ctx.add_variable(name.to_owned(), *typ, false);
@@ -152,10 +156,13 @@ impl SymbolPass {
             AstStatement::Val { name, typ, value } => {
                 if let Some(value_typ) = self.apply_expression(value) {
                     if &value_typ != typ {
-                        self.issue(Error::new(ErrorKind::TypeMismatch {
-                            lhs: *typ,
-                            rhs: value_typ,
-                        }));
+                        self.issue(Error::new(
+                            Pos::default(),
+                            ErrorKind::TypeMismatch {
+                                lhs: *typ,
+                                rhs: value_typ,
+                            },
+                        ));
                     }
                 }
                 self.ctx.add_variable(name.to_owned(), *typ, true);
@@ -166,20 +173,25 @@ impl SymbolPass {
                 match (var, value_typ) {
                     (Some(var), Some(value_typ)) => {
                         if var.typ != value_typ {
-                            self.issue(Error::new(ErrorKind::TypeMismatch {
-                                lhs: var.typ,
-                                rhs: value_typ,
-                            }));
+                            self.issue(Error::new(
+                                Pos::default(),
+                                ErrorKind::TypeMismatch {
+                                    lhs: var.typ,
+                                    rhs: value_typ,
+                                },
+                            ));
                         }
                         if var.is_const {
-                            self.issue(Error::new(ErrorKind::AssignToConstant {
-                                name: name.into(),
-                            }));
+                            self.issue(Error::new(
+                                Pos::default(),
+                                ErrorKind::AssignToConstant { name: name.into() },
+                            ));
                         }
                     }
-                    (None, _) => self.issue(Error::new(ErrorKind::NotDefinedVariable {
-                        name: name.into(),
-                    })),
+                    (None, _) => self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::NotDefinedVariable { name: name.into() },
+                    )),
                     _ => {}
                 }
             }
@@ -187,10 +199,13 @@ impl SymbolPass {
                 if let Some(value) = value {
                     if let Some(value_typ) = self.apply_expression(value) {
                         if &value_typ != ret_typ {
-                            self.issue(Error::new(ErrorKind::TypeMismatch {
-                                lhs: *ret_typ,
-                                rhs: value_typ,
-                            }));
+                            self.issue(Error::new(
+                                Pos::default(),
+                                ErrorKind::TypeMismatch {
+                                    lhs: *ret_typ,
+                                    rhs: value_typ,
+                                },
+                            ));
                         }
                     }
                 }
@@ -198,10 +213,13 @@ impl SymbolPass {
             AstStatement::If { cond, then, els } => {
                 match self.apply_expression(cond) {
                     Some(Type::Bool) | None => {}
-                    Some(x) => self.issue(Error::new(ErrorKind::TypeMismatch {
-                        lhs: x,
-                        rhs: Type::Bool,
-                    })),
+                    Some(x) => self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::TypeMismatch {
+                            lhs: x,
+                            rhs: Type::Bool,
+                        },
+                    )),
                 }
                 self.apply_statement(then, ret_typ);
                 if let Some(els) = els {
@@ -211,10 +229,13 @@ impl SymbolPass {
             AstStatement::While { cond, body } => {
                 match self.apply_expression(cond) {
                     Some(Type::Bool) | None => {}
-                    Some(x) => self.issue(Error::new(ErrorKind::TypeMismatch {
-                        lhs: x,
-                        rhs: Type::Bool,
-                    })),
+                    Some(x) => self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::TypeMismatch {
+                            lhs: x,
+                            rhs: Type::Bool,
+                        },
+                    )),
                 }
                 self.apply_statement(body, ret_typ);
             }
@@ -232,16 +253,20 @@ impl SymbolPass {
             AstExpression::Ident { name } => match self.ctx.find_variable(name) {
                 Some(var) => Some(var.typ),
                 None => {
-                    self.issue(Error::new(ErrorKind::NotDefinedVariable {
-                        name: name.into(),
-                    }));
+                    self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::NotDefinedVariable { name: name.into() },
+                    ));
                     None
                 }
             },
             AstExpression::UnaryOp { op, expr } => match self.apply_expression(expr)? {
                 Type::Bool => Some(Type::Bool),
                 typ => {
-                    self.issue(Error::new(ErrorKind::UnaryOpErr { op: *op, expr: typ }));
+                    self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::UnaryOpErr { op: *op, expr: typ },
+                    ));
                     None
                 }
             },
@@ -249,10 +274,13 @@ impl SymbolPass {
                 let lhs_typ = self.apply_expression(lhs)?;
                 let rhs_typ = self.apply_expression(rhs)?;
                 if lhs_typ != rhs_typ {
-                    self.issue(Error::new(ErrorKind::TypeMismatch {
-                        lhs: lhs_typ,
-                        rhs: rhs_typ,
-                    }));
+                    self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::TypeMismatch {
+                            lhs: lhs_typ,
+                            rhs: rhs_typ,
+                        },
+                    ));
                     return None;
                 }
                 match op {
@@ -260,11 +288,14 @@ impl SymbolPass {
                     Add | Sub | Mul | Div | And | Or | Xor => match lhs_typ {
                         Type::Int => Some(Type::Int),
                         _ => {
-                            self.issue(Error::new(ErrorKind::BinaryOpErr {
-                                op: *op,
-                                lhs: lhs_typ,
-                                rhs: rhs_typ,
-                            }));
+                            self.issue(Error::new(
+                                Pos::default(),
+                                ErrorKind::BinaryOpErr {
+                                    op: *op,
+                                    lhs: lhs_typ,
+                                    rhs: rhs_typ,
+                                },
+                            ));
                             None
                         }
                     },
@@ -278,9 +309,10 @@ impl SymbolPass {
         match self.ctx.find_function(name) {
             Some(typ) => Some(*typ),
             None => {
-                self.issue(Error::new(ErrorKind::NotDefinedFunction {
-                    name: name.into(),
-                }));
+                self.issue(Error::new(
+                    Pos::default(),
+                    ErrorKind::NotDefinedFunction { name: name.into() },
+                ));
                 None
             }
         }

@@ -7,17 +7,17 @@ use crate::{
         types::Type,
     },
     frontend::{
-        lexer::token::TokenKind,
+        lexer::token::{Token, TokenKind},
         parser::ast::{AstExpression, AstStatement, Function, Program},
     },
 };
 
 struct Parser {
     pos: usize,
-    tokens: Vec<TokenKind>,
+    tokens: Vec<Token>,
 }
 
-pub fn parse(tokens: Vec<TokenKind>) -> Result<Program, Error> {
+pub fn parse(tokens: Vec<Token>) -> Result<Program, Error> {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -44,7 +44,7 @@ macro_rules! new_binop {
 }
 
 impl Parser {
-    fn new(tokens: Vec<TokenKind>) -> Self {
+    fn new(tokens: Vec<Token>) -> Self {
         Self { pos: 0, tokens }
     }
 
@@ -61,7 +61,7 @@ impl Parser {
         let name = self.consume_ident()?;
         self.expect(TokenKind::LParen)?;
         self.expect(TokenKind::RParen)?;
-        let ret_typ = match self.peek() {
+        let ret_typ = match self.peek().kind {
             TokenKind::Colon => {
                 self.consume();
                 self.consume_type()?
@@ -77,10 +77,11 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<AstStatement, Error> {
-        match self.consume() {
+        let token = self.consume();
+        match token.kind {
             TokenKind::LBrace => {
                 let mut stmts = Vec::new();
-                while self.peek() != TokenKind::RBrace {
+                while self.peek().kind != TokenKind::RBrace {
                     stmts.push(self.parse_statement()?);
                 }
                 self.consume();
@@ -106,7 +107,7 @@ impl Parser {
                     _ => unreachable!(),
                 }
             }
-            TokenKind::Ident { name } => match self.peek() {
+            TokenKind::Ident { name } => match self.peek().kind {
                 TokenKind::Assign => {
                     self.consume();
                     let value = self.parse_expression()?;
@@ -120,10 +121,13 @@ impl Parser {
                     self.expect(TokenKind::RParen)?;
                     Ok(AstStatement::Call { name })
                 }
-                x => Err(Error::new(ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: x,
-                })),
+                x => Err(Error::new(
+                    token.pos,
+                    ErrorKind::UnexpectedToken {
+                        expected: None,
+                        actual: x,
+                    },
+                )),
             },
             TokenKind::Return => Ok(AstStatement::Return {
                 value: match self.parse_expression() {
@@ -137,7 +141,7 @@ impl Parser {
             TokenKind::If => {
                 let cond = self.parse_expression()?;
                 let then = self.parse_statement()?;
-                let els = match self.peek() {
+                let els = match self.peek().kind {
                     TokenKind::Else => {
                         self.consume();
                         let els = self.parse_statement()?;
@@ -159,10 +163,13 @@ impl Parser {
                     body: Box::new(body),
                 })
             }
-            x => Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: None,
-                actual: x,
-            })),
+            x => Err(Error::new(
+                token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
+            )),
         }
     }
 
@@ -172,7 +179,7 @@ impl Parser {
 
     fn parse_bitor(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_bitxor()?;
-        while let TokenKind::Or = self.peek() {
+        while let TokenKind::Or = self.peek().kind {
             node = new_binop!(self, BinaryOperator::Or, node, self.parse_bitxor()?)
         }
 
@@ -181,7 +188,7 @@ impl Parser {
 
     fn parse_bitxor(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_bitand()?;
-        while let TokenKind::Xor = self.peek() {
+        while let TokenKind::Xor = self.peek().kind {
             node = new_binop!(self, BinaryOperator::Xor, node, self.parse_bitand()?)
         }
 
@@ -190,7 +197,7 @@ impl Parser {
 
     fn parse_bitand(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_equal()?;
-        while let TokenKind::And = self.peek() {
+        while let TokenKind::And = self.peek().kind {
             node = new_binop!(self, BinaryOperator::And, node, self.parse_equal()?)
         }
 
@@ -200,7 +207,7 @@ impl Parser {
     fn parse_equal(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_relation()?;
         loop {
-            match self.peek() {
+            match self.peek().kind {
                 TokenKind::Equal => {
                     node = new_binop!(self, BinaryOperator::Equal, node, self.parse_relation()?)
                 }
@@ -217,7 +224,7 @@ impl Parser {
     fn parse_relation(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_add()?;
         loop {
-            match self.peek() {
+            match self.peek().kind {
                 TokenKind::Lt => {
                     node = new_binop!(self, BinaryOperator::Lt, node, self.parse_add()?)
                 }
@@ -240,7 +247,7 @@ impl Parser {
     fn parse_add(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_mul()?;
         loop {
-            match self.peek() {
+            match self.peek().kind {
                 TokenKind::Plus => {
                     node = new_binop!(self, BinaryOperator::Add, node, self.parse_mul()?)
                 }
@@ -257,7 +264,7 @@ impl Parser {
     fn parse_mul(&mut self) -> Result<AstExpression, Error> {
         let mut node = self.parse_unary()?;
         loop {
-            match self.peek() {
+            match self.peek().kind {
                 TokenKind::Asterisk => {
                     node = new_binop!(self, BinaryOperator::Mul, node, self.parse_unary()?)
                 }
@@ -272,7 +279,7 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> Result<AstExpression, Error> {
-        match self.peek() {
+        match self.peek().kind {
             TokenKind::Plus => Ok(new_binop!(
                 self,
                 BinaryOperator::Add,
@@ -291,11 +298,12 @@ impl Parser {
     }
 
     fn parse_primary(&mut self) -> Result<AstExpression, Error> {
-        match self.consume() {
+        let token = self.consume();
+        match token.kind {
             TokenKind::IntLiteral { value } => Ok(AstExpression::Integer { value }),
             TokenKind::False => Ok(AstExpression::Bool { value: false }),
             TokenKind::True => Ok(AstExpression::Bool { value: true }),
-            TokenKind::Ident { name } => match self.peek() {
+            TokenKind::Ident { name } => match self.peek().kind {
                 TokenKind::LParen => {
                     self.consume();
                     self.expect(TokenKind::RParen)?;
@@ -308,54 +316,77 @@ impl Parser {
                 self.expect(TokenKind::RParen)?;
                 Ok(expr)
             }
-            x => Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: None,
-                actual: x,
-            })),
+            x => Err(Error::new(
+                token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
+            )),
         }
     }
 
-    fn expect(&mut self, token: TokenKind) -> Result<TokenKind, Error> {
+    fn expect(&mut self, kind: TokenKind) -> Result<Token, Error> {
         let next_token = self.consume();
-        if next_token == token {
+        if next_token.kind == kind {
             Ok(next_token)
         } else {
-            Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: Some(token),
-                actual: next_token,
-            }))
+            Err(Error::new(
+                next_token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: Some(kind),
+                    actual: next_token.kind,
+                },
+            ))
         }
     }
 
     fn is_eof(&self) -> bool {
-        self.peek() == TokenKind::EOF
+        self.peek().kind == TokenKind::EOF
     }
 
-    fn peek(&self) -> TokenKind {
+    fn peek(&self) -> Token {
         self.tokens.get(self.pos).unwrap().clone()
     }
 
     fn consume_ident(&mut self) -> Result<String, Error> {
         let next_token = self.consume();
-        if let TokenKind::Ident { name } = next_token {
+        if let TokenKind::Ident { name } = next_token.kind {
             Ok(name)
         } else {
-            Err(Error::new(ErrorKind::ExpectedIdent { actual: next_token }))
+            Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedIdent {
+                    actual: next_token.kind,
+                },
+            ))
         }
     }
 
     fn consume_type(&mut self) -> Result<Type, Error> {
-        let typ_name = self.consume_ident()?;
-        match typ_name.as_str() {
-            "int" => Ok(Type::Int),
-            "bool" => Ok(Type::Bool),
-            x => Err(Error::new(ErrorKind::NotTypeName { name: x.into() })),
+        let next_token = self.consume();
+        if let TokenKind::Ident { name } = next_token.kind {
+            match name.as_str() {
+                "int" => Ok(Type::Int),
+                "bool" => Ok(Type::Bool),
+                x => Err(Error::new(
+                    next_token.pos,
+                    ErrorKind::NotTypeName { name: x.into() },
+                )),
+            }
+        } else {
+            Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedIdent {
+                    actual: next_token.kind,
+                },
+            ))
         }
     }
 
-    fn consume(&mut self) -> TokenKind {
+    fn consume(&mut self) -> Token {
         let token = self.tokens.get(self.pos).unwrap();
-        if let TokenKind::Comment { .. } = token {
+        if let TokenKind::Comment { .. } = token.kind {
             self.pos += 1;
             return self.consume();
         }
