@@ -4,6 +4,7 @@ use crate::{
     common::{
         error::{Error, ErrorKind},
         operator::{BinaryOperator, UnaryOperator},
+        pos::Pos,
         types::Type,
     },
     frontend::{
@@ -86,57 +87,15 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<Statement, Error> {
         let token = self.consume();
         match token.kind {
-            TokenKind::LBrace => {
-                let mut stmts = Vec::new();
-                while self.peek().kind != TokenKind::RBrace {
-                    stmts.push(self.parse_statement()?);
-                }
-                self.consume();
-                Ok(Statement::new(StatementKind::Block { stmts }, token.pos))
-            }
-            kind @ TokenKind::Var | kind @ TokenKind::Val => {
-                let name = self.consume_ident()?;
-                self.expect(TokenKind::Colon)?;
-                let typ = self.consume_type()?;
-                self.expect(TokenKind::Assign)?;
-                let value = self.parse_expression()?;
-                match kind {
-                    TokenKind::Var => Ok(Statement::new(
-                        StatementKind::Var {
-                            name,
-                            typ,
-                            value: Box::new(value),
-                        },
-                        token.pos,
-                    )),
-                    TokenKind::Val => Ok(Statement::new(
-                        StatementKind::Val {
-                            name,
-                            typ,
-                            value: Box::new(value),
-                        },
-                        token.pos,
-                    )),
-                    _ => unreachable!(),
-                }
-            }
+            TokenKind::LBrace => self.parse_block_statement(token.pos),
+            TokenKind::Var => self.parse_var_statement(token.pos),
+            TokenKind::Val => self.parse_val_statement(token.pos),
+            TokenKind::Return => self.parse_return_statement(token.pos),
+            TokenKind::If => self.parse_if_statement(token.pos),
+            TokenKind::While => self.parse_while_statement(token.pos),
             TokenKind::Ident { name } => match self.peek().kind {
-                TokenKind::Assign => {
-                    self.consume();
-                    let value = self.parse_expression()?;
-                    Ok(Statement::new(
-                        StatementKind::Assign {
-                            name,
-                            value: Box::new(value),
-                        },
-                        token.pos,
-                    ))
-                }
-                TokenKind::LParen => {
-                    self.consume();
-                    self.expect(TokenKind::RParen)?;
-                    Ok(Statement::new(StatementKind::Call { name }, token.pos))
-                }
+                TokenKind::Assign => self.parse_assign_statement(name, token.pos),
+                TokenKind::LParen => self.parse_call_statement(name, token.pos),
                 x => Err(Error::new(
                     token.pos,
                     ErrorKind::UnexpectedToken {
@@ -145,49 +104,6 @@ impl Parser {
                     },
                 )),
             },
-            TokenKind::Return => Ok(Statement::new(
-                StatementKind::Return {
-                    value: match self.parse_expression() {
-                        Ok(expr) => Some(Box::new(expr)),
-                        Err(_) => {
-                            self.pos -= 1;
-                            None
-                        }
-                    },
-                },
-                token.pos,
-            )),
-            TokenKind::If => {
-                let cond = self.parse_expression()?;
-                let then = self.parse_statement()?;
-                let els = match self.peek().kind {
-                    TokenKind::Else => {
-                        self.consume();
-                        let els = self.parse_statement()?;
-                        Some(Box::new(els))
-                    }
-                    _ => None,
-                };
-                Ok(Statement::new(
-                    StatementKind::If {
-                        cond: Box::new(cond),
-                        then: Box::new(then),
-                        els,
-                    },
-                    token.pos,
-                ))
-            }
-            TokenKind::While => {
-                let cond = self.parse_expression()?;
-                let body = self.parse_statement()?;
-                Ok(Statement::new(
-                    StatementKind::While {
-                        cond: Box::new(cond),
-                        body: Box::new(body),
-                    },
-                    token.pos,
-                ))
-            }
             x => Err(Error::new(
                 token.pos,
                 ErrorKind::UnexpectedToken {
@@ -196,6 +112,113 @@ impl Parser {
                 },
             )),
         }
+    }
+
+    fn parse_block_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
+        let mut stmts = Vec::new();
+        while self.peek().kind != TokenKind::RBrace {
+            stmts.push(self.parse_statement()?);
+        }
+        self.consume();
+        Ok(Statement::new(StatementKind::Block { stmts }, pos))
+    }
+
+    fn parse_var_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
+        let name = self.consume_ident()?;
+        self.expect(TokenKind::Colon)?;
+        let typ = self.consume_type()?;
+        self.expect(TokenKind::Assign)?;
+        let value = self.parse_expression()?;
+        Ok(Statement::new(
+            StatementKind::Var {
+                name,
+                typ,
+                value: Box::new(value),
+            },
+            pos,
+        ))
+    }
+
+    fn parse_val_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
+        let name = self.consume_ident()?;
+        self.expect(TokenKind::Colon)?;
+        let typ = self.consume_type()?;
+        self.expect(TokenKind::Assign)?;
+        let value = self.parse_expression()?;
+        Ok(Statement::new(
+            StatementKind::Val {
+                name,
+                typ,
+                value: Box::new(value),
+            },
+            pos,
+        ))
+    }
+
+    fn parse_assign_statement(&mut self, name: String, pos: Pos) -> Result<Statement, Error> {
+        self.consume();
+        let value = self.parse_expression()?;
+        Ok(Statement::new(
+            StatementKind::Assign {
+                name,
+                value: Box::new(value),
+            },
+            pos,
+        ))
+    }
+
+    fn parse_call_statement(&mut self, name: String, pos: Pos) -> Result<Statement, Error> {
+        self.consume();
+        self.expect(TokenKind::RParen)?;
+        Ok(Statement::new(StatementKind::Call { name }, pos))
+    }
+
+    fn parse_return_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
+        Ok(Statement::new(
+            StatementKind::Return {
+                value: match self.parse_expression() {
+                    Ok(expr) => Some(Box::new(expr)),
+                    Err(_) => {
+                        self.pos -= 1;
+                        None
+                    }
+                },
+            },
+            pos,
+        ))
+    }
+
+    fn parse_if_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
+        let cond = self.parse_expression()?;
+        let then = self.parse_statement()?;
+        let els = match self.peek().kind {
+            TokenKind::Else => {
+                self.consume();
+                let els = self.parse_statement()?;
+                Some(Box::new(els))
+            }
+            _ => None,
+        };
+        Ok(Statement::new(
+            StatementKind::If {
+                cond: Box::new(cond),
+                then: Box::new(then),
+                els,
+            },
+            pos,
+        ))
+    }
+
+    fn parse_while_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
+        let cond = self.parse_expression()?;
+        let body = self.parse_statement()?;
+        Ok(Statement::new(
+            StatementKind::While {
+                cond: Box::new(cond),
+                body: Box::new(body),
+            },
+            pos,
+        ))
     }
 
     fn parse_expression(&mut self) -> Result<Expression, Error> {
@@ -325,40 +348,36 @@ impl Parser {
 
     fn parse_primary(&mut self) -> Result<Expression, Error> {
         let token = self.consume();
-        match token.kind {
-            TokenKind::IntLiteral { value } => Ok(Expression::new(
-                ExpressionKind::Integer { value },
-                token.pos,
-            )),
-            TokenKind::False => Ok(Expression::new(
-                ExpressionKind::Bool { value: false },
-                token.pos,
-            )),
-            TokenKind::True => Ok(Expression::new(
-                ExpressionKind::Bool { value: true },
-                token.pos,
-            )),
+        let kind = match token.kind {
+            TokenKind::IntLiteral { value } => ExpressionKind::Integer { value },
+            TokenKind::False => ExpressionKind::Bool { value: false },
+            TokenKind::True => ExpressionKind::Bool { value: true },
             TokenKind::Ident { name } => match self.peek().kind {
                 TokenKind::LParen => {
                     self.consume();
                     self.expect(TokenKind::RParen)?;
-                    Ok(Expression::new(ExpressionKind::Call { name }, token.pos))
+                    ExpressionKind::Call { name }
                 }
-                _ => Ok(Expression::new(ExpressionKind::Ident { name }, token.pos)),
+                _ => ExpressionKind::Ident { name },
             },
+
             TokenKind::LParen => {
                 let expr = self.parse_add()?;
                 self.expect(TokenKind::RParen)?;
-                Ok(expr)
+                return Ok(expr);
             }
-            x => Err(Error::new(
-                token.pos,
-                ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: x,
-                },
-            )),
-        }
+            x => {
+                return Err(Error::new(
+                    token.pos,
+                    ErrorKind::UnexpectedToken {
+                        expected: None,
+                        actual: x,
+                    },
+                ))
+            }
+        };
+
+        Ok(Expression::new(kind, token.pos))
     }
 
     fn expect(&mut self, kind: TokenKind) -> Result<Token, Error> {
@@ -376,46 +395,29 @@ impl Parser {
         }
     }
 
-    fn is_eof(&self) -> bool {
-        self.peek().kind == TokenKind::EOF
-    }
-
-    fn peek(&self) -> Token {
-        self.tokens.get(self.pos).unwrap().clone()
-    }
-
     fn consume_ident(&mut self) -> Result<String, Error> {
         let next_token = self.consume();
-        if let TokenKind::Ident { name } = next_token.kind {
-            Ok(name)
-        } else {
-            Err(Error::new(
+        match next_token.kind {
+            TokenKind::Ident { name } => Ok(name),
+            _ => Err(Error::new(
                 next_token.pos,
                 ErrorKind::ExpectedIdent {
                     actual: next_token.kind,
                 },
-            ))
+            )),
         }
     }
 
     fn consume_type(&mut self) -> Result<Type, Error> {
-        let next_token = self.consume();
-        if let TokenKind::Ident { name } = next_token.kind {
-            match name.as_str() {
-                "int" => Ok(Type::Int),
-                "bool" => Ok(Type::Bool),
-                x => Err(Error::new(
-                    next_token.pos,
-                    ErrorKind::NotTypeName { name: x.into() },
-                )),
-            }
-        } else {
-            Err(Error::new(
-                next_token.pos,
-                ErrorKind::ExpectedIdent {
-                    actual: next_token.kind,
-                },
-            ))
+        let next_token_pos = self.peek().pos;
+        let name = self.consume_ident()?;
+        match name.as_str() {
+            "int" => Ok(Type::Int),
+            "bool" => Ok(Type::Bool),
+            x => Err(Error::new(
+                next_token_pos,
+                ErrorKind::NotTypeName { name: x.into() },
+            )),
         }
     }
 
@@ -431,5 +433,13 @@ impl Parser {
         }
 
         token.clone()
+    }
+
+    fn peek(&self) -> Token {
+        self.tokens.get(self.pos).unwrap().clone()
+    }
+
+    fn is_eof(&self) -> bool {
+        self.peek().kind == TokenKind::EOF
     }
 }

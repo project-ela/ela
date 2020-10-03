@@ -2,7 +2,6 @@ pub mod tac;
 
 use crate::{common::error::Error, frontend::parser::ast::*, middleend::tacgen::tac::*};
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
 
 #[derive(Debug)]
 struct TacGen {
@@ -14,34 +13,21 @@ struct TacGen {
 }
 
 #[derive(Debug)]
-struct Context(Vec<HashMap<String, u32>>);
-
-impl Deref for Context {
-    type Target = Vec<HashMap<String, u32>>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Context {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
+struct Context(Vec<HashMap<String, Operand>>);
 
 impl Context {
     fn new() -> Self {
         let mut ctx = Self(Vec::new());
-        ctx.push_ctx();
+        ctx.push();
         ctx
     }
 
-    fn add_variable(&mut self, name: String, offset: u32) {
-        self.last_mut().unwrap().insert(name, offset);
+    fn add_variable(&mut self, name: String, operand: Operand) {
+        self.0.last_mut().unwrap().insert(name, operand);
     }
 
-    fn find_variable(&self, name: &str) -> u32 {
-        for ctx in self.iter().rev() {
+    fn find_variable(&self, name: &str) -> Operand {
+        for ctx in self.0.iter().rev() {
             if ctx.contains_key(name) {
                 return *ctx.get(name).unwrap();
             }
@@ -49,17 +35,17 @@ impl Context {
         unreachable!();
     }
 
-    fn push_ctx(&mut self) {
-        self.push(HashMap::new());
+    fn push(&mut self) {
+        self.0.push(HashMap::new());
     }
 
-    fn pop_ctx(&mut self) {
-        self.pop();
+    fn pop(&mut self) {
+        self.0.pop();
     }
 
-    fn clear_ctx(&mut self) {
-        self.clear();
-        self.push_ctx();
+    fn clear(&mut self) {
+        self.0.clear();
+        self.push();
     }
 }
 
@@ -96,11 +82,11 @@ impl TacGen {
     fn gen_statement(&mut self, stmt: Statement, func: &mut TacFunction) -> Result<(), Error> {
         match stmt.kind {
             StatementKind::Block { stmts } => {
-                self.ctx.push_ctx();
+                self.ctx.push();
                 for stmt in stmts {
                     self.gen_statement(stmt, func)?;
                 }
-                self.ctx.pop_ctx();
+                self.ctx.pop();
             }
             StatementKind::Var {
                 name,
@@ -112,13 +98,13 @@ impl TacGen {
                 typ: _,
                 value,
             } => {
-                let offset = self.alloc_stack();
-                self.ctx.add_variable(name, offset);
-                self.gen_assign(offset, *value, func)?;
+                let operand = self.alloc_stack();
+                self.ctx.add_variable(name, operand.clone());
+                self.gen_assign(operand, *value, func)?;
             }
             StatementKind::Assign { name, value } => {
-                let offset = self.ctx.find_variable(&name);
-                self.gen_assign(offset, *value, func)?;
+                let operand = self.ctx.find_variable(&name);
+                self.gen_assign(operand, *value, func)?;
             }
             StatementKind::Return { value } => {
                 let src = match value {
@@ -182,7 +168,7 @@ impl TacGen {
     ) -> Result<Operand, Error> {
         match expr.kind {
             ExpressionKind::Integer { value } => {
-                let dst = Operand::Reg(self.next_reg());
+                let dst = self.next_reg();
                 func.body.push(Tac::Move {
                     dst: dst.clone(),
                     src: Operand::Const(value),
@@ -190,7 +176,7 @@ impl TacGen {
                 Ok(dst)
             }
             ExpressionKind::Bool { value } => {
-                let dst = Operand::Reg(self.next_reg());
+                let dst = self.next_reg();
                 func.body.push(Tac::Move {
                     dst: dst.clone(),
                     src: Operand::Const(value as i32),
@@ -198,11 +184,11 @@ impl TacGen {
                 Ok(dst)
             }
             ExpressionKind::Ident { name } => {
-                let offset = self.ctx.find_variable(&name);
-                let dst = Operand::Reg(self.next_reg());
+                let operand = self.ctx.find_variable(&name);
+                let dst = self.next_reg();
                 func.body.push(Tac::Move {
                     dst: dst.clone(),
-                    src: Operand::Variable(offset),
+                    src: operand,
                 });
                 Ok(dst)
             }
@@ -217,7 +203,7 @@ impl TacGen {
             ExpressionKind::BinaryOp { op, lhs, rhs } => {
                 let lhs = self.gen_expression(*lhs, func)?;
                 let rhs = self.gen_expression(*rhs, func)?;
-                let dst = Operand::Reg(self.next_reg());
+                let dst = self.next_reg();
                 func.body.push(Tac::BinOp {
                     op,
                     dst: dst.clone(),
@@ -227,7 +213,7 @@ impl TacGen {
                 Ok(dst)
             }
             ExpressionKind::Call { name } => {
-                let dst = Operand::Reg(self.next_reg());
+                let dst = self.next_reg();
                 func.body.push(Tac::Call {
                     dst: Some(dst.clone()),
                     name,
@@ -239,13 +225,12 @@ impl TacGen {
 
     fn gen_assign(
         &mut self,
-        offset: u32,
+        dst: Operand,
         src: Expression,
         func: &mut TacFunction,
     ) -> Result<(), Error> {
-        let dst = Operand::Variable(offset);
         let src = self.gen_expression(src, func)?;
-        let src_reg = Operand::Reg(self.next_reg());
+        let src_reg = self.next_reg();
         func.body.push(Tac::Move {
             dst: src_reg.clone(),
             src,
@@ -258,16 +243,16 @@ impl TacGen {
         self.reg = 0;
         self.label = 0;
         self.stack_offset = 0;
-        self.ctx.clear_ctx();
+        self.ctx.clear();
     }
 
-    fn next_reg(&mut self) -> RegisterInfo {
+    fn next_reg(&mut self) -> Operand {
         let cur_reg = self.reg;
         self.reg += 1;
-        RegisterInfo {
+        Operand::Reg(RegisterInfo {
             virtual_index: cur_reg,
             physical_index: None,
-        }
+        })
     }
 
     fn next_label(&mut self) -> u32 {
@@ -276,8 +261,8 @@ impl TacGen {
         cur_label
     }
 
-    fn alloc_stack(&mut self) -> u32 {
+    fn alloc_stack(&mut self) -> Operand {
         self.stack_offset += 4;
-        self.stack_offset
+        Operand::Variable(self.stack_offset)
     }
 }
