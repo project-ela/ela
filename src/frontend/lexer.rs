@@ -44,9 +44,11 @@ impl Tokenizer {
         let mut tokens = Vec::new();
 
         while !self.is_eof() {
+            self.consume_whitespace();
+
             tokens.push(Token {
-                kind: self.next_token()?,
                 pos: self.pos.clone(),
+                kind: self.next_token()?,
             });
         }
 
@@ -54,7 +56,6 @@ impl Tokenizer {
     }
 
     fn next_token(&mut self) -> Result<TokenKind, Error> {
-        self.consume_whitespace();
         if self.is_eof() {
             return Ok(TokenKind::EOF);
         }
@@ -207,7 +208,7 @@ impl Tokenizer {
         let (next_pos, _) = iter.next().unwrap_or((1, ' '));
 
         self.source_index += next_pos;
-        self.pos.column = 1;
+        self.pos.column += 1;
         if cur_char == '\n' {
             self.pos.line += 1;
             self.pos.column = 1;
