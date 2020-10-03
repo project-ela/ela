@@ -8,7 +8,6 @@ use crate::{
     frontend::parser::ast::*,
 };
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
 
 struct SymbolPass {
     ctx: Context,
@@ -16,19 +15,6 @@ struct SymbolPass {
 }
 
 struct Context(Vec<ContextData>);
-
-impl Deref for Context {
-    type Target = Vec<ContextData>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Context {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
 
 #[derive(Default)]
 struct ContextData {
@@ -45,23 +31,24 @@ struct Variable {
 impl Context {
     fn new() -> Self {
         let mut ctx = Self(Vec::new());
-        ctx.push_ctx();
+        ctx.push();
         ctx
     }
 
     fn add_function(&mut self, name: String, ret_typ: Type) {
-        self.last_mut().unwrap().functions.insert(name, ret_typ);
+        self.0.last_mut().unwrap().functions.insert(name, ret_typ);
     }
 
     fn add_variable(&mut self, name: String, typ: Type, is_const: bool) {
-        self.last_mut()
+        self.0
+            .last_mut()
             .unwrap()
             .variables
             .insert(name, Variable { typ, is_const });
     }
 
     fn find_function(&self, name: &str) -> Option<&Type> {
-        for ctx in self.iter().rev() {
+        for ctx in self.0.iter().rev() {
             if ctx.functions.contains_key(name) {
                 return ctx.functions.get(name);
             }
@@ -71,7 +58,7 @@ impl Context {
     }
 
     fn find_variable(&self, name: &str) -> Option<&Variable> {
-        for ctx in self.iter().rev() {
+        for ctx in self.0.iter().rev() {
             if ctx.variables.contains_key(name) {
                 return ctx.variables.get(name);
             }
@@ -80,12 +67,12 @@ impl Context {
         return None;
     }
 
-    fn push_ctx(&mut self) {
-        self.push(ContextData::default());
+    fn push(&mut self) {
+        self.0.push(ContextData::default());
     }
 
-    fn pop_ctx(&mut self) {
-        self.pop();
+    fn pop(&mut self) {
+        self.0.pop();
     }
 }
 
@@ -125,23 +112,23 @@ impl SymbolPass {
     fn apply_function(&mut self, funciton: &Function) {
         self.ctx
             .add_function(funciton.name.to_owned(), funciton.ret_typ);
-        self.ctx.push_ctx();
+        self.ctx.push();
         for param in &funciton.params {
             self.ctx
                 .add_variable(param.name.to_owned(), param.typ, false);
         }
         self.apply_statement(&funciton.body, &funciton.ret_typ);
-        self.ctx.pop_ctx();
+        self.ctx.pop();
     }
 
     fn apply_statement(&mut self, stmt: &Statement, ret_typ: &Type) {
         match &stmt.kind {
             StatementKind::Block { stmts } => {
-                self.ctx.push_ctx();
+                self.ctx.push();
                 for stmt in stmts {
                     self.apply_statement(&stmt, ret_typ);
                 }
-                self.ctx.pop_ctx();
+                self.ctx.pop();
             }
             StatementKind::Var { name, typ, value } => {
                 if let Some(value_typ) = self.apply_expression(&*value) {
