@@ -109,15 +109,15 @@ impl SymbolPass {
         }
     }
 
-    fn apply_function(&mut self, funciton: &Function) {
+    fn apply_function(&mut self, function: &Function) {
         self.ctx
-            .add_function(funciton.name.to_owned(), funciton.ret_typ);
+            .add_function(function.name.to_owned(), function.ret_typ);
         self.ctx.push();
-        for param in &funciton.params {
+        for param in &function.params {
             self.ctx
                 .add_variable(param.name.to_owned(), param.typ, false);
         }
-        self.apply_statement(&funciton.body, &funciton.ret_typ);
+        self.apply_statement(&function.body, &function.ret_typ);
         self.ctx.pop();
     }
 

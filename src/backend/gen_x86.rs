@@ -30,18 +30,18 @@ impl GenX86 {
         Ok(self.output.to_owned())
     }
 
-    fn gen_function(&mut self, funciton: TacFunction) -> Result<(), Error> {
-        self.gen(format!(".global {}", funciton.name).as_str());
-        self.gen(format!("{}:", funciton.name).as_str());
+    fn gen_function(&mut self, function: TacFunction) -> Result<(), Error> {
+        self.gen(format!(".global {}", function.name).as_str());
+        self.gen(format!("{}:", function.name).as_str());
         self.gen("  push ebp");
         self.gen("  mov ebp, esp");
         self.gen("  push ecx");
         self.gen("  push edx");
         self.gen("  push ebx");
-        for tac in funciton.body {
-            self.gen_tac(tac, &funciton.name)?;
+        for tac in function.body {
+            self.gen_tac(tac, &function.name)?;
         }
-        self.gen(format!(".L.{}.ret:", funciton.name).as_str());
+        self.gen(format!(".L.{}.ret:", function.name).as_str());
         self.gen("  pop ebx");
         self.gen("  pop edx");
         self.gen("  pop ecx");
