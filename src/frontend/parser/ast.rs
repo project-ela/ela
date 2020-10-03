@@ -1,5 +1,6 @@
 use crate::common::{
     operator::{BinaryOperator, UnaryOperator},
+    pos::Pos,
     types::Type,
 };
 
@@ -13,16 +14,18 @@ pub struct Function {
     pub name: String,
     pub ret_typ: Type,
     pub body: Statement,
+    pub pos: Pos,
 }
 
 #[derive(Debug)]
 pub struct Statement {
     pub kind: StatementKind,
+    pub pos: Pos,
 }
 
 impl Statement {
-    pub fn new(kind: StatementKind) -> Self {
-        Self { kind }
+    pub fn new(kind: StatementKind, pos: Pos) -> Self {
+        Self { kind, pos }
     }
 }
 
@@ -67,11 +70,12 @@ pub enum StatementKind {
 #[derive(Debug)]
 pub struct Expression {
     pub kind: ExpressionKind,
+    pub pos: Pos,
 }
 
 impl Expression {
-    pub fn new(kind: ExpressionKind) -> Self {
-        Self { kind }
+    pub fn new(kind: ExpressionKind, pos: Pos) -> Self {
+        Self { kind, pos }
     }
 }
 

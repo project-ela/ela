@@ -24,22 +24,28 @@ pub fn parse(tokens: Vec<Token>) -> Result<Program, Error> {
 
 macro_rules! new_unop {
     ($self: expr, $op: expr, $expr: expr) => {{
-        $self.consume();
-        Expression::new(ExpressionKind::UnaryOp {
-            op: $op,
-            expr: Box::new($expr),
-        })
+        let token = $self.consume();
+        Expression::new(
+            ExpressionKind::UnaryOp {
+                op: $op,
+                expr: Box::new($expr),
+            },
+            token.pos,
+        )
     }};
 }
 
 macro_rules! new_binop {
     ($self: expr, $op: expr, $lhs: expr, $rhs: expr) => {{
-        $self.consume();
-        Expression::new(ExpressionKind::BinaryOp {
-            op: $op,
-            lhs: Box::new($lhs),
-            rhs: Box::new($rhs),
-        })
+        let token = $self.consume();
+        Expression::new(
+            ExpressionKind::BinaryOp {
+                op: $op,
+                lhs: Box::new($lhs),
+                rhs: Box::new($rhs),
+            },
+            token.pos,
+        )
     }};
 }
 
@@ -57,7 +63,7 @@ impl Parser {
     }
 
     fn parse_function(&mut self) -> Result<Function, Error> {
-        self.expect(TokenKind::Func)?;
+        let pos = self.expect(TokenKind::Func)?.pos;
         let name = self.consume_ident()?;
         self.expect(TokenKind::LParen)?;
         self.expect(TokenKind::RParen)?;
@@ -73,6 +79,7 @@ impl Parser {
             name,
             ret_typ,
             body,
+            pos,
         })
     }
 
@@ -85,25 +92,31 @@ impl Parser {
                     stmts.push(self.parse_statement()?);
                 }
                 self.consume();
-                Ok(Statement::new(StatementKind::Block { stmts }))
+                Ok(Statement::new(StatementKind::Block { stmts }, token.pos))
             }
-            token @ TokenKind::Var | token @ TokenKind::Val => {
+            kind @ TokenKind::Var | kind @ TokenKind::Val => {
                 let name = self.consume_ident()?;
                 self.expect(TokenKind::Colon)?;
                 let typ = self.consume_type()?;
                 self.expect(TokenKind::Assign)?;
                 let value = self.parse_expression()?;
-                match token {
-                    TokenKind::Var => Ok(Statement::new(StatementKind::Var {
-                        name,
-                        typ,
-                        value: Box::new(value),
-                    })),
-                    TokenKind::Val => Ok(Statement::new(StatementKind::Val {
-                        name,
-                        typ,
-                        value: Box::new(value),
-                    })),
+                match kind {
+                    TokenKind::Var => Ok(Statement::new(
+                        StatementKind::Var {
+                            name,
+                            typ,
+                            value: Box::new(value),
+                        },
+                        token.pos,
+                    )),
+                    TokenKind::Val => Ok(Statement::new(
+                        StatementKind::Val {
+                            name,
+                            typ,
+                            value: Box::new(value),
+                        },
+                        token.pos,
+                    )),
                     _ => unreachable!(),
                 }
             }
@@ -111,15 +124,18 @@ impl Parser {
                 TokenKind::Assign => {
                     self.consume();
                     let value = self.parse_expression()?;
-                    Ok(Statement::new(StatementKind::Assign {
-                        name,
-                        value: Box::new(value),
-                    }))
+                    Ok(Statement::new(
+                        StatementKind::Assign {
+                            name,
+                            value: Box::new(value),
+                        },
+                        token.pos,
+                    ))
                 }
                 TokenKind::LParen => {
                     self.consume();
                     self.expect(TokenKind::RParen)?;
-                    Ok(Statement::new(StatementKind::Call { name }))
+                    Ok(Statement::new(StatementKind::Call { name }, token.pos))
                 }
                 x => Err(Error::new(
                     token.pos,
@@ -129,15 +145,18 @@ impl Parser {
                     },
                 )),
             },
-            TokenKind::Return => Ok(Statement::new(StatementKind::Return {
-                value: match self.parse_expression() {
-                    Ok(expr) => Some(Box::new(expr)),
-                    Err(_) => {
-                        self.pos -= 1;
-                        None
-                    }
+            TokenKind::Return => Ok(Statement::new(
+                StatementKind::Return {
+                    value: match self.parse_expression() {
+                        Ok(expr) => Some(Box::new(expr)),
+                        Err(_) => {
+                            self.pos -= 1;
+                            None
+                        }
+                    },
                 },
-            })),
+                token.pos,
+            )),
             TokenKind::If => {
                 let cond = self.parse_expression()?;
                 let then = self.parse_statement()?;
@@ -149,19 +168,25 @@ impl Parser {
                     }
                     _ => None,
                 };
-                Ok(Statement::new(StatementKind::If {
-                    cond: Box::new(cond),
-                    then: Box::new(then),
-                    els,
-                }))
+                Ok(Statement::new(
+                    StatementKind::If {
+                        cond: Box::new(cond),
+                        then: Box::new(then),
+                        els,
+                    },
+                    token.pos,
+                ))
             }
             TokenKind::While => {
                 let cond = self.parse_expression()?;
                 let body = self.parse_statement()?;
-                Ok(Statement::new(StatementKind::While {
-                    cond: Box::new(cond),
-                    body: Box::new(body),
-                }))
+                Ok(Statement::new(
+                    StatementKind::While {
+                        cond: Box::new(cond),
+                        body: Box::new(body),
+                    },
+                    token.pos,
+                ))
             }
             x => Err(Error::new(
                 token.pos,
@@ -279,17 +304,18 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> Result<Expression, Error> {
-        match self.peek().kind {
+        let token = self.peek();
+        match token.kind {
             TokenKind::Plus => Ok(new_binop!(
                 self,
                 BinaryOperator::Add,
-                Expression::new(ExpressionKind::Integer { value: 0 }),
+                Expression::new(ExpressionKind::Integer { value: 0 }, token.pos),
                 self.parse_unary()?
             )),
             TokenKind::Minus => Ok(new_binop!(
                 self,
                 BinaryOperator::Sub,
-                Expression::new(ExpressionKind::Integer { value: 0 }),
+                Expression::new(ExpressionKind::Integer { value: 0 }, token.pos),
                 self.parse_unary()?
             )),
             TokenKind::Not => Ok(new_unop!(self, UnaryOperator::Not, self.parse_unary()?)),
@@ -300,18 +326,25 @@ impl Parser {
     fn parse_primary(&mut self) -> Result<Expression, Error> {
         let token = self.consume();
         match token.kind {
-            TokenKind::IntLiteral { value } => {
-                Ok(Expression::new(ExpressionKind::Integer { value }))
-            }
-            TokenKind::False => Ok(Expression::new(ExpressionKind::Bool { value: false })),
-            TokenKind::True => Ok(Expression::new(ExpressionKind::Bool { value: true })),
+            TokenKind::IntLiteral { value } => Ok(Expression::new(
+                ExpressionKind::Integer { value },
+                token.pos,
+            )),
+            TokenKind::False => Ok(Expression::new(
+                ExpressionKind::Bool { value: false },
+                token.pos,
+            )),
+            TokenKind::True => Ok(Expression::new(
+                ExpressionKind::Bool { value: true },
+                token.pos,
+            )),
             TokenKind::Ident { name } => match self.peek().kind {
                 TokenKind::LParen => {
                     self.consume();
                     self.expect(TokenKind::RParen)?;
-                    Ok(Expression::new(ExpressionKind::Call { name }))
+                    Ok(Expression::new(ExpressionKind::Call { name }, token.pos))
                 }
-                _ => Ok(Expression::new(ExpressionKind::Ident { name })),
+                _ => Ok(Expression::new(ExpressionKind::Ident { name }, token.pos)),
             },
             TokenKind::LParen => {
                 let expr = self.parse_add()?;

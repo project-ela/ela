@@ -11,8 +11,12 @@ pub fn optimize(mut program: Program) -> Program {
             ret_typ: function.ret_typ,
             body: match opt_statement(function.body) {
                 Some(stmt) => stmt,
-                None => Statement::new(StatementKind::Block { stmts: Vec::new() }),
+                None => Statement::new(
+                    StatementKind::Block { stmts: Vec::new() },
+                    function.pos.clone(),
+                ),
             },
+            pos: function.pos,
         });
     }
     program.functions = functions;
@@ -28,28 +32,43 @@ fn opt_statement(statement: Statement) -> Option<Statement> {
                     new_stmts.push(new_stmt);
                 }
             }
-            Some(Statement::new(StatementKind::Block { stmts: new_stmts }))
+            Some(Statement::new(
+                StatementKind::Block { stmts: new_stmts },
+                statement.pos,
+            ))
         }
-        StatementKind::Var { name, typ, value } => Some(Statement::new(StatementKind::Var {
-            name,
-            typ,
-            value: Box::new(opt_expression(*value)),
-        })),
-        StatementKind::Val { name, typ, value } => Some(Statement::new(StatementKind::Val {
-            name,
-            typ,
-            value: Box::new(opt_expression(*value)),
-        })),
-        StatementKind::Assign { name, value } => Some(Statement::new(StatementKind::Assign {
-            name,
-            value: Box::new(opt_expression(*value)),
-        })),
-        StatementKind::Return { value } => Some(Statement::new(StatementKind::Return {
-            value: match value {
-                Some(value) => Some(Box::new(opt_expression(*value))),
-                None => None,
+        StatementKind::Var { name, typ, value } => Some(Statement::new(
+            StatementKind::Var {
+                name,
+                typ,
+                value: Box::new(opt_expression(*value)),
             },
-        })),
+            statement.pos,
+        )),
+        StatementKind::Val { name, typ, value } => Some(Statement::new(
+            StatementKind::Val {
+                name,
+                typ,
+                value: Box::new(opt_expression(*value)),
+            },
+            statement.pos,
+        )),
+        StatementKind::Assign { name, value } => Some(Statement::new(
+            StatementKind::Assign {
+                name,
+                value: Box::new(opt_expression(*value)),
+            },
+            statement.pos,
+        )),
+        StatementKind::Return { value } => Some(Statement::new(
+            StatementKind::Return {
+                value: match value {
+                    Some(value) => Some(Box::new(opt_expression(*value))),
+                    None => None,
+                },
+            },
+            statement.pos,
+        )),
         StatementKind::If { cond, then, els } => match opt_expression(*cond).kind {
             ExpressionKind::Bool { value } => {
                 return match (value, els) {
@@ -59,10 +78,13 @@ fn opt_statement(statement: Statement) -> Option<Statement> {
             }
             _ => unreachable!(),
         },
-        StatementKind::While { cond, body } => Some(Statement::new(StatementKind::While {
-            cond: Box::new(opt_expression(*cond)),
-            body: Box::new(opt_statement(*body)?),
-        })),
+        StatementKind::While { cond, body } => Some(Statement::new(
+            StatementKind::While {
+                cond: Box::new(opt_expression(*cond)),
+                body: Box::new(opt_statement(*body)?),
+            },
+            statement.pos,
+        )),
         StatementKind::Call { .. } => Some(statement),
     }
 }
@@ -73,8 +95,12 @@ fn opt_expression(expression: Expression) -> Expression {
         ExpressionKind::Bool { .. } => expression,
         ExpressionKind::Ident { .. } => expression,
         ExpressionKind::UnaryOp { op, ref expr } => match expr.kind {
-            ExpressionKind::Integer { value } => opt_unop_int(op, value),
-            ExpressionKind::Bool { value } => opt_unop_bool(op, value),
+            ExpressionKind::Integer { value } => {
+                Expression::new(opt_unop_int(op, value), expression.pos)
+            }
+            ExpressionKind::Bool { value } => {
+                Expression::new(opt_unop_bool(op, value), expression.pos)
+            }
             _ => expression,
         },
         ExpressionKind::BinaryOp { op, lhs, rhs } => {
@@ -85,33 +111,39 @@ fn opt_expression(expression: Expression) -> Expression {
                     ExpressionKind::Integer { value: left_value },
                     ExpressionKind::Integer { value: right_value },
                 ) => {
-                    return opt_binop_int(op, *left_value, *right_value);
+                    return Expression::new(
+                        opt_binop_int(op, *left_value, *right_value),
+                        expression.pos,
+                    );
                 }
-                _ => Expression::new(ExpressionKind::BinaryOp {
-                    op,
-                    lhs: Box::new(lhs),
-                    rhs: Box::new(rhs),
-                }),
+                _ => Expression::new(
+                    ExpressionKind::BinaryOp {
+                        op,
+                        lhs: Box::new(lhs),
+                        rhs: Box::new(rhs),
+                    },
+                    expression.pos,
+                ),
             }
         }
         ExpressionKind::Call { .. } => expression,
     }
 }
 
-fn opt_unop_int(op: UnaryOperator, value: i32) -> Expression {
+fn opt_unop_int(op: UnaryOperator, value: i32) -> ExpressionKind {
     match op {
-        UnaryOperator::Not => Expression::new(ExpressionKind::Integer { value: !value }),
+        UnaryOperator::Not => ExpressionKind::Integer { value: !value },
     }
 }
 
-fn opt_unop_bool(op: UnaryOperator, value: bool) -> Expression {
+fn opt_unop_bool(op: UnaryOperator, value: bool) -> ExpressionKind {
     match op {
-        UnaryOperator::Not => Expression::new(ExpressionKind::Bool { value: !value }),
+        UnaryOperator::Not => ExpressionKind::Bool { value: !value },
     }
 }
 
-fn opt_binop_int(op: BinaryOperator, left_value: i32, right_value: i32) -> Expression {
-    Expression::new(match op {
+fn opt_binop_int(op: BinaryOperator, left_value: i32, right_value: i32) -> ExpressionKind {
+    match op {
         BinaryOperator::Add => ExpressionKind::Integer {
             value: left_value + right_value,
         },
@@ -152,5 +184,5 @@ fn opt_binop_int(op: BinaryOperator, left_value: i32, right_value: i32) -> Expre
         BinaryOperator::Gte => ExpressionKind::Bool {
             value: left_value >= right_value,
         },
-    })
+    }
 }
