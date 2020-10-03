@@ -126,6 +126,10 @@ impl SymbolPass {
         self.ctx
             .add_function(funciton.name.to_owned(), funciton.ret_typ);
         self.ctx.push_ctx();
+        for param in &funciton.params {
+            self.ctx
+                .add_variable(param.name.to_owned(), param.typ, false);
+        }
         self.apply_statement(&funciton.body, &funciton.ret_typ);
         self.ctx.pop_ctx();
     }

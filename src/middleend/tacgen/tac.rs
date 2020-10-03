@@ -8,14 +8,21 @@ pub struct TacProgram {
 #[derive(Debug)]
 pub struct TacFunction {
     pub name: String,
+    pub params: Vec<u32>,
     pub body: Vec<Tac>,
     pub stack_offset: u32,
+}
+
+#[derive(Debug)]
+pub struct Parameter {
+    pub offset: u32,
 }
 
 impl TacFunction {
     pub fn new(name: String) -> Self {
         Self {
             name,
+            params: Vec::new(),
             body: Vec::new(),
             stack_offset: 0,
         }
@@ -62,6 +69,7 @@ pub enum Operand {
     Reg(RegisterInfo),
     Const(i32),
     Variable(u32),
+    Parameter(u32),
 }
 
 impl Operand {
@@ -98,9 +106,7 @@ impl TacProgram {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         for function in &self.functions {
-            s.push_str(format!("func {}() {{\n", function.name).as_str());
             s.push_str(function.dump().as_str());
-            s.push_str("}\n");
         }
         s
     }
@@ -109,11 +115,21 @@ impl TacProgram {
 impl TacFunction {
     pub fn dump(&self) -> String {
         let mut s = String::new();
+        s.push_str(format!("func {}({}) {{\n", self.name, self.dump_params()).as_str());
         for tac in &self.body {
             s.push_str(tac.dump().as_str());
             s.push('\n');
         }
+        s.push_str("}\n");
         s
+    }
+
+    fn dump_params(&self) -> String {
+        self.params
+            .iter()
+            .map(|offset| format!("param({})", offset))
+            .collect::<Vec<String>>()
+            .join(", ")
     }
 }
 
@@ -152,6 +168,7 @@ impl Operand {
             ),
             Operand::Const(value) => format!("{}", value),
             Operand::Variable(offset) => format!("var({})", offset),
+            Operand::Parameter(offst) => format!("param({})", offst),
         }
     }
 }

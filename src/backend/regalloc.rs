@@ -76,7 +76,7 @@ impl RegAlloc {
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.alloc_reg(info.virtual_index)?);
             }
-            Operand::Const(_) | Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
         }
 
         Ok(())
@@ -87,7 +87,7 @@ impl RegAlloc {
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.get_reg(info.virtual_index));
             }
-            Operand::Const(_) | Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
         }
 
         if kill {
@@ -100,7 +100,7 @@ impl RegAlloc {
             Operand::Reg(info) => {
                 self.kill_reg(&info.virtual_index);
             }
-            Operand::Const(_) | Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
         }
     }
 

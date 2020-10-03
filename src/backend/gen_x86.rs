@@ -161,6 +161,7 @@ fn opr(operand: &Operand) -> String {
         Operand::Const(value) => format!("{}", value),
         Operand::Reg(info) => reg(&info.physical_index.unwrap()).to_string(),
         Operand::Variable(offset) => format!("[ebp-{}]", offset),
+        Operand::Parameter(offset) => format!("[ebp+{}]", offset),
     }
 }
 

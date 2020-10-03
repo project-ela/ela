@@ -9,7 +9,9 @@ use crate::{
     },
     frontend::{
         lexer::token::{Token, TokenKind},
-        parser::ast::{Expression, ExpressionKind, Function, Program, Statement, StatementKind},
+        parser::ast::{
+            Expression, ExpressionKind, Function, Parameter, Program, Statement, StatementKind,
+        },
     },
 };
 
@@ -67,6 +69,7 @@ impl Parser {
         let pos = self.expect(TokenKind::Func)?.pos;
         let name = self.consume_ident()?;
         self.expect(TokenKind::LParen)?;
+        let params = self.parse_function_parameters()?;
         self.expect(TokenKind::RParen)?;
         let ret_typ = match self.peek().kind {
             TokenKind::Colon => {
@@ -78,9 +81,33 @@ impl Parser {
         let body = self.parse_statement()?;
         Ok(Function {
             name,
+            params,
             ret_typ,
             body,
             pos,
+        })
+    }
+
+    fn parse_function_parameters(&mut self) -> Result<Vec<Parameter>, Error> {
+        let mut params = Vec::new();
+        if self.peek().kind != TokenKind::RParen {
+            params.push(self.parse_function_parameter()?);
+        }
+        while self.peek().kind != TokenKind::RParen {
+            self.expect(TokenKind::Comma)?;
+            params.push(self.parse_function_parameter()?);
+        }
+        Ok(params)
+    }
+
+    fn parse_function_parameter(&mut self) -> Result<Parameter, Error> {
+        let param_name = self.consume_ident()?;
+        self.expect(TokenKind::Colon)?;
+        let param_typ = self.consume_type()?;
+
+        Ok(Parameter {
+            name: param_name,
+            typ: param_typ,
         })
     }
 

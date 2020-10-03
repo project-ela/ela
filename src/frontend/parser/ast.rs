@@ -12,9 +12,16 @@ pub struct Program {
 #[derive(Debug)]
 pub struct Function {
     pub name: String,
+    pub params: Vec<Parameter>,
     pub ret_typ: Type,
     pub body: Statement,
     pub pos: Pos,
+}
+
+#[derive(Debug)]
+pub struct Parameter {
+    pub name: String,
+    pub typ: Type,
 }
 
 #[derive(Debug)]
