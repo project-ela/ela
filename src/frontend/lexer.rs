@@ -46,9 +46,10 @@ impl Tokenizer {
         while !self.is_eof() {
             self.consume_whitespace();
 
+            let pos = self.pos.clone();
             tokens.push(Token {
-                pos: self.pos.clone(),
                 kind: self.next_token()?,
+                pos,
             });
         }
 
@@ -60,111 +61,91 @@ impl Tokenizer {
             return Ok(TokenKind::EOF);
         }
 
-        let token = match self.peek_char() {
+        match self.peek_char() {
+            x if x.is_digit(10) => Ok(self.consume_number()),
+            x if x.is_alphabetic() => Ok(find_keyword(self.consume_ident())),
+            x => self.consume_symbol(x),
+        }
+    }
+
+    fn consume_symbol(&mut self, c: char) -> Result<TokenKind, Error> {
+        self.consume_char();
+
+        match c {
             '+' => Ok(TokenKind::Plus),
             '-' => Ok(TokenKind::Minus),
             '*' => Ok(TokenKind::Asterisk),
-            '/' => {
-                self.consume_char();
-                match self.peek_char() {
-                    '/' => {
-                        self.consume_char();
-                        Ok(TokenKind::Comment {
-                            content: self.consume_line_comment(),
-                        })
-                    }
-                    '*' => {
-                        self.consume_char();
-                        Ok(TokenKind::Comment {
-                            content: self.consume_block_comment(),
-                        })
-                    }
-                    _ => Ok(TokenKind::Slash),
-                }
-            }
             '&' => Ok(TokenKind::And),
             '|' => Ok(TokenKind::Or),
             '^' => Ok(TokenKind::Xor),
             ':' => Ok(TokenKind::Colon),
-            '=' => {
-                self.consume_char();
-                match self.peek_char() {
-                    '=' => {
-                        self.consume_char();
-                        Ok(TokenKind::Equal)
-                    }
-                    _ => return Ok(TokenKind::Assign),
-                }
-            }
-            '!' => {
-                self.consume_char();
-                match self.peek_char() {
-                    '=' => {
-                        self.consume_char();
-                        Ok(TokenKind::NotEqual)
-                    }
-                    _ => return Ok(TokenKind::Not),
-                }
-            }
-            '<' => {
-                self.consume_char();
-                if self.peek_char() == '=' {
-                    self.consume_char();
-                    Ok(TokenKind::Lte)
-                } else {
-                    Ok(TokenKind::Lt)
-                }
-            }
-            '>' => {
-                self.consume_char();
-                if self.peek_char() == '=' {
-                    self.consume_char();
-                    Ok(TokenKind::Gte)
-                } else {
-                    Ok(TokenKind::Gt)
-                }
-            }
             '(' => Ok(TokenKind::LParen),
             ')' => Ok(TokenKind::RParen),
             '{' => Ok(TokenKind::LBrace),
             '}' => Ok(TokenKind::RBrace),
-            x if x.is_digit(10) => {
-                return Ok(TokenKind::IntLiteral {
-                    value: self.consume_number(),
-                })
-            }
-            x if x.is_alphabetic() => {
-                let ident = self.consume_ident();
-                return match find_keyword(&ident) {
-                    Some(token) => Ok(token),
-                    None => Ok(TokenKind::Ident { name: ident }),
-                };
-            }
-            x => {
-                return Err(Error::new(
-                    self.pos.clone(),
-                    ErrorKind::UnexpectedChar { c: x },
-                ))
-            }
-        };
-        self.consume_char();
-        token
-    }
-
-    fn consume_ident(&mut self) -> String {
-        let mut ident = String::new();
-        while !self.is_eof() && self.peek_char().is_alphabetic() {
-            ident.push(self.consume_char());
+            '/' => match self.peek_char() {
+                '/' => {
+                    self.consume_char();
+                    Ok(self.consume_line_comment())
+                }
+                '*' => {
+                    self.consume_char();
+                    Ok(self.consume_block_comment())
+                }
+                _ => Ok(TokenKind::Slash),
+            },
+            '=' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::Equal)
+                }
+                _ => Ok(TokenKind::Assign),
+            },
+            '!' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::NotEqual)
+                }
+                _ => Ok(TokenKind::Not),
+            },
+            '<' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::Lte)
+                }
+                _ => Ok(TokenKind::Lt),
+            },
+            '>' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::Gte)
+                }
+                _ => Ok(TokenKind::Gt),
+            },
+            x => Err(Error::new(
+                self.pos.clone(),
+                ErrorKind::UnexpectedChar { c: x },
+            )),
         }
-        ident
     }
 
-    fn consume_number(&mut self) -> i32 {
+    fn consume_ident(&mut self) -> TokenKind {
+        let mut name = String::new();
+        while !self.is_eof() && self.peek_char().is_alphabetic() {
+            name.push(self.consume_char());
+        }
+
+        TokenKind::Ident { name }
+    }
+
+    fn consume_number(&mut self) -> TokenKind {
         let mut digits = String::new();
         while !self.is_eof() && self.peek_char().is_digit(10) {
             digits.push(self.consume_char());
         }
-        digits.parse().unwrap()
+
+        let value = digits.parse().unwrap();
+        TokenKind::IntLiteral { value }
     }
 
     fn consume_whitespace(&mut self) {
@@ -173,15 +154,16 @@ impl Tokenizer {
         }
     }
 
-    fn consume_line_comment(&mut self) -> String {
+    fn consume_line_comment(&mut self) -> TokenKind {
         let mut content = String::new();
         while !self.is_eof() && self.peek_char() != '\n' {
             content.push(self.consume_char());
         }
-        content
+
+        TokenKind::Comment { content }
     }
 
-    fn consume_block_comment(&mut self) -> String {
+    fn consume_block_comment(&mut self) -> TokenKind {
         let mut content = String::new();
         while !self.is_eof() {
             match (self.consume_char(), self.consume_char()) {
@@ -192,7 +174,8 @@ impl Tokenizer {
                 }
             }
         }
-        content
+
+        TokenKind::Comment { content }
     }
 
     fn peek_char(&mut self) -> char {
@@ -222,17 +205,21 @@ impl Tokenizer {
     }
 }
 
-fn find_keyword(ident: &str) -> Option<TokenKind> {
-    match ident {
-        "func" => Some(TokenKind::Func),
-        "var" => Some(TokenKind::Var),
-        "val" => Some(TokenKind::Val),
-        "return" => Some(TokenKind::Return),
-        "if" => Some(TokenKind::If),
-        "else" => Some(TokenKind::Else),
-        "false" => Some(TokenKind::False),
-        "true" => Some(TokenKind::True),
-        "while" => Some(TokenKind::While),
-        _ => None,
+fn find_keyword(ident: TokenKind) -> TokenKind {
+    if let TokenKind::Ident { name } = &ident {
+        match name.as_str() {
+            "func" => TokenKind::Func,
+            "var" => TokenKind::Var,
+            "val" => TokenKind::Val,
+            "return" => TokenKind::Return,
+            "if" => TokenKind::If,
+            "else" => TokenKind::Else,
+            "false" => TokenKind::False,
+            "true" => TokenKind::True,
+            "while" => TokenKind::While,
+            _ => ident,
+        }
+    } else {
+        ident
     }
 }
