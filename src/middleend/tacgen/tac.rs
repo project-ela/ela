@@ -57,7 +57,7 @@ pub enum Tac {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Operand {
     Reg(RegisterInfo),
     Const(i32),
@@ -80,7 +80,7 @@ impl Operand {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct RegisterInfo {
     pub virtual_index: u32,
     pub physical_index: Option<Register>,
