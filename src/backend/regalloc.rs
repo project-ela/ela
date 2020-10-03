@@ -31,7 +31,7 @@ impl RegAlloc {
                 match tac {
                     Tac::Label { .. } => {}
                     Tac::UnOp { op: _, ref mut src } => {
-                        self.get_operand(src);
+                        self.get_operand(src, false);
                     }
                     Tac::BinOp {
                         op: _,
@@ -39,10 +39,8 @@ impl RegAlloc {
                         ref mut lhs,
                         ref mut rhs,
                     } => {
-                        self.get_operand(lhs);
-                        self.kill_operand(lhs);
-                        self.get_operand(rhs);
-                        self.kill_operand(rhs);
+                        self.get_operand(lhs, true);
+                        self.get_operand(rhs, true);
                         self.alloc_operand(dst)?;
                     }
                     Tac::Call { dst, .. } => {
@@ -52,24 +50,20 @@ impl RegAlloc {
                     }
                     Tac::Move { dst, src } => {
                         self.alloc_operand(dst)?;
-                        self.get_operand(src);
-                        self.kill_operand(src);
+                        self.get_operand(src, true);
                     }
                     Tac::Jump { .. } => {}
                     Tac::JumpIfNot {
                         label_index: _,
                         cond,
                     } => {
-                        self.get_operand(cond);
-                        self.kill_operand(cond);
+                        self.get_operand(cond, true);
                     }
-                    Tac::Ret { src } => match src {
-                        Some(src) => {
-                            self.get_operand(src);
-                            self.kill_operand(src);
+                    Tac::Ret { src } => {
+                        if let Some(src) = src {
+                            self.get_operand(src, true);
                         }
-                        None => {}
-                    },
+                    }
                 }
             }
             self.reg_map.clear();
@@ -79,33 +73,34 @@ impl RegAlloc {
 
     fn alloc_operand(&mut self, operand: &mut Operand) -> Result<(), Error> {
         match operand {
-            Operand::Const(_) => {}
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.alloc_reg(info.virtual_index)?);
             }
-            Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) => {}
         }
 
         Ok(())
     }
 
-    fn get_operand(&mut self, operand: &mut Operand) {
+    fn get_operand(&mut self, operand: &mut Operand, kill: bool) {
         match operand {
-            Operand::Const(_) => {}
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.get_reg(info.virtual_index));
             }
-            Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) => {}
+        }
+
+        if kill {
+            self.kill_operand(operand);
         }
     }
 
     fn kill_operand(&mut self, operand: &Operand) {
         match operand {
-            Operand::Const(_) => {}
             Operand::Reg(info) => {
                 self.kill_reg(&info.virtual_index);
             }
-            Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) => {}
         }
     }
 
