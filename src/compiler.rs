@@ -1,19 +1,26 @@
 use crate::{
     backend::{gen_x86, regalloc},
     common::cli::CompilerConfig,
-    frontend::{lexer, parser, pass::symbol_pass},
+    frontend::{
+        lexer::{self, SourceFile},
+        parser,
+        pass::symbol_pass,
+    },
     middleend::{optimize::constant_folding, tacgen},
 };
 use std::{error::Error, fs};
 
 pub fn compile_to_file(config: CompilerConfig) -> Result<(), Box<dyn Error>> {
-    let source = fs::read_to_string(&config.input_file)?;
+    let source = SourceFile {
+        filename: config.input_file.to_owned(),
+        content: fs::read_to_string(&config.input_file)?,
+    };
     let output = compile(source, &config)?;
     fs::write(&config.output_file, output)?;
     Ok(())
 }
 
-pub fn compile(source: String, config: &CompilerConfig) -> Result<String, Box<dyn Error>> {
+pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String, Box<dyn Error>> {
     let tokens = lexer::tokenize(source)?;
     if config.dump_tokens {
         println!("{:#?}", tokens);

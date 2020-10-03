@@ -1,5 +1,8 @@
 use crate::{
-    common::error::{Error, ErrorKind},
+    common::{
+        error::{Error, ErrorKind},
+        pos::Pos,
+    },
     middleend::tacgen::tac::*,
 };
 use std::collections::HashMap;
@@ -115,7 +118,7 @@ impl RegAlloc {
             return Ok(*reg);
         }
 
-        Err(Error::new(ErrorKind::RegistersExhausted))
+        Err(Error::new(Pos::default(), ErrorKind::RegistersExhausted))
     }
 
     fn get_reg(&mut self, virtual_index: u32) -> Register {

@@ -1,5 +1,6 @@
 use crate::common::{
     operator::{BinaryOperator, UnaryOperator},
+    pos::Pos,
     types::Type,
 };
 
@@ -12,40 +13,53 @@ pub struct Program {
 pub struct Function {
     pub name: String,
     pub ret_typ: Type,
-    pub body: AstStatement,
+    pub body: Statement,
+    pub pos: Pos,
 }
 
 #[derive(Debug)]
-pub enum AstStatement {
+pub struct Statement {
+    pub kind: StatementKind,
+    pub pos: Pos,
+}
+
+impl Statement {
+    pub fn new(kind: StatementKind, pos: Pos) -> Self {
+        Self { kind, pos }
+    }
+}
+
+#[derive(Debug)]
+pub enum StatementKind {
     Block {
-        stmts: Vec<AstStatement>,
+        stmts: Vec<Statement>,
     },
 
     Var {
         name: String,
         typ: Type,
-        value: Box<AstExpression>,
+        value: Box<Expression>,
     },
     Val {
         name: String,
         typ: Type,
-        value: Box<AstExpression>,
+        value: Box<Expression>,
     },
     Assign {
         name: String,
-        value: Box<AstExpression>,
+        value: Box<Expression>,
     },
     Return {
-        value: Option<Box<AstExpression>>,
+        value: Option<Box<Expression>>,
     },
     If {
-        cond: Box<AstExpression>,
-        then: Box<AstStatement>,
-        els: Option<Box<AstStatement>>,
+        cond: Box<Expression>,
+        then: Box<Statement>,
+        els: Option<Box<Statement>>,
     },
     While {
-        cond: Box<AstExpression>,
-        body: Box<AstStatement>,
+        cond: Box<Expression>,
+        body: Box<Statement>,
     },
     // use this if return type is void
     Call {
@@ -54,7 +68,19 @@ pub enum AstStatement {
 }
 
 #[derive(Debug)]
-pub enum AstExpression {
+pub struct Expression {
+    pub kind: ExpressionKind,
+    pub pos: Pos,
+}
+
+impl Expression {
+    pub fn new(kind: ExpressionKind, pos: Pos) -> Self {
+        Self { kind, pos }
+    }
+}
+
+#[derive(Debug)]
+pub enum ExpressionKind {
     Integer {
         value: i32,
     },
@@ -67,12 +93,12 @@ pub enum AstExpression {
 
     UnaryOp {
         op: UnaryOperator,
-        expr: Box<AstExpression>,
+        expr: Box<Expression>,
     },
     BinaryOp {
         op: BinaryOperator,
-        lhs: Box<AstExpression>,
-        rhs: Box<AstExpression>,
+        lhs: Box<Expression>,
+        rhs: Box<Expression>,
     },
     // use this if return type isn't void
     Call {

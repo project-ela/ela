@@ -1,5 +1,19 @@
+use crate::common::pos::Pos;
+
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub pos: Pos,
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, pos: Pos) -> Self {
+        Self { kind, pos }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Token {
+pub enum TokenKind {
     IntLiteral { value: i32 },
     Ident { name: String },
 

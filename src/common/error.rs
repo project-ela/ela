@@ -1,9 +1,10 @@
 use crate::{
     common::{
         operator::{BinaryOperator, UnaryOperator},
+        pos::Pos,
         types::Type,
     },
-    frontend::lexer::token::Token,
+    frontend::lexer::token::TokenKind,
 };
 use std::{error, fmt};
 
@@ -16,11 +17,11 @@ pub enum ErrorKind {
 
     // parser
     UnexpectedToken {
-        expected: Option<Token>,
-        actual: Token,
+        expected: Option<TokenKind>,
+        actual: TokenKind,
     },
     ExpectedIdent {
-        actual: Token,
+        actual: TokenKind,
     },
     NotTypeName {
         name: String,
@@ -97,17 +98,18 @@ impl fmt::Display for ErrorKind {
 #[derive(Debug)]
 pub struct Error {
     pub kind: ErrorKind,
+    pub pos: Pos,
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind) -> Self {
-        Self { kind }
+    pub fn new(pos: Pos, kind: ErrorKind) -> Self {
+        Self { pos, kind }
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.kind)
+        write!(f, "{}:{}", self.pos, self.kind)
     }
 }
 

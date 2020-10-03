@@ -2,6 +2,7 @@ use crate::{
     common::{
         error::{Error, ErrorKind, Errors},
         operator::BinaryOperator,
+        pos::Pos,
         types::Type,
     },
     frontend::parser::ast::*,
@@ -110,12 +111,12 @@ impl SymbolPass {
 
     fn apply(&mut self, program: &Program) {
         if program.functions.iter().all(|f| f.name != "main") {
-            self.issue(Error::new(ErrorKind::MainNotFound));
+            self.issue(Error::new(Pos::default(), ErrorKind::MainNotFound));
         }
 
         for function in &program.functions {
             if function.name == "main" && function.ret_typ != Type::Int {
-                self.issue(Error::new(ErrorKind::MainShouldReturnInt));
+                self.issue(Error::new(Pos::default(), ErrorKind::MainShouldReturnInt));
             }
             self.apply_function(&function);
         }
@@ -129,130 +130,157 @@ impl SymbolPass {
         self.ctx.pop_ctx();
     }
 
-    fn apply_statement(&mut self, stmt: &AstStatement, ret_typ: &Type) {
-        match stmt {
-            AstStatement::Block { stmts } => {
+    fn apply_statement(&mut self, stmt: &Statement, ret_typ: &Type) {
+        match &stmt.kind {
+            StatementKind::Block { stmts } => {
                 self.ctx.push_ctx();
                 for stmt in stmts {
-                    self.apply_statement(stmt, ret_typ);
+                    self.apply_statement(&stmt, ret_typ);
                 }
                 self.ctx.pop_ctx();
             }
-            AstStatement::Var { name, typ, value } => {
-                if let Some(value_typ) = self.apply_expression(value) {
+            StatementKind::Var { name, typ, value } => {
+                if let Some(value_typ) = self.apply_expression(&*value) {
                     if &value_typ != typ {
-                        self.issue(Error::new(ErrorKind::TypeMismatch {
-                            lhs: *typ,
-                            rhs: value_typ,
-                        }));
+                        self.issue(Error::new(
+                            Pos::default(),
+                            ErrorKind::TypeMismatch {
+                                lhs: *typ,
+                                rhs: value_typ,
+                            },
+                        ));
                     }
                 }
                 self.ctx.add_variable(name.to_owned(), *typ, false);
             }
-            AstStatement::Val { name, typ, value } => {
-                if let Some(value_typ) = self.apply_expression(value) {
+            StatementKind::Val { name, typ, value } => {
+                if let Some(value_typ) = self.apply_expression(&*value) {
                     if &value_typ != typ {
-                        self.issue(Error::new(ErrorKind::TypeMismatch {
-                            lhs: *typ,
-                            rhs: value_typ,
-                        }));
+                        self.issue(Error::new(
+                            Pos::default(),
+                            ErrorKind::TypeMismatch {
+                                lhs: *typ,
+                                rhs: value_typ,
+                            },
+                        ));
                     }
                 }
                 self.ctx.add_variable(name.to_owned(), *typ, true);
             }
-            AstStatement::Assign { name, value } => {
-                let value_typ = self.apply_expression(value);
-                let var = self.ctx.find_variable(name).cloned();
+            StatementKind::Assign { name, value } => {
+                let value_typ = self.apply_expression(&*value);
+                let var = self.ctx.find_variable(&name).cloned();
                 match (var, value_typ) {
                     (Some(var), Some(value_typ)) => {
                         if var.typ != value_typ {
-                            self.issue(Error::new(ErrorKind::TypeMismatch {
-                                lhs: var.typ,
-                                rhs: value_typ,
-                            }));
+                            self.issue(Error::new(
+                                Pos::default(),
+                                ErrorKind::TypeMismatch {
+                                    lhs: var.typ,
+                                    rhs: value_typ,
+                                },
+                            ));
                         }
                         if var.is_const {
-                            self.issue(Error::new(ErrorKind::AssignToConstant {
-                                name: name.into(),
-                            }));
+                            self.issue(Error::new(
+                                Pos::default(),
+                                ErrorKind::AssignToConstant { name: name.into() },
+                            ));
                         }
                     }
-                    (None, _) => self.issue(Error::new(ErrorKind::NotDefinedVariable {
-                        name: name.into(),
-                    })),
+                    (None, _) => self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::NotDefinedVariable { name: name.into() },
+                    )),
                     _ => {}
                 }
             }
-            AstStatement::Return { value } => {
+            StatementKind::Return { value } => {
                 if let Some(value) = value {
-                    if let Some(value_typ) = self.apply_expression(value) {
+                    if let Some(value_typ) = self.apply_expression(&*value) {
                         if &value_typ != ret_typ {
-                            self.issue(Error::new(ErrorKind::TypeMismatch {
-                                lhs: *ret_typ,
-                                rhs: value_typ,
-                            }));
+                            self.issue(Error::new(
+                                Pos::default(),
+                                ErrorKind::TypeMismatch {
+                                    lhs: *ret_typ,
+                                    rhs: value_typ,
+                                },
+                            ));
                         }
                     }
                 }
             }
-            AstStatement::If { cond, then, els } => {
-                match self.apply_expression(cond) {
+            StatementKind::If { cond, then, els } => {
+                match self.apply_expression(&*cond) {
                     Some(Type::Bool) | None => {}
-                    Some(x) => self.issue(Error::new(ErrorKind::TypeMismatch {
-                        lhs: x,
-                        rhs: Type::Bool,
-                    })),
+                    Some(x) => self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::TypeMismatch {
+                            lhs: x,
+                            rhs: Type::Bool,
+                        },
+                    )),
                 }
-                self.apply_statement(then, ret_typ);
+                self.apply_statement(&*then, ret_typ);
                 if let Some(els) = els {
-                    self.apply_statement(els, ret_typ);
+                    self.apply_statement(&*els, ret_typ);
                 }
             }
-            AstStatement::While { cond, body } => {
-                match self.apply_expression(cond) {
+            StatementKind::While { cond, body } => {
+                match self.apply_expression(&*cond) {
                     Some(Type::Bool) | None => {}
-                    Some(x) => self.issue(Error::new(ErrorKind::TypeMismatch {
-                        lhs: x,
-                        rhs: Type::Bool,
-                    })),
+                    Some(x) => self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::TypeMismatch {
+                            lhs: x,
+                            rhs: Type::Bool,
+                        },
+                    )),
                 }
-                self.apply_statement(body, ret_typ);
+                self.apply_statement(&*body, ret_typ);
             }
-            AstStatement::Call { name } => {
-                self.check_call(name);
+            StatementKind::Call { name } => {
+                self.check_call(&*name);
             }
         }
     }
 
-    fn apply_expression(&mut self, expr: &AstExpression) -> Option<Type> {
+    fn apply_expression(&mut self, expr: &Expression) -> Option<Type> {
         use BinaryOperator::*;
-        match expr {
-            AstExpression::Integer { .. } => Some(Type::Int),
-            AstExpression::Bool { .. } => Some(Type::Bool),
-            AstExpression::Ident { name } => match self.ctx.find_variable(name) {
+        match &expr.kind {
+            ExpressionKind::Integer { .. } => Some(Type::Int),
+            ExpressionKind::Bool { .. } => Some(Type::Bool),
+            ExpressionKind::Ident { name } => match self.ctx.find_variable(&name) {
                 Some(var) => Some(var.typ),
                 None => {
-                    self.issue(Error::new(ErrorKind::NotDefinedVariable {
-                        name: name.into(),
-                    }));
+                    self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::NotDefinedVariable { name: name.into() },
+                    ));
                     None
                 }
             },
-            AstExpression::UnaryOp { op, expr } => match self.apply_expression(expr)? {
+            ExpressionKind::UnaryOp { op, expr } => match self.apply_expression(&*expr)? {
                 Type::Bool => Some(Type::Bool),
                 typ => {
-                    self.issue(Error::new(ErrorKind::UnaryOpErr { op: *op, expr: typ }));
+                    self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::UnaryOpErr { op: *op, expr: typ },
+                    ));
                     None
                 }
             },
-            AstExpression::BinaryOp { op, lhs, rhs } => {
-                let lhs_typ = self.apply_expression(lhs)?;
-                let rhs_typ = self.apply_expression(rhs)?;
+            ExpressionKind::BinaryOp { op, lhs, rhs } => {
+                let lhs_typ = self.apply_expression(&*lhs)?;
+                let rhs_typ = self.apply_expression(&*rhs)?;
                 if lhs_typ != rhs_typ {
-                    self.issue(Error::new(ErrorKind::TypeMismatch {
-                        lhs: lhs_typ,
-                        rhs: rhs_typ,
-                    }));
+                    self.issue(Error::new(
+                        Pos::default(),
+                        ErrorKind::TypeMismatch {
+                            lhs: lhs_typ,
+                            rhs: rhs_typ,
+                        },
+                    ));
                     return None;
                 }
                 match op {
@@ -260,17 +288,20 @@ impl SymbolPass {
                     Add | Sub | Mul | Div | And | Or | Xor => match lhs_typ {
                         Type::Int => Some(Type::Int),
                         _ => {
-                            self.issue(Error::new(ErrorKind::BinaryOpErr {
-                                op: *op,
-                                lhs: lhs_typ,
-                                rhs: rhs_typ,
-                            }));
+                            self.issue(Error::new(
+                                Pos::default(),
+                                ErrorKind::BinaryOpErr {
+                                    op: *op,
+                                    lhs: lhs_typ,
+                                    rhs: rhs_typ,
+                                },
+                            ));
                             None
                         }
                     },
                 }
             }
-            AstExpression::Call { name } => self.check_call(name),
+            ExpressionKind::Call { name } => self.check_call(&name),
         }
     }
 
@@ -278,9 +309,10 @@ impl SymbolPass {
         match self.ctx.find_function(name) {
             Some(typ) => Some(*typ),
             None => {
-                self.issue(Error::new(ErrorKind::NotDefinedFunction {
-                    name: name.into(),
-                }));
+                self.issue(Error::new(
+                    Pos::default(),
+                    ErrorKind::NotDefinedFunction { name: name.into() },
+                ));
                 None
             }
         }

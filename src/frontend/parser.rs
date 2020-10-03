@@ -7,8 +7,8 @@ use crate::{
         types::Type,
     },
     frontend::{
-        lexer::token::Token,
-        parser::ast::{AstExpression, AstStatement, Function, Program},
+        lexer::token::{Token, TokenKind},
+        parser::ast::{Expression, ExpressionKind, Function, Program, Statement, StatementKind},
     },
 };
 
@@ -24,22 +24,28 @@ pub fn parse(tokens: Vec<Token>) -> Result<Program, Error> {
 
 macro_rules! new_unop {
     ($self: expr, $op: expr, $expr: expr) => {{
-        $self.consume();
-        AstExpression::UnaryOp {
-            op: $op,
-            expr: Box::new($expr),
-        }
+        let token = $self.consume();
+        Expression::new(
+            ExpressionKind::UnaryOp {
+                op: $op,
+                expr: Box::new($expr),
+            },
+            token.pos,
+        )
     }};
 }
 
 macro_rules! new_binop {
     ($self: expr, $op: expr, $lhs: expr, $rhs: expr) => {{
-        $self.consume();
-        AstExpression::BinaryOp {
-            op: $op,
-            lhs: Box::new($lhs),
-            rhs: Box::new($rhs),
-        }
+        let token = $self.consume();
+        Expression::new(
+            ExpressionKind::BinaryOp {
+                op: $op,
+                lhs: Box::new($lhs),
+                rhs: Box::new($rhs),
+            },
+            token.pos,
+        )
     }};
 }
 
@@ -57,12 +63,12 @@ impl Parser {
     }
 
     fn parse_function(&mut self) -> Result<Function, Error> {
-        self.expect(Token::Func)?;
+        let pos = self.expect(TokenKind::Func)?.pos;
         let name = self.consume_ident()?;
-        self.expect(Token::LParen)?;
-        self.expect(Token::RParen)?;
-        let ret_typ = match self.peek() {
-            Token::Colon => {
+        self.expect(TokenKind::LParen)?;
+        self.expect(TokenKind::RParen)?;
+        let ret_typ = match self.peek().kind {
+            TokenKind::Colon => {
                 self.consume();
                 self.consume_type()?
             }
@@ -73,138 +79,164 @@ impl Parser {
             name,
             ret_typ,
             body,
+            pos,
         })
     }
 
-    fn parse_statement(&mut self) -> Result<AstStatement, Error> {
-        match self.consume() {
-            Token::LBrace => {
+    fn parse_statement(&mut self) -> Result<Statement, Error> {
+        let token = self.consume();
+        match token.kind {
+            TokenKind::LBrace => {
                 let mut stmts = Vec::new();
-                while self.peek() != Token::RBrace {
+                while self.peek().kind != TokenKind::RBrace {
                     stmts.push(self.parse_statement()?);
                 }
                 self.consume();
-                Ok(AstStatement::Block { stmts })
+                Ok(Statement::new(StatementKind::Block { stmts }, token.pos))
             }
-            token @ Token::Var | token @ Token::Val => {
+            kind @ TokenKind::Var | kind @ TokenKind::Val => {
                 let name = self.consume_ident()?;
-                self.expect(Token::Colon)?;
+                self.expect(TokenKind::Colon)?;
                 let typ = self.consume_type()?;
-                self.expect(Token::Assign)?;
+                self.expect(TokenKind::Assign)?;
                 let value = self.parse_expression()?;
-                match token {
-                    Token::Var => Ok(AstStatement::Var {
-                        name,
-                        typ,
-                        value: Box::new(value),
-                    }),
-                    Token::Val => Ok(AstStatement::Val {
-                        name,
-                        typ,
-                        value: Box::new(value),
-                    }),
+                match kind {
+                    TokenKind::Var => Ok(Statement::new(
+                        StatementKind::Var {
+                            name,
+                            typ,
+                            value: Box::new(value),
+                        },
+                        token.pos,
+                    )),
+                    TokenKind::Val => Ok(Statement::new(
+                        StatementKind::Val {
+                            name,
+                            typ,
+                            value: Box::new(value),
+                        },
+                        token.pos,
+                    )),
                     _ => unreachable!(),
                 }
             }
-            Token::Ident { name } => match self.peek() {
-                Token::Assign => {
+            TokenKind::Ident { name } => match self.peek().kind {
+                TokenKind::Assign => {
                     self.consume();
                     let value = self.parse_expression()?;
-                    Ok(AstStatement::Assign {
-                        name,
-                        value: Box::new(value),
-                    })
+                    Ok(Statement::new(
+                        StatementKind::Assign {
+                            name,
+                            value: Box::new(value),
+                        },
+                        token.pos,
+                    ))
                 }
-                Token::LParen => {
+                TokenKind::LParen => {
                     self.consume();
-                    self.expect(Token::RParen)?;
-                    Ok(AstStatement::Call { name })
+                    self.expect(TokenKind::RParen)?;
+                    Ok(Statement::new(StatementKind::Call { name }, token.pos))
                 }
-                x => Err(Error::new(ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: x,
-                })),
+                x => Err(Error::new(
+                    token.pos,
+                    ErrorKind::UnexpectedToken {
+                        expected: None,
+                        actual: x,
+                    },
+                )),
             },
-            Token::Return => Ok(AstStatement::Return {
-                value: match self.parse_expression() {
-                    Ok(expr) => Some(Box::new(expr)),
-                    Err(_) => {
-                        self.pos -= 1;
-                        None
-                    }
+            TokenKind::Return => Ok(Statement::new(
+                StatementKind::Return {
+                    value: match self.parse_expression() {
+                        Ok(expr) => Some(Box::new(expr)),
+                        Err(_) => {
+                            self.pos -= 1;
+                            None
+                        }
+                    },
                 },
-            }),
-            Token::If => {
+                token.pos,
+            )),
+            TokenKind::If => {
                 let cond = self.parse_expression()?;
                 let then = self.parse_statement()?;
-                let els = match self.peek() {
-                    Token::Else => {
+                let els = match self.peek().kind {
+                    TokenKind::Else => {
                         self.consume();
                         let els = self.parse_statement()?;
                         Some(Box::new(els))
                     }
                     _ => None,
                 };
-                Ok(AstStatement::If {
-                    cond: Box::new(cond),
-                    then: Box::new(then),
-                    els,
-                })
+                Ok(Statement::new(
+                    StatementKind::If {
+                        cond: Box::new(cond),
+                        then: Box::new(then),
+                        els,
+                    },
+                    token.pos,
+                ))
             }
-            Token::While => {
+            TokenKind::While => {
                 let cond = self.parse_expression()?;
                 let body = self.parse_statement()?;
-                Ok(AstStatement::While {
-                    cond: Box::new(cond),
-                    body: Box::new(body),
-                })
+                Ok(Statement::new(
+                    StatementKind::While {
+                        cond: Box::new(cond),
+                        body: Box::new(body),
+                    },
+                    token.pos,
+                ))
             }
-            x => Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: None,
-                actual: x,
-            })),
+            x => Err(Error::new(
+                token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
+            )),
         }
     }
 
-    fn parse_expression(&mut self) -> Result<AstExpression, Error> {
+    fn parse_expression(&mut self) -> Result<Expression, Error> {
         self.parse_bitor()
     }
 
-    fn parse_bitor(&mut self) -> Result<AstExpression, Error> {
+    fn parse_bitor(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_bitxor()?;
-        while let Token::Or = self.peek() {
+        while let TokenKind::Or = self.peek().kind {
             node = new_binop!(self, BinaryOperator::Or, node, self.parse_bitxor()?)
         }
 
         Ok(node)
     }
 
-    fn parse_bitxor(&mut self) -> Result<AstExpression, Error> {
+    fn parse_bitxor(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_bitand()?;
-        while let Token::Xor = self.peek() {
+        while let TokenKind::Xor = self.peek().kind {
             node = new_binop!(self, BinaryOperator::Xor, node, self.parse_bitand()?)
         }
 
         Ok(node)
     }
 
-    fn parse_bitand(&mut self) -> Result<AstExpression, Error> {
+    fn parse_bitand(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_equal()?;
-        while let Token::And = self.peek() {
+        while let TokenKind::And = self.peek().kind {
             node = new_binop!(self, BinaryOperator::And, node, self.parse_equal()?)
         }
 
         Ok(node)
     }
 
-    fn parse_equal(&mut self) -> Result<AstExpression, Error> {
+    fn parse_equal(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_relation()?;
         loop {
-            match self.peek() {
-                Token::Equal => {
+            match self.peek().kind {
+                TokenKind::Equal => {
                     node = new_binop!(self, BinaryOperator::Equal, node, self.parse_relation()?)
                 }
-                Token::NotEqual => {
+                TokenKind::NotEqual => {
                     node = new_binop!(self, BinaryOperator::NotEqual, node, self.parse_relation()?)
                 }
                 _ => break,
@@ -214,14 +246,22 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_relation(&mut self) -> Result<AstExpression, Error> {
+    fn parse_relation(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_add()?;
         loop {
-            match self.peek() {
-                Token::Lt => node = new_binop!(self, BinaryOperator::Lt, node, self.parse_add()?),
-                Token::Lte => node = new_binop!(self, BinaryOperator::Lte, node, self.parse_add()?),
-                Token::Gt => node = new_binop!(self, BinaryOperator::Gt, node, self.parse_add()?),
-                Token::Gte => node = new_binop!(self, BinaryOperator::Gte, node, self.parse_add()?),
+            match self.peek().kind {
+                TokenKind::Lt => {
+                    node = new_binop!(self, BinaryOperator::Lt, node, self.parse_add()?)
+                }
+                TokenKind::Lte => {
+                    node = new_binop!(self, BinaryOperator::Lte, node, self.parse_add()?)
+                }
+                TokenKind::Gt => {
+                    node = new_binop!(self, BinaryOperator::Gt, node, self.parse_add()?)
+                }
+                TokenKind::Gte => {
+                    node = new_binop!(self, BinaryOperator::Gte, node, self.parse_add()?)
+                }
                 _ => break,
             }
         }
@@ -229,14 +269,14 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_add(&mut self) -> Result<AstExpression, Error> {
+    fn parse_add(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_mul()?;
         loop {
-            match self.peek() {
-                Token::Plus => {
+            match self.peek().kind {
+                TokenKind::Plus => {
                     node = new_binop!(self, BinaryOperator::Add, node, self.parse_mul()?)
                 }
-                Token::Minus => {
+                TokenKind::Minus => {
                     node = new_binop!(self, BinaryOperator::Sub, node, self.parse_mul()?)
                 }
                 _ => break,
@@ -246,14 +286,14 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_mul(&mut self) -> Result<AstExpression, Error> {
+    fn parse_mul(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_unary()?;
         loop {
-            match self.peek() {
-                Token::Asterisk => {
+            match self.peek().kind {
+                TokenKind::Asterisk => {
                     node = new_binop!(self, BinaryOperator::Mul, node, self.parse_unary()?)
                 }
-                Token::Slash => {
+                TokenKind::Slash => {
                     node = new_binop!(self, BinaryOperator::Div, node, self.parse_unary()?)
                 }
                 _ => break,
@@ -263,103 +303,133 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_unary(&mut self) -> Result<AstExpression, Error> {
-        match self.peek() {
-            Token::Plus => Ok(new_binop!(
+    fn parse_unary(&mut self) -> Result<Expression, Error> {
+        let token = self.peek();
+        match token.kind {
+            TokenKind::Plus => Ok(new_binop!(
                 self,
                 BinaryOperator::Add,
-                AstExpression::Integer { value: 0 },
+                Expression::new(ExpressionKind::Integer { value: 0 }, token.pos),
                 self.parse_unary()?
             )),
-            Token::Minus => Ok(new_binop!(
+            TokenKind::Minus => Ok(new_binop!(
                 self,
                 BinaryOperator::Sub,
-                AstExpression::Integer { value: 0 },
+                Expression::new(ExpressionKind::Integer { value: 0 }, token.pos),
                 self.parse_unary()?
             )),
-            Token::Not => Ok(new_unop!(self, UnaryOperator::Not, self.parse_unary()?)),
+            TokenKind::Not => Ok(new_unop!(self, UnaryOperator::Not, self.parse_unary()?)),
             _ => Ok(self.parse_primary()?),
         }
     }
 
-    fn parse_primary(&mut self) -> Result<AstExpression, Error> {
-        match self.consume() {
-            Token::IntLiteral { value } => Ok(AstExpression::Integer { value }),
-            Token::False => Ok(AstExpression::Bool { value: false }),
-            Token::True => Ok(AstExpression::Bool { value: true }),
-            Token::Ident { name } => match self.peek() {
-                Token::LParen => {
+    fn parse_primary(&mut self) -> Result<Expression, Error> {
+        let token = self.consume();
+        match token.kind {
+            TokenKind::IntLiteral { value } => Ok(Expression::new(
+                ExpressionKind::Integer { value },
+                token.pos,
+            )),
+            TokenKind::False => Ok(Expression::new(
+                ExpressionKind::Bool { value: false },
+                token.pos,
+            )),
+            TokenKind::True => Ok(Expression::new(
+                ExpressionKind::Bool { value: true },
+                token.pos,
+            )),
+            TokenKind::Ident { name } => match self.peek().kind {
+                TokenKind::LParen => {
                     self.consume();
-                    self.expect(Token::RParen)?;
-                    Ok(AstExpression::Call { name })
+                    self.expect(TokenKind::RParen)?;
+                    Ok(Expression::new(ExpressionKind::Call { name }, token.pos))
                 }
-                _ => Ok(AstExpression::Ident { name }),
+                _ => Ok(Expression::new(ExpressionKind::Ident { name }, token.pos)),
             },
-            Token::LParen => {
+            TokenKind::LParen => {
                 let expr = self.parse_add()?;
-                self.expect(Token::RParen)?;
+                self.expect(TokenKind::RParen)?;
                 Ok(expr)
             }
-            x => Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: None,
-                actual: x,
-            })),
+            x => Err(Error::new(
+                token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
+            )),
         }
     }
 
-    fn expect(&mut self, token: Token) -> Result<Token, Error> {
+    fn expect(&mut self, kind: TokenKind) -> Result<Token, Error> {
         let next_token = self.consume();
-        if next_token == token {
+        if next_token.kind == kind {
             Ok(next_token)
         } else {
-            Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: Some(token),
-                actual: next_token,
-            }))
+            Err(Error::new(
+                next_token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: Some(kind),
+                    actual: next_token.kind,
+                },
+            ))
         }
     }
 
     fn is_eof(&self) -> bool {
-        self.peek() == Token::EOF
+        self.peek().kind == TokenKind::EOF
     }
 
     fn peek(&self) -> Token {
-        if self.pos >= self.tokens.len() {
-            Token::EOF
-        } else {
-            self.tokens.get(self.pos).unwrap().clone()
-        }
+        self.tokens.get(self.pos).unwrap().clone()
     }
 
     fn consume_ident(&mut self) -> Result<String, Error> {
         let next_token = self.consume();
-        if let Token::Ident { name } = next_token {
+        if let TokenKind::Ident { name } = next_token.kind {
             Ok(name)
         } else {
-            Err(Error::new(ErrorKind::ExpectedIdent { actual: next_token }))
+            Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedIdent {
+                    actual: next_token.kind,
+                },
+            ))
         }
     }
 
     fn consume_type(&mut self) -> Result<Type, Error> {
-        let typ_name = self.consume_ident()?;
-        match typ_name.as_str() {
-            "int" => Ok(Type::Int),
-            "bool" => Ok(Type::Bool),
-            x => Err(Error::new(ErrorKind::NotTypeName { name: x.into() })),
+        let next_token = self.consume();
+        if let TokenKind::Ident { name } = next_token.kind {
+            match name.as_str() {
+                "int" => Ok(Type::Int),
+                "bool" => Ok(Type::Bool),
+                x => Err(Error::new(
+                    next_token.pos,
+                    ErrorKind::NotTypeName { name: x.into() },
+                )),
+            }
+        } else {
+            Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedIdent {
+                    actual: next_token.kind,
+                },
+            ))
         }
     }
 
     fn consume(&mut self) -> Token {
-        let token = match self.tokens.get(self.pos) {
-            // skip comment
-            Some(Token::Comment { .. }) => {
-                self.pos += 1;
-                return self.consume();
-            }
-            Some(token) => token,
-            None => &Token::EOF,
-        };
-        self.pos += 1;
+        let token = self.tokens.get(self.pos).unwrap();
+        if let TokenKind::Comment { .. } = token.kind {
+            self.pos += 1;
+            return self.consume();
+        }
+
+        if self.pos < self.tokens.len() {
+            self.pos += 1;
+        }
+
         token.clone()
     }
 }
