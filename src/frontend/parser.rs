@@ -8,7 +8,7 @@ use crate::{
     },
     frontend::{
         lexer::token::{Token, TokenKind},
-        parser::ast::{AstExpression, AstStatement, Function, Program},
+        parser::ast::{Expression, ExpressionKind, Function, Program, Statement, StatementKind},
     },
 };
 
@@ -25,21 +25,21 @@ pub fn parse(tokens: Vec<Token>) -> Result<Program, Error> {
 macro_rules! new_unop {
     ($self: expr, $op: expr, $expr: expr) => {{
         $self.consume();
-        AstExpression::UnaryOp {
+        Expression::new(ExpressionKind::UnaryOp {
             op: $op,
             expr: Box::new($expr),
-        }
+        })
     }};
 }
 
 macro_rules! new_binop {
     ($self: expr, $op: expr, $lhs: expr, $rhs: expr) => {{
         $self.consume();
-        AstExpression::BinaryOp {
+        Expression::new(ExpressionKind::BinaryOp {
             op: $op,
             lhs: Box::new($lhs),
             rhs: Box::new($rhs),
-        }
+        })
     }};
 }
 
@@ -76,7 +76,7 @@ impl Parser {
         })
     }
 
-    fn parse_statement(&mut self) -> Result<AstStatement, Error> {
+    fn parse_statement(&mut self) -> Result<Statement, Error> {
         let token = self.consume();
         match token.kind {
             TokenKind::LBrace => {
@@ -85,7 +85,7 @@ impl Parser {
                     stmts.push(self.parse_statement()?);
                 }
                 self.consume();
-                Ok(AstStatement::Block { stmts })
+                Ok(Statement::new(StatementKind::Block { stmts }))
             }
             token @ TokenKind::Var | token @ TokenKind::Val => {
                 let name = self.consume_ident()?;
@@ -94,16 +94,16 @@ impl Parser {
                 self.expect(TokenKind::Assign)?;
                 let value = self.parse_expression()?;
                 match token {
-                    TokenKind::Var => Ok(AstStatement::Var {
+                    TokenKind::Var => Ok(Statement::new(StatementKind::Var {
                         name,
                         typ,
                         value: Box::new(value),
-                    }),
-                    TokenKind::Val => Ok(AstStatement::Val {
+                    })),
+                    TokenKind::Val => Ok(Statement::new(StatementKind::Val {
                         name,
                         typ,
                         value: Box::new(value),
-                    }),
+                    })),
                     _ => unreachable!(),
                 }
             }
@@ -111,15 +111,15 @@ impl Parser {
                 TokenKind::Assign => {
                     self.consume();
                     let value = self.parse_expression()?;
-                    Ok(AstStatement::Assign {
+                    Ok(Statement::new(StatementKind::Assign {
                         name,
                         value: Box::new(value),
-                    })
+                    }))
                 }
                 TokenKind::LParen => {
                     self.consume();
                     self.expect(TokenKind::RParen)?;
-                    Ok(AstStatement::Call { name })
+                    Ok(Statement::new(StatementKind::Call { name }))
                 }
                 x => Err(Error::new(
                     token.pos,
@@ -129,7 +129,7 @@ impl Parser {
                     },
                 )),
             },
-            TokenKind::Return => Ok(AstStatement::Return {
+            TokenKind::Return => Ok(Statement::new(StatementKind::Return {
                 value: match self.parse_expression() {
                     Ok(expr) => Some(Box::new(expr)),
                     Err(_) => {
@@ -137,7 +137,7 @@ impl Parser {
                         None
                     }
                 },
-            }),
+            })),
             TokenKind::If => {
                 let cond = self.parse_expression()?;
                 let then = self.parse_statement()?;
@@ -149,19 +149,19 @@ impl Parser {
                     }
                     _ => None,
                 };
-                Ok(AstStatement::If {
+                Ok(Statement::new(StatementKind::If {
                     cond: Box::new(cond),
                     then: Box::new(then),
                     els,
-                })
+                }))
             }
             TokenKind::While => {
                 let cond = self.parse_expression()?;
                 let body = self.parse_statement()?;
-                Ok(AstStatement::While {
+                Ok(Statement::new(StatementKind::While {
                     cond: Box::new(cond),
                     body: Box::new(body),
-                })
+                }))
             }
             x => Err(Error::new(
                 token.pos,
@@ -173,11 +173,11 @@ impl Parser {
         }
     }
 
-    fn parse_expression(&mut self) -> Result<AstExpression, Error> {
+    fn parse_expression(&mut self) -> Result<Expression, Error> {
         self.parse_bitor()
     }
 
-    fn parse_bitor(&mut self) -> Result<AstExpression, Error> {
+    fn parse_bitor(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_bitxor()?;
         while let TokenKind::Or = self.peek().kind {
             node = new_binop!(self, BinaryOperator::Or, node, self.parse_bitxor()?)
@@ -186,7 +186,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_bitxor(&mut self) -> Result<AstExpression, Error> {
+    fn parse_bitxor(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_bitand()?;
         while let TokenKind::Xor = self.peek().kind {
             node = new_binop!(self, BinaryOperator::Xor, node, self.parse_bitand()?)
@@ -195,7 +195,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_bitand(&mut self) -> Result<AstExpression, Error> {
+    fn parse_bitand(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_equal()?;
         while let TokenKind::And = self.peek().kind {
             node = new_binop!(self, BinaryOperator::And, node, self.parse_equal()?)
@@ -204,7 +204,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_equal(&mut self) -> Result<AstExpression, Error> {
+    fn parse_equal(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_relation()?;
         loop {
             match self.peek().kind {
@@ -221,7 +221,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_relation(&mut self) -> Result<AstExpression, Error> {
+    fn parse_relation(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_add()?;
         loop {
             match self.peek().kind {
@@ -244,7 +244,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_add(&mut self) -> Result<AstExpression, Error> {
+    fn parse_add(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_mul()?;
         loop {
             match self.peek().kind {
@@ -261,7 +261,7 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_mul(&mut self) -> Result<AstExpression, Error> {
+    fn parse_mul(&mut self) -> Result<Expression, Error> {
         let mut node = self.parse_unary()?;
         loop {
             match self.peek().kind {
@@ -278,18 +278,18 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_unary(&mut self) -> Result<AstExpression, Error> {
+    fn parse_unary(&mut self) -> Result<Expression, Error> {
         match self.peek().kind {
             TokenKind::Plus => Ok(new_binop!(
                 self,
                 BinaryOperator::Add,
-                AstExpression::Integer { value: 0 },
+                Expression::new(ExpressionKind::Integer { value: 0 }),
                 self.parse_unary()?
             )),
             TokenKind::Minus => Ok(new_binop!(
                 self,
                 BinaryOperator::Sub,
-                AstExpression::Integer { value: 0 },
+                Expression::new(ExpressionKind::Integer { value: 0 }),
                 self.parse_unary()?
             )),
             TokenKind::Not => Ok(new_unop!(self, UnaryOperator::Not, self.parse_unary()?)),
@@ -297,19 +297,21 @@ impl Parser {
         }
     }
 
-    fn parse_primary(&mut self) -> Result<AstExpression, Error> {
+    fn parse_primary(&mut self) -> Result<Expression, Error> {
         let token = self.consume();
         match token.kind {
-            TokenKind::IntLiteral { value } => Ok(AstExpression::Integer { value }),
-            TokenKind::False => Ok(AstExpression::Bool { value: false }),
-            TokenKind::True => Ok(AstExpression::Bool { value: true }),
+            TokenKind::IntLiteral { value } => {
+                Ok(Expression::new(ExpressionKind::Integer { value }))
+            }
+            TokenKind::False => Ok(Expression::new(ExpressionKind::Bool { value: false })),
+            TokenKind::True => Ok(Expression::new(ExpressionKind::Bool { value: true })),
             TokenKind::Ident { name } => match self.peek().kind {
                 TokenKind::LParen => {
                     self.consume();
                     self.expect(TokenKind::RParen)?;
-                    Ok(AstExpression::Call { name })
+                    Ok(Expression::new(ExpressionKind::Call { name }))
                 }
-                _ => Ok(AstExpression::Ident { name }),
+                _ => Ok(Expression::new(ExpressionKind::Ident { name })),
             },
             TokenKind::LParen => {
                 let expr = self.parse_add()?;

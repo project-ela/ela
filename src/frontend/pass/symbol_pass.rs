@@ -130,17 +130,17 @@ impl SymbolPass {
         self.ctx.pop_ctx();
     }
 
-    fn apply_statement(&mut self, stmt: &AstStatement, ret_typ: &Type) {
-        match stmt {
-            AstStatement::Block { stmts } => {
+    fn apply_statement(&mut self, stmt: &Statement, ret_typ: &Type) {
+        match &stmt.kind {
+            StatementKind::Block { stmts } => {
                 self.ctx.push_ctx();
                 for stmt in stmts {
-                    self.apply_statement(stmt, ret_typ);
+                    self.apply_statement(&stmt, ret_typ);
                 }
                 self.ctx.pop_ctx();
             }
-            AstStatement::Var { name, typ, value } => {
-                if let Some(value_typ) = self.apply_expression(value) {
+            StatementKind::Var { name, typ, value } => {
+                if let Some(value_typ) = self.apply_expression(&*value) {
                     if &value_typ != typ {
                         self.issue(Error::new(
                             Pos::default(),
@@ -153,8 +153,8 @@ impl SymbolPass {
                 }
                 self.ctx.add_variable(name.to_owned(), *typ, false);
             }
-            AstStatement::Val { name, typ, value } => {
-                if let Some(value_typ) = self.apply_expression(value) {
+            StatementKind::Val { name, typ, value } => {
+                if let Some(value_typ) = self.apply_expression(&*value) {
                     if &value_typ != typ {
                         self.issue(Error::new(
                             Pos::default(),
@@ -167,9 +167,9 @@ impl SymbolPass {
                 }
                 self.ctx.add_variable(name.to_owned(), *typ, true);
             }
-            AstStatement::Assign { name, value } => {
-                let value_typ = self.apply_expression(value);
-                let var = self.ctx.find_variable(name).cloned();
+            StatementKind::Assign { name, value } => {
+                let value_typ = self.apply_expression(&*value);
+                let var = self.ctx.find_variable(&name).cloned();
                 match (var, value_typ) {
                     (Some(var), Some(value_typ)) => {
                         if var.typ != value_typ {
@@ -195,9 +195,9 @@ impl SymbolPass {
                     _ => {}
                 }
             }
-            AstStatement::Return { value } => {
+            StatementKind::Return { value } => {
                 if let Some(value) = value {
-                    if let Some(value_typ) = self.apply_expression(value) {
+                    if let Some(value_typ) = self.apply_expression(&*value) {
                         if &value_typ != ret_typ {
                             self.issue(Error::new(
                                 Pos::default(),
@@ -210,8 +210,8 @@ impl SymbolPass {
                     }
                 }
             }
-            AstStatement::If { cond, then, els } => {
-                match self.apply_expression(cond) {
+            StatementKind::If { cond, then, els } => {
+                match self.apply_expression(&*cond) {
                     Some(Type::Bool) | None => {}
                     Some(x) => self.issue(Error::new(
                         Pos::default(),
@@ -221,13 +221,13 @@ impl SymbolPass {
                         },
                     )),
                 }
-                self.apply_statement(then, ret_typ);
+                self.apply_statement(&*then, ret_typ);
                 if let Some(els) = els {
-                    self.apply_statement(els, ret_typ);
+                    self.apply_statement(&*els, ret_typ);
                 }
             }
-            AstStatement::While { cond, body } => {
-                match self.apply_expression(cond) {
+            StatementKind::While { cond, body } => {
+                match self.apply_expression(&*cond) {
                     Some(Type::Bool) | None => {}
                     Some(x) => self.issue(Error::new(
                         Pos::default(),
@@ -237,20 +237,20 @@ impl SymbolPass {
                         },
                     )),
                 }
-                self.apply_statement(body, ret_typ);
+                self.apply_statement(&*body, ret_typ);
             }
-            AstStatement::Call { name } => {
-                self.check_call(name);
+            StatementKind::Call { name } => {
+                self.check_call(&*name);
             }
         }
     }
 
-    fn apply_expression(&mut self, expr: &AstExpression) -> Option<Type> {
+    fn apply_expression(&mut self, expr: &Expression) -> Option<Type> {
         use BinaryOperator::*;
-        match expr {
-            AstExpression::Integer { .. } => Some(Type::Int),
-            AstExpression::Bool { .. } => Some(Type::Bool),
-            AstExpression::Ident { name } => match self.ctx.find_variable(name) {
+        match &expr.kind {
+            ExpressionKind::Integer { .. } => Some(Type::Int),
+            ExpressionKind::Bool { .. } => Some(Type::Bool),
+            ExpressionKind::Ident { name } => match self.ctx.find_variable(&name) {
                 Some(var) => Some(var.typ),
                 None => {
                     self.issue(Error::new(
@@ -260,7 +260,7 @@ impl SymbolPass {
                     None
                 }
             },
-            AstExpression::UnaryOp { op, expr } => match self.apply_expression(expr)? {
+            ExpressionKind::UnaryOp { op, expr } => match self.apply_expression(&*expr)? {
                 Type::Bool => Some(Type::Bool),
                 typ => {
                     self.issue(Error::new(
@@ -270,9 +270,9 @@ impl SymbolPass {
                     None
                 }
             },
-            AstExpression::BinaryOp { op, lhs, rhs } => {
-                let lhs_typ = self.apply_expression(lhs)?;
-                let rhs_typ = self.apply_expression(rhs)?;
+            ExpressionKind::BinaryOp { op, lhs, rhs } => {
+                let lhs_typ = self.apply_expression(&*lhs)?;
+                let rhs_typ = self.apply_expression(&*rhs)?;
                 if lhs_typ != rhs_typ {
                     self.issue(Error::new(
                         Pos::default(),
@@ -301,7 +301,7 @@ impl SymbolPass {
                     },
                 }
             }
-            AstExpression::Call { name } => self.check_call(name),
+            ExpressionKind::Call { name } => self.check_call(&name),
         }
     }
 

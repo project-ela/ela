@@ -93,21 +93,21 @@ impl TacGen {
         Ok(tac_func)
     }
 
-    fn gen_statement(&mut self, stmt: AstStatement, func: &mut TacFunction) -> Result<(), Error> {
-        match stmt {
-            AstStatement::Block { stmts } => {
+    fn gen_statement(&mut self, stmt: Statement, func: &mut TacFunction) -> Result<(), Error> {
+        match stmt.kind {
+            StatementKind::Block { stmts } => {
                 self.ctx.push_ctx();
                 for stmt in stmts {
                     self.gen_statement(stmt, func)?;
                 }
                 self.ctx.pop_ctx();
             }
-            AstStatement::Var {
+            StatementKind::Var {
                 name,
                 typ: _,
                 value,
             }
-            | AstStatement::Val {
+            | StatementKind::Val {
                 name,
                 typ: _,
                 value,
@@ -116,18 +116,18 @@ impl TacGen {
                 self.ctx.add_variable(name, offset);
                 self.gen_assign(offset, *value, func)?;
             }
-            AstStatement::Assign { name, value } => {
+            StatementKind::Assign { name, value } => {
                 let offset = self.ctx.find_variable(&name);
                 self.gen_assign(offset, *value, func)?;
             }
-            AstStatement::Return { value } => {
+            StatementKind::Return { value } => {
                 let src = match value {
                     Some(value) => Some(self.gen_expression(*value, func)?),
                     None => None,
                 };
                 func.body.push(Tac::Ret { src });
             }
-            AstStatement::If { cond, then, els } => {
+            StatementKind::If { cond, then, els } => {
                 let label1 = self.next_label();
 
                 let cond = self.gen_expression(*cond, func)?;
@@ -150,7 +150,7 @@ impl TacGen {
                     func.body.push(Tac::Label { index: label1 });
                 }
             }
-            AstStatement::While { cond, body } => {
+            StatementKind::While { cond, body } => {
                 let label1 = self.next_label();
                 let label2 = self.next_label();
 
@@ -170,18 +170,18 @@ impl TacGen {
 
                 func.body.push(Tac::Label { index: label2 });
             }
-            AstStatement::Call { name } => func.body.push(Tac::Call { dst: None, name }),
+            StatementKind::Call { name } => func.body.push(Tac::Call { dst: None, name }),
         }
         Ok(())
     }
 
     fn gen_expression(
         &mut self,
-        expr: AstExpression,
+        expr: Expression,
         func: &mut TacFunction,
     ) -> Result<Operand, Error> {
-        match expr {
-            AstExpression::Integer { value } => {
+        match expr.kind {
+            ExpressionKind::Integer { value } => {
                 let dst = Operand::Reg(self.next_reg());
                 func.body.push(Tac::Move {
                     dst: dst.clone(),
@@ -189,7 +189,7 @@ impl TacGen {
                 });
                 Ok(dst)
             }
-            AstExpression::Bool { value } => {
+            ExpressionKind::Bool { value } => {
                 let dst = Operand::Reg(self.next_reg());
                 func.body.push(Tac::Move {
                     dst: dst.clone(),
@@ -197,7 +197,7 @@ impl TacGen {
                 });
                 Ok(dst)
             }
-            AstExpression::Ident { name } => {
+            ExpressionKind::Ident { name } => {
                 let offset = self.ctx.find_variable(&name);
                 let dst = Operand::Reg(self.next_reg());
                 func.body.push(Tac::Move {
@@ -206,7 +206,7 @@ impl TacGen {
                 });
                 Ok(dst)
             }
-            AstExpression::UnaryOp { op, expr } => {
+            ExpressionKind::UnaryOp { op, expr } => {
                 let src = self.gen_expression(*expr, func)?;
                 func.body.push(Tac::UnOp {
                     op,
@@ -214,7 +214,7 @@ impl TacGen {
                 });
                 Ok(src)
             }
-            AstExpression::BinaryOp { op, lhs, rhs } => {
+            ExpressionKind::BinaryOp { op, lhs, rhs } => {
                 let lhs = self.gen_expression(*lhs, func)?;
                 let rhs = self.gen_expression(*rhs, func)?;
                 let dst = Operand::Reg(self.next_reg());
@@ -226,7 +226,7 @@ impl TacGen {
                 });
                 Ok(dst)
             }
-            AstExpression::Call { name } => {
+            ExpressionKind::Call { name } => {
                 let dst = Operand::Reg(self.next_reg());
                 func.body.push(Tac::Call {
                     dst: Some(dst.clone()),
@@ -240,7 +240,7 @@ impl TacGen {
     fn gen_assign(
         &mut self,
         offset: u32,
-        src: AstExpression,
+        src: Expression,
         func: &mut TacFunction,
     ) -> Result<(), Error> {
         let dst = Operand::Variable(offset);
