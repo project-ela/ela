@@ -63,7 +63,13 @@ fn opt_statement(statement: Statement) -> Option<Statement> {
             cond: Box::new(opt_expression(*cond)),
             body: Box::new(opt_statement(*body)?),
         },
-        StatementKind::Call { .. } => statement.kind,
+        StatementKind::Call { name, args } => {
+            let new_args = args.into_iter().map(opt_expression).collect();
+            StatementKind::Call {
+                name,
+                args: new_args,
+            }
+        }
     };
 
     Some(Statement::new(kind, statement.pos))
@@ -87,7 +93,16 @@ fn opt_expression(expression: Expression) -> Expression {
             kind: opt_binop(op, *lhs, *rhs),
             pos: expression.pos,
         },
-        ExpressionKind::Call { .. } => expression,
+        ExpressionKind::Call { name, args } => {
+            let new_args = args.into_iter().map(opt_expression).collect();
+            Expression::new(
+                ExpressionKind::Call {
+                    name,
+                    args: new_args,
+                },
+                expression.pos,
+            )
+        }
     }
 }
 

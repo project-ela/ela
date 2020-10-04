@@ -44,6 +44,7 @@ pub enum Tac {
     Call {
         dst: Option<Operand>,
         name: String,
+        args: Vec<Operand>,
     },
     Move {
         dst: Operand,
@@ -140,10 +141,17 @@ impl Tac {
             Tac::BinOp { op, dst, lhs, rhs } => {
                 format!("  {} = {} {:?} {}", dst.dump(), lhs.dump(), op, rhs.dump())
             }
-            Tac::Call { dst, name } => match dst {
-                Some(dst) => format!("  {} = call {}", dst.dump(), name),
-                None => format!("  call {}", name),
-            },
+            Tac::Call { dst, name, args } => {
+                let args = args
+                    .iter()
+                    .map(|arg| arg.dump())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                match dst {
+                    Some(dst) => format!("  {} = call {}({})", dst.dump(), name, args),
+                    None => format!("  call {}", name),
+                }
+            }
             Tac::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
             Tac::Jump { label_index } => format!("  jmp label {}", label_index),
             Tac::JumpIfNot { label_index, cond } => {

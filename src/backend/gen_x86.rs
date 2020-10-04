@@ -80,7 +80,7 @@ impl GenX86 {
                     BinaryOperator::Gte => self.gen_compare("setge", dst, rhs),
                 }
             }
-            Tac::Call { dst, name } => match dst {
+            Tac::Call { dst, name, args } => match dst {
                 Some(dst) => {
                     let mut is_eax = false;
                     if let Operand::Reg(reg) = &dst {
@@ -90,6 +90,9 @@ impl GenX86 {
                     }
                     if !is_eax {
                         self.gen("  push eax");
+                    }
+                    for arg in &args {
+                        self.gen(format!("  push {}", opr(&arg)).as_str())
                     }
                     self.gen(format!("  call {}", name).as_str());
                     self.gen(format!("  mov {}, eax", opr(&dst)).as_str());

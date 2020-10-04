@@ -193,3 +193,15 @@ func main(): int {
   hoge()
   return 0
 }"
+
+try 3 "func add(a: int, b: int): int { return a + b }
+func main(): int { return add(1, 2) }"
+
+try 5 "func fib(n: int): int {
+  if n <= 1 {
+    return n
+  } else {
+    return fib(n - 1) + fib(n - 2)
+  }
+}
+func main(): int { return fib(5) }"

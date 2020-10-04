@@ -43,14 +43,17 @@ impl RegAlloc {
                         self.get_operand(rhs, true);
                         self.alloc_operand(dst)?;
                     }
-                    Tac::Call { dst, .. } => {
+                    Tac::Call { dst, name: _, args } => {
+                        for arg in args {
+                            self.get_operand(arg, true);
+                        }
                         if let Some(dst) = dst {
-                            self.alloc_operand(dst)?;
+                            self.alloc_operand(dst);
                         }
                     }
                     Tac::Move { dst, src } => {
-                        self.alloc_operand(dst)?;
                         self.get_operand(src, true);
+                        self.alloc_operand(dst)?;
                     }
                     Tac::Jump { .. } => {}
                     Tac::JumpIfNot {

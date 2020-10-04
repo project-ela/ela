@@ -25,6 +25,8 @@ pub fn parse(tokens: Vec<Token>) -> Result<Program, Error> {
     parser.parse()
 }
 
+type FuncCall = (String, Vec<Expression>);
+
 macro_rules! new_unop {
     ($self: expr, $op: expr, $expr: expr) => {{
         let token = $self.consume();
@@ -195,9 +197,8 @@ impl Parser {
     }
 
     fn parse_call_statement(&mut self, name: String, pos: Pos) -> Result<Statement, Error> {
-        self.consume();
-        self.expect(TokenKind::RParen)?;
-        Ok(Statement::new(StatementKind::Call { name }, pos))
+        let (name, args) = self.parse_call(name)?;
+        Ok(Statement::new(StatementKind::Call { name, args }, pos))
     }
 
     fn parse_return_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
@@ -381,9 +382,8 @@ impl Parser {
             TokenKind::True => ExpressionKind::Bool { value: true },
             TokenKind::Ident { name } => match self.peek().kind {
                 TokenKind::LParen => {
-                    self.consume();
-                    self.expect(TokenKind::RParen)?;
-                    ExpressionKind::Call { name }
+                    let (name, args) = self.parse_call(name)?;
+                    ExpressionKind::Call { name, args }
                 }
                 _ => ExpressionKind::Ident { name },
             },
@@ -405,6 +405,25 @@ impl Parser {
         };
 
         Ok(Expression::new(kind, token.pos))
+    }
+
+    fn parse_call(&mut self, name: String) -> Result<FuncCall, Error> {
+        self.consume();
+        let args = self.parse_call_arguments()?;
+        self.expect(TokenKind::RParen)?;
+        Ok((name, args))
+    }
+
+    fn parse_call_arguments(&mut self) -> Result<Vec<Expression>, Error> {
+        let mut args = Vec::new();
+        if self.peek().kind != TokenKind::RParen {
+            args.push(self.parse_expression()?);
+        }
+        while self.peek().kind != TokenKind::RParen {
+            self.expect(TokenKind::Comma)?;
+            args.push(self.parse_expression()?);
+        }
+        Ok(args)
     }
 
     fn expect(&mut self, kind: TokenKind) -> Result<Token, Error> {

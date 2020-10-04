@@ -164,7 +164,7 @@ impl TacGen {
 
                 func.body.push(Tac::Label { index: label2 });
             }
-            StatementKind::Call { name } => func.body.push(Tac::Call { dst: None, name }),
+            StatementKind::Call { name, args } => self.gen_call(None, name, args, func)?,
         }
         Ok(())
     }
@@ -220,12 +220,9 @@ impl TacGen {
                 });
                 Ok(dst)
             }
-            ExpressionKind::Call { name } => {
+            ExpressionKind::Call { name, args } => {
                 let dst = self.next_reg();
-                func.body.push(Tac::Call {
-                    dst: Some(dst.clone()),
-                    name,
-                });
+                self.gen_call(Some(dst), name, args, func)?;
                 Ok(dst)
             }
         }
@@ -244,6 +241,25 @@ impl TacGen {
             src,
         });
         func.body.push(Tac::Move { dst, src: src_reg });
+        Ok(())
+    }
+
+    fn gen_call(
+        &mut self,
+        dst: Option<Operand>,
+        name: String,
+        args: Vec<Expression>,
+        func: &mut TacFunction,
+    ) -> Result<(), Error> {
+        let mut arg_operands = Vec::new();
+        for arg in args {
+            arg_operands.push(self.gen_expression(arg, func)?);
+        }
+        func.body.push(Tac::Call {
+            dst,
+            name,
+            args: arg_operands,
+        });
         Ok(())
     }
 

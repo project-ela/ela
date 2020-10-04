@@ -71,6 +71,7 @@ pub enum StatementKind {
     // use this if return type is void
     Call {
         name: String,
+        args: Vec<Expression>,
     },
 }
 
@@ -110,5 +111,6 @@ pub enum ExpressionKind {
     // use this if return type isn't void
     Call {
         name: String,
+        args: Vec<Expression>,
     },
 }
