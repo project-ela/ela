@@ -113,7 +113,10 @@ impl<'a> SymbolPass<'a> {
 
         for function in &program.functions {
             if function.name == "main" && function.ret_typ != Type::Int {
-                self.issue(Error::new(Pos::default(), ErrorKind::MainShouldReturnInt));
+                self.issue(Error::new(
+                    function.pos.clone(),
+                    ErrorKind::MainShouldReturnInt,
+                ));
             }
             self.apply_function(&function);
         }
@@ -144,7 +147,7 @@ impl<'a> SymbolPass<'a> {
                 if let Some(value_typ) = self.apply_expression(&*value) {
                     if &value_typ != typ {
                         self.issue(Error::new(
-                            Pos::default(),
+                            stmt.pos.clone(),
                             ErrorKind::TypeMismatch {
                                 lhs: *typ,
                                 rhs: value_typ,
@@ -158,7 +161,7 @@ impl<'a> SymbolPass<'a> {
                 if let Some(value_typ) = self.apply_expression(&*value) {
                     if &value_typ != typ {
                         self.issue(Error::new(
-                            Pos::default(),
+                            stmt.pos.clone(),
                             ErrorKind::TypeMismatch {
                                 lhs: *typ,
                                 rhs: value_typ,
@@ -175,7 +178,7 @@ impl<'a> SymbolPass<'a> {
                     (Some(var), Some(value_typ)) => {
                         if var.typ != value_typ {
                             self.issue(Error::new(
-                                Pos::default(),
+                                stmt.pos.clone(),
                                 ErrorKind::TypeMismatch {
                                     lhs: var.typ,
                                     rhs: value_typ,
@@ -184,13 +187,13 @@ impl<'a> SymbolPass<'a> {
                         }
                         if var.is_const {
                             self.issue(Error::new(
-                                Pos::default(),
+                                stmt.pos.clone(),
                                 ErrorKind::AssignToConstant { name: name.into() },
                             ));
                         }
                     }
                     (None, _) => self.issue(Error::new(
-                        Pos::default(),
+                        stmt.pos.clone(),
                         ErrorKind::NotDefinedVariable { name: name.into() },
                     )),
                     _ => {}
@@ -201,7 +204,7 @@ impl<'a> SymbolPass<'a> {
                     if let Some(value_typ) = self.apply_expression(&*value) {
                         if &value_typ != ret_typ {
                             self.issue(Error::new(
-                                Pos::default(),
+                                stmt.pos.clone(),
                                 ErrorKind::TypeMismatch {
                                     lhs: *ret_typ,
                                     rhs: value_typ,
@@ -215,7 +218,7 @@ impl<'a> SymbolPass<'a> {
                 match self.apply_expression(&*cond) {
                     Some(Type::Bool) | None => {}
                     Some(x) => self.issue(Error::new(
-                        Pos::default(),
+                        stmt.pos.clone(),
                         ErrorKind::TypeMismatch {
                             lhs: x,
                             rhs: Type::Bool,
@@ -231,7 +234,7 @@ impl<'a> SymbolPass<'a> {
                 match self.apply_expression(&*cond) {
                     Some(Type::Bool) | None => {}
                     Some(x) => self.issue(Error::new(
-                        Pos::default(),
+                        stmt.pos.clone(),
                         ErrorKind::TypeMismatch {
                             lhs: x,
                             rhs: Type::Bool,
@@ -241,7 +244,7 @@ impl<'a> SymbolPass<'a> {
                 self.apply_statement(&*body, ret_typ);
             }
             StatementKind::Call { name, args } => {
-                self.check_call(&*name, args, &stmt.pos);
+                self.check_call(&*name, args, stmt.pos.clone());
             }
         }
     }
@@ -255,7 +258,7 @@ impl<'a> SymbolPass<'a> {
                 Some(var) => Some(var.typ),
                 None => {
                     self.issue(Error::new(
-                        Pos::default(),
+                        expr.pos.clone(),
                         ErrorKind::NotDefinedVariable { name: name.into() },
                     ));
                     None
@@ -265,7 +268,7 @@ impl<'a> SymbolPass<'a> {
                 Type::Bool => Some(Type::Bool),
                 typ => {
                     self.issue(Error::new(
-                        Pos::default(),
+                        expr.pos.clone(),
                         ErrorKind::UnaryOpErr { op: *op, expr: typ },
                     ));
                     None
@@ -276,7 +279,7 @@ impl<'a> SymbolPass<'a> {
                 let rhs_typ = self.apply_expression(&*rhs)?;
                 if lhs_typ != rhs_typ {
                     self.issue(Error::new(
-                        Pos::default(),
+                        expr.pos.clone(),
                         ErrorKind::TypeMismatch {
                             lhs: lhs_typ,
                             rhs: rhs_typ,
@@ -290,7 +293,7 @@ impl<'a> SymbolPass<'a> {
                         Type::Int => Some(Type::Int),
                         _ => {
                             self.issue(Error::new(
-                                Pos::default(),
+                                expr.pos.clone(),
                                 ErrorKind::BinaryOpErr {
                                     op: *op,
                                     lhs: lhs_typ,
@@ -302,12 +305,12 @@ impl<'a> SymbolPass<'a> {
                     },
                 }
             }
-            ExpressionKind::Call { name, args } => self.check_call(&name, args, &expr.pos),
+            ExpressionKind::Call { name, args } => self.check_call(&name, args, expr.pos.clone()),
         }
     }
 
     // TODO refactor
-    fn check_call(&mut self, name: &str, args: &Vec<Expression>, pos: &Pos) -> Option<Type> {
+    fn check_call(&mut self, name: &str, args: &Vec<Expression>, pos: Pos) -> Option<Type> {
         let mut issues = Vec::new();
 
         let arg_types: Vec<Option<Type>> = args
@@ -320,7 +323,7 @@ impl<'a> SymbolPass<'a> {
                 sig
             } else {
                 self.issue(Error::new(
-                    Pos::default(),
+                    pos,
                     ErrorKind::NotDefinedFunction { name: name.into() },
                 ));
                 return None;
