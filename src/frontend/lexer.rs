@@ -53,6 +53,11 @@ impl Tokenizer {
             });
         }
 
+        tokens.push(Token {
+            kind: TokenKind::EOF,
+            pos: self.pos.clone(),
+        });
+
         Ok(tokens)
     }
 
