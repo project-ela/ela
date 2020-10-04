@@ -83,6 +83,7 @@ impl Tokenizer {
             ')' => Ok(TokenKind::RParen),
             '{' => Ok(TokenKind::LBrace),
             '}' => Ok(TokenKind::RBrace),
+            ',' => Ok(TokenKind::Comma),
             '/' => match self.peek_char() {
                 '/' => {
                     self.consume_char();

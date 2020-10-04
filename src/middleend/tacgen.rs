@@ -7,7 +7,9 @@ use std::collections::HashMap;
 struct TacGen {
     reg: u32,
     label: u32,
-    stack_offset: u32,
+
+    stack_offset_local: u32,
+    stack_offset_param: u32,
 
     ctx: Context,
 }
@@ -59,7 +61,8 @@ impl TacGen {
         Self {
             reg: 0,
             label: 0,
-            stack_offset: 0,
+            stack_offset_local: 0,
+            stack_offset_param: 4,
             ctx: Context::new(),
         }
     }
@@ -75,6 +78,11 @@ impl TacGen {
     fn gen_function(&mut self, func: Function) -> Result<TacFunction, Error> {
         self.init();
         let mut tac_func = TacFunction::new(func.name.to_owned());
+        for param in &func.params {
+            let operand = self.alloc_stack_param();
+            self.ctx.add_variable(param.name.to_owned(), operand);
+            tac_func.params.push(self.stack_offset_param);
+        }
         self.gen_statement(func.body, &mut tac_func)?;
         Ok(tac_func)
     }
@@ -98,7 +106,7 @@ impl TacGen {
                 typ: _,
                 value,
             } => {
-                let operand = self.alloc_stack();
+                let operand = self.alloc_stack_local();
                 self.ctx.add_variable(name, operand.clone());
                 self.gen_assign(operand, *value, func)?;
             }
@@ -156,7 +164,7 @@ impl TacGen {
 
                 func.body.push(Tac::Label { index: label2 });
             }
-            StatementKind::Call { name } => func.body.push(Tac::Call { dst: None, name }),
+            StatementKind::Call { name, args } => self.gen_call(None, name, args, func)?,
         }
         Ok(())
     }
@@ -212,12 +220,9 @@ impl TacGen {
                 });
                 Ok(dst)
             }
-            ExpressionKind::Call { name } => {
+            ExpressionKind::Call { name, args } => {
                 let dst = self.next_reg();
-                func.body.push(Tac::Call {
-                    dst: Some(dst.clone()),
-                    name,
-                });
+                self.gen_call(Some(dst), name, args, func)?;
                 Ok(dst)
             }
         }
@@ -239,10 +244,30 @@ impl TacGen {
         Ok(())
     }
 
+    fn gen_call(
+        &mut self,
+        dst: Option<Operand>,
+        name: String,
+        args: Vec<Expression>,
+        func: &mut TacFunction,
+    ) -> Result<(), Error> {
+        let mut arg_operands = Vec::new();
+        for arg in args {
+            arg_operands.push(self.gen_expression(arg, func)?);
+        }
+        func.body.push(Tac::Call {
+            dst,
+            name,
+            args: arg_operands,
+        });
+        Ok(())
+    }
+
     fn init(&mut self) {
         self.reg = 0;
         self.label = 0;
-        self.stack_offset = 0;
+        self.stack_offset_local = 0;
+        self.stack_offset_param = 4; // because of ebp
         self.ctx.clear();
     }
 
@@ -261,8 +286,13 @@ impl TacGen {
         cur_label
     }
 
-    fn alloc_stack(&mut self) -> Operand {
-        self.stack_offset += 4;
-        Operand::Variable(self.stack_offset)
+    fn alloc_stack_local(&mut self) -> Operand {
+        self.stack_offset_local += 4;
+        Operand::Variable(self.stack_offset_local)
+    }
+
+    fn alloc_stack_param(&mut self) -> Operand {
+        self.stack_offset_param += 4;
+        Operand::Parameter(self.stack_offset_param)
     }
 }

@@ -30,18 +30,18 @@ impl GenX86 {
         Ok(self.output.to_owned())
     }
 
-    fn gen_function(&mut self, funciton: TacFunction) -> Result<(), Error> {
-        self.gen(format!(".global {}", funciton.name).as_str());
-        self.gen(format!("{}:", funciton.name).as_str());
+    fn gen_function(&mut self, function: TacFunction) -> Result<(), Error> {
+        self.gen(format!(".global {}", function.name).as_str());
+        self.gen(format!("{}:", function.name).as_str());
         self.gen("  push ebp");
         self.gen("  mov ebp, esp");
         self.gen("  push ecx");
         self.gen("  push edx");
         self.gen("  push ebx");
-        for tac in funciton.body {
-            self.gen_tac(tac, &funciton.name)?;
+        for tac in function.body {
+            self.gen_tac(tac, &function.name)?;
         }
-        self.gen(format!(".L.{}.ret:", funciton.name).as_str());
+        self.gen(format!(".L.{}.ret:", function.name).as_str());
         self.gen("  pop ebx");
         self.gen("  pop edx");
         self.gen("  pop ecx");
@@ -80,7 +80,7 @@ impl GenX86 {
                     BinaryOperator::Gte => self.gen_compare("setge", dst, rhs),
                 }
             }
-            Tac::Call { dst, name } => match dst {
+            Tac::Call { dst, name, args } => match dst {
                 Some(dst) => {
                     let mut is_eax = false;
                     if let Operand::Reg(reg) = &dst {
@@ -90,6 +90,9 @@ impl GenX86 {
                     }
                     if !is_eax {
                         self.gen("  push eax");
+                    }
+                    for arg in &args {
+                        self.gen(format!("  push {}", opr(&arg)).as_str())
                     }
                     self.gen(format!("  call {}", name).as_str());
                     self.gen(format!("  mov {}, eax", opr(&dst)).as_str());
@@ -161,6 +164,7 @@ fn opr(operand: &Operand) -> String {
         Operand::Const(value) => format!("{}", value),
         Operand::Reg(info) => reg(&info.physical_index.unwrap()).to_string(),
         Operand::Variable(offset) => format!("[ebp-{}]", offset),
+        Operand::Parameter(offset) => format!("[ebp+{}]", offset),
     }
 }
 

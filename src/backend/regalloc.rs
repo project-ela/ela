@@ -43,14 +43,17 @@ impl RegAlloc {
                         self.get_operand(rhs, true);
                         self.alloc_operand(dst)?;
                     }
-                    Tac::Call { dst, .. } => {
+                    Tac::Call { dst, name: _, args } => {
+                        for arg in args {
+                            self.get_operand(arg, true);
+                        }
                         if let Some(dst) = dst {
-                            self.alloc_operand(dst)?;
+                            self.alloc_operand(dst);
                         }
                     }
                     Tac::Move { dst, src } => {
-                        self.alloc_operand(dst)?;
                         self.get_operand(src, true);
+                        self.alloc_operand(dst)?;
                     }
                     Tac::Jump { .. } => {}
                     Tac::JumpIfNot {
@@ -76,7 +79,7 @@ impl RegAlloc {
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.alloc_reg(info.virtual_index)?);
             }
-            Operand::Const(_) | Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
         }
 
         Ok(())
@@ -87,7 +90,7 @@ impl RegAlloc {
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.get_reg(info.virtual_index));
             }
-            Operand::Const(_) | Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
         }
 
         if kill {
@@ -100,7 +103,7 @@ impl RegAlloc {
             Operand::Reg(info) => {
                 self.kill_reg(&info.virtual_index);
             }
-            Operand::Const(_) | Operand::Variable(_) => {}
+            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
         }
     }
 

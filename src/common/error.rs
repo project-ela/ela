@@ -52,6 +52,11 @@ pub enum ErrorKind {
         lhs: Type,
         rhs: Type,
     },
+    FunctionArgNum {
+        name: String,
+        expected: usize,
+        actual: usize,
+    },
 
     // regalloc
     RegistersExhausted,
@@ -90,6 +95,15 @@ impl fmt::Display for ErrorKind {
                 ref lhs,
                 ref rhs,
             } => write!(f, "cannot {} {:?} {}", lhs, op, rhs),
+            FunctionArgNum {
+                name,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "'{}' function takes {} argument but {} arguments were supplied",
+                name, expected, actual
+            ),
             RegistersExhausted => write!(f, "registers exhausted"),
         }
     }
