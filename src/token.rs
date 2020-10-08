@@ -18,6 +18,11 @@ pub enum Token {
     Eax,
     Ecx,
     Edx,
+    Ebx,
+    Esp,
+    Ebp,
+    Esi,
+    Edi,
 
     EOF,
 }

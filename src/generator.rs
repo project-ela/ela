@@ -151,6 +151,11 @@ fn reg_to_num(reg: Register) -> u8 {
         Register::Eax => 0,
         Register::Ecx => 1,
         Register::Edx => 2,
+        Register::Ebx => 3,
+        Register::Esp => 4,
+        Register::Ebp => 5,
+        Register::Esi => 6,
+        Register::Edi => 7,
     }
 }
 
