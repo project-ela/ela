@@ -30,4 +30,9 @@ pub enum Register {
     Eax,
     Ecx,
     Edx,
+    Ebx,
+    Esp,
+    Ebp,
+    Esi,
+    Edi,
 }
