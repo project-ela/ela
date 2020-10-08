@@ -33,17 +33,19 @@ impl Parser {
 
             let ident = self.consume_ident()?;
 
+            if self.peek() == &Token::Colon {
+                self.consume();
+                insts.push(Instruction::Label { name: ident });
+                continue;
+            }
+
             if ident.chars().next().unwrap() == '.' {
                 let arg = self.consume_ident()?;
                 insts.push(Instruction::PseudoOp { name: ident, arg });
                 continue;
             }
 
-            if self.peek() == &Token::Colon {
-                self.consume();
-                insts.push(Instruction::Label { name: ident });
-                continue;
-            }
+            return Err(format!("unexpected token: {}", ident));
         }
         Ok(insts)
     }
