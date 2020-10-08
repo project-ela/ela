@@ -17,6 +17,7 @@ pub enum Opcode {
     IDiv,
     Xor,
     Ret,
+    Mov,
 }
 
 #[derive(Debug)]

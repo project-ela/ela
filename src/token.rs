@@ -14,6 +14,7 @@ pub enum Token {
     IDiv,
     Xor,
     Ret,
+    Mov,
 
     Eax,
     Ecx,
