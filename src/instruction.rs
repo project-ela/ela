@@ -24,6 +24,7 @@ pub enum Opcode {
 pub enum Operand {
     Immidiate { value: u32 },
     Register { reg: Register },
+    Label { name: String },
 }
 
 #[derive(Debug)]

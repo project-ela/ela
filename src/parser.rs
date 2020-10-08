@@ -76,6 +76,9 @@ impl Parser {
     fn parse_operand(&mut self) -> Result<Operand, String> {
         match self.consume() {
             Token::Integer { value } => Ok(Operand::Immidiate { value: *value }),
+            Token::Ident { name } => Ok(Operand::Label {
+                name: name.to_owned(),
+            }),
             Token::Eax => Ok(Operand::Register { reg: Register::Eax }),
             Token::Ecx => Ok(Operand::Register { reg: Register::Ecx }),
             Token::Edx => Ok(Operand::Register { reg: Register::Edx }),

@@ -1,7 +1,9 @@
 use crate::instruction::{Instruction, Opcode, Operand, Register};
+use std::collections::HashMap;
 
 struct Generator {
     output: Vec<u8>,
+    labels: HashMap<String, u8>,
 }
 
 pub fn generate(insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
@@ -11,7 +13,10 @@ pub fn generate(insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
 
 impl Generator {
     fn new() -> Self {
-        Self { output: Vec::new() }
+        Self {
+            output: Vec::new(),
+            labels: HashMap::new(),
+        }
     }
 
     fn generate(&mut self, insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
@@ -24,7 +29,10 @@ impl Generator {
     fn gen_inst(&mut self, inst: Instruction) -> Result<(), String> {
         match inst {
             Instruction::PseudoOp { .. } => {}
-            Instruction::Label { .. } => {}
+            Instruction::Label { name } => {
+                let addr = self.output.len();
+                self.labels.insert(name, addr as u8);
+            }
             Instruction::NullaryOp(op) => self.gen_nullary_op(op)?,
             Instruction::UnaryOp(op, operand) => self.gen_unary_op(op, operand)?,
             Instruction::BinaryOp(op, operand1, operand2) => {
@@ -51,6 +59,11 @@ impl Generator {
                 }
                 Operand::Register { reg } => {
                     self.gen(0x50 + reg_to_num(reg));
+                }
+                Operand::Label { name } => {
+                    let addr = self.lookup_label(name)?;
+                    self.gen(0x6A);
+                    self.gen(addr);
                 }
             },
             Opcode::Pop => match operand {
@@ -100,6 +113,12 @@ impl Generator {
                         self.gen(calc_modrm(0b11, 0, reg1));
                         self.gen(value as u8);
                     }
+                    Operand::Label { name } => {
+                        let addr = self.lookup_label(name)?;
+                        self.gen(0x83);
+                        self.gen(calc_modrm(0b11, 0, reg1));
+                        self.gen(addr as u8);
+                    }
                 }
             }
             Opcode::Sub => {
@@ -116,6 +135,12 @@ impl Generator {
                         self.gen(0x83);
                         self.gen(calc_modrm(0b11, 0b101, reg1));
                         self.gen(value as u8);
+                    }
+                    Operand::Label { name } => {
+                        let addr = self.lookup_label(name)?;
+                        self.gen(0x83);
+                        self.gen(calc_modrm(0b11, 0b101, reg1));
+                        self.gen(addr as u8);
                     }
                 }
             }
@@ -134,6 +159,12 @@ impl Generator {
                         self.gen(calc_modrm(0b11, 0b110, reg1));
                         self.gen(value as u8);
                     }
+                    Operand::Label { name } => {
+                        let addr = self.lookup_label(name)?;
+                        self.gen(0x83);
+                        self.gen(calc_modrm(0b11, 0b110, reg1));
+                        self.gen(addr as u8);
+                    }
                 }
             }
             Opcode::Mov => {
@@ -150,11 +181,23 @@ impl Generator {
                         self.gen(0xB0 + reg1);
                         self.gen(value as u8);
                     }
+                    Operand::Label { name } => {
+                        let addr = self.lookup_label(name)?;
+                        self.gen(0x80 + reg1);
+                        self.gen(addr as u8);
+                    }
                 }
             }
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
         Ok(())
+    }
+
+    fn lookup_label(&self, name: String) -> Result<u8, String> {
+        match self.labels.get(&name) {
+            Some(addr) => Ok(*addr),
+            None => Err(format!("undefined label: {}", name)),
+        }
     }
 
     fn gen(&mut self, byte: u8) {
