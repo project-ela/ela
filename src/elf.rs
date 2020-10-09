@@ -8,11 +8,14 @@ use crate::elf::symbol::ElfSymbol;
 
 type ElfHalf = u16;
 type ElfWord = u32;
-type ElfXword = u64;
-type ElfAddr = u64;
-type ElfOff = u64;
+type ElfXword = u32;
+type ElfAddr = u32;
+type ElfOff = u32;
 type ElfSection = u16;
 type ElfIdent = u128;
+
+const SYM_ENTRY_SIZE_32: ElfXword = 0x10;
+const SYM_ENTRY_SIZE_64: ElfXword = 0x18;
 
 pub struct Elf {
     pub elf_header: ElfHeader,
@@ -44,7 +47,7 @@ impl Elf {
         self.section_names.push(0x0);
 
         let mut header = header.clone(); // TODO FIXME
-        header.name = name_index as u32;
+        header.name = name_index as ElfWord;
         self.sections.push(Section { header, data });
 
         self.elf_header.section_header_num += 1;
@@ -56,7 +59,7 @@ impl Elf {
         self.symbol_names.push(0x0);
 
         let mut symbol = symbol.clone(); // TODO FIXME
-        symbol.name = name_index as u32;
+        symbol.name = name_index as ElfWord;
 
         self.symbols.push(symbol);
     }
@@ -66,13 +69,13 @@ impl Elf {
         self.add_shstrtab();
 
         let mut data_length = 0;
-        data_length += 64;
+        data_length += 52;
         for section in self.sections.as_mut_slice() {
-            section.header.offset = data_length as u64;
-            section.header.size = section.data.len() as u64;
+            section.header.offset = data_length as ElfOff;
+            section.header.size = section.data.len() as ElfXword;
             data_length += section.data.len();
         }
-        self.elf_header.section_header_offset = data_length as u64;
+        self.elf_header.section_header_offset = data_length as ElfOff;
     }
 
     fn add_symtab(&mut self) {
@@ -80,7 +83,7 @@ impl Elf {
         symtab_hdr.set_type(section_header::Type::Symtab);
         symtab_hdr.set_link(self.sections.len() as u32 + 1);
         symtab_hdr.set_info(self.symbols.len() as u32 - 1);
-        symtab_hdr.set_entry_size(0x18);
+        symtab_hdr.set_entry_size(SYM_ENTRY_SIZE_32);
         symtab_hdr.set_align(8);
         let mut symbol_data = Vec::new();
         for symbol in &self.symbols {
@@ -96,7 +99,7 @@ impl Elf {
 
     fn add_shstrtab(&mut self) {
         let mut shstrtab_hdr = section_header::ElfSectionHeader::new();
-        shstrtab_hdr.name = self.section_names.len() as u32;
+        shstrtab_hdr.name = self.section_names.len() as ElfWord;
         shstrtab_hdr.set_type(section_header::Type::Strtab);
         shstrtab_hdr.set_align(1);
         self.section_names.extend(".shstrtab".as_bytes());
@@ -108,7 +111,7 @@ impl Elf {
         });
 
         self.elf_header.section_header_num += 1;
-        self.elf_header.string_table_index = self.sections.len() as u16 - 1;
+        self.elf_header.string_table_index = self.sections.len() as ElfHalf - 1;
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {

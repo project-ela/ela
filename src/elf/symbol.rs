@@ -3,11 +3,11 @@ use crate::elf::*;
 #[derive(Default, Copy, Clone)]
 pub struct ElfSymbol {
     pub name: ElfWord,
+    pub value: ElfAddr,
+    pub size: ElfXword,
     pub info: u8,
     pub other: u8,
     pub section_index: ElfSection,
-    pub value: ElfAddr,
-    pub size: ElfXword,
 }
 
 pub enum Binding {
@@ -68,10 +68,10 @@ impl ElfSymbol {
 
     pub fn write_to(&self, buf: &mut Vec<u8>) {
         buf.extend(&self.name.to_le_bytes());
+        buf.extend(&self.value.to_le_bytes());
+        buf.extend(&self.size.to_le_bytes());
         buf.extend(&self.info.to_le_bytes());
         buf.extend(&self.other.to_le_bytes());
         buf.extend(&self.section_index.to_le_bytes());
-        buf.extend(&self.value.to_le_bytes());
-        buf.extend(&self.size.to_le_bytes());
     }
 }

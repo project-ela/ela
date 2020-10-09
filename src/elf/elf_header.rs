@@ -44,8 +44,15 @@ pub enum Type {
 
 pub enum Machine {
     None = 0,
+    X86 = 3,
     X86_64 = 62,
 }
+
+const ELF_HDR_SIZE_32: ElfHalf = 52;
+const SECTION_HDR_SIZE_32: ElfHalf = 40;
+
+const ELF_HDR_SIZE_64: ElfHalf = 64;
+const SECTION_HDR_SIZE_64: ElfHalf = 64;
 
 impl ElfHeader {
     pub fn new() -> Self {
@@ -53,8 +60,8 @@ impl ElfHeader {
         hdr.ident = 0x7f454c46 << 12 * 8;
         hdr.ident |= 0x1 << 9 * 8; // version
         hdr.version = 0x1;
-        hdr.elf_header_size = 64;
-        hdr.section_header_size = 64;
+        hdr.elf_header_size = ELF_HDR_SIZE_32;
+        hdr.section_header_size = SECTION_HDR_SIZE_32;
         hdr
     }
 
@@ -71,42 +78,42 @@ impl ElfHeader {
     }
 
     pub fn set_filetype(&mut self, typ: Type) {
-        self.filetype = typ as u16;
+        self.filetype = typ as ElfHalf;
     }
 
     pub fn set_machine(&mut self, machine: Machine) {
-        self.machine = machine as u16;
+        self.machine = machine as ElfHalf;
     }
 
-    pub fn set_entrypoint(&mut self, addr: u64) {
+    pub fn set_entrypoint(&mut self, addr: ElfAddr) {
         self.entrypoint = addr;
     }
 
-    pub fn set_program_header_offset(&mut self, offset: u64) {
+    pub fn set_program_header_offset(&mut self, offset: ElfOff) {
         self.program_header_offset = offset;
     }
 
-    pub fn set_section_header_offset(&mut self, offset: u64) {
+    pub fn set_section_header_offset(&mut self, offset: ElfOff) {
         self.section_header_offset = offset;
     }
 
-    pub fn set_program_header_size(&mut self, size: u16) {
+    pub fn set_program_header_size(&mut self, size: ElfHalf) {
         self.program_header_size = size;
     }
 
-    pub fn set_program_header_num(&mut self, num: u16) {
+    pub fn set_program_header_num(&mut self, num: ElfHalf) {
         self.program_header_num = num;
     }
 
-    pub fn set_section_header_size(&mut self, size: u16) {
+    pub fn set_section_header_size(&mut self, size: ElfHalf) {
         self.section_header_size = size;
     }
 
-    pub fn set_section_header_num(&mut self, num: u16) {
+    pub fn set_section_header_num(&mut self, num: ElfHalf) {
         self.section_header_num = num;
     }
 
-    pub fn string_header_num(&mut self, index: u16) {
+    pub fn string_header_num(&mut self, index: ElfHalf) {
         self.string_table_index = index;
     }
 
