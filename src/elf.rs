@@ -8,9 +8,9 @@ use crate::elf::symbol::ElfSymbol;
 
 type ElfHalf = u16;
 type ElfWord = u32;
-type ElfXword = u64;
-type ElfAddr = u64;
-type ElfOff = u64;
+type ElfXword = u32;
+type ElfAddr = u32;
+type ElfOff = u32;
 type ElfSection = u16;
 type ElfIdent = u128;
 

@@ -44,6 +44,7 @@ pub enum Type {
 
 pub enum Machine {
     None = 0,
+    X86 = 3,
     X86_64 = 62,
 }
 
