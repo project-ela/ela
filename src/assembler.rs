@@ -23,7 +23,7 @@ pub fn assemble_to_file(input_file: String, output_file: String) -> Result<(), S
 }
 
 pub fn assemble(source: String) -> Result<Vec<u8>, String> {
-    dbg!(tokenize(source))
+    tokenize(source)
         .and_then(|tokens| parse(tokens))
         .and_then(|insts| generate(insts))
         .and_then(|program_data| gen_elf(program_data))
