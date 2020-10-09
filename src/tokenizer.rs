@@ -114,6 +114,7 @@ fn find_keyword(ident: &String) -> Option<Token> {
         "xor" => Some(Token::Xor),
         "ret" => Some(Token::Ret),
         "mov" => Some(Token::Mov),
+        "jmp" => Some(Token::Jmp),
 
         "eax" => Some(Token::Eax),
         "ecx" => Some(Token::Ecx),

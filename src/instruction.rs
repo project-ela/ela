@@ -18,12 +18,14 @@ pub enum Opcode {
     Xor,
     Ret,
     Mov,
+    Jmp,
 }
 
 #[derive(Debug)]
 pub enum Operand {
     Immidiate { value: u32 },
     Register { reg: Register },
+    Label { name: String },
 }
 
 #[derive(Debug)]

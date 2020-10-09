@@ -33,17 +33,19 @@ impl Parser {
 
             let ident = self.consume_ident()?;
 
+            if self.peek() == &Token::Colon {
+                self.consume();
+                insts.push(Instruction::Label { name: ident });
+                continue;
+            }
+
             if ident.chars().next().unwrap() == '.' {
                 let arg = self.consume_ident()?;
                 insts.push(Instruction::PseudoOp { name: ident, arg });
                 continue;
             }
 
-            if self.peek() == &Token::Colon {
-                self.consume();
-                insts.push(Instruction::Label { name: ident });
-                continue;
-            }
+            return Err(format!("unexpected token: {}", ident));
         }
         Ok(insts)
     }
@@ -55,7 +57,7 @@ impl Parser {
                 let opcode = token_to_opcode(token)?;
                 Ok(Instruction::NullaryOp(opcode))
             }
-            Token::Push | Token::Pop | Token::IMul | Token::IDiv => {
+            Token::Push | Token::Pop | Token::IMul | Token::IDiv | Token::Jmp => {
                 let opcode = token_to_opcode(token)?;
                 let operand1 = self.parse_operand()?;
                 Ok(Instruction::UnaryOp(opcode, operand1))
@@ -74,6 +76,9 @@ impl Parser {
     fn parse_operand(&mut self) -> Result<Operand, String> {
         match self.consume() {
             Token::Integer { value } => Ok(Operand::Immidiate { value: *value }),
+            Token::Ident { name } => Ok(Operand::Label {
+                name: name.to_owned(),
+            }),
             Token::Eax => Ok(Operand::Register { reg: Register::Eax }),
             Token::Ecx => Ok(Operand::Register { reg: Register::Ecx }),
             Token::Edx => Ok(Operand::Register { reg: Register::Edx }),
@@ -130,6 +135,7 @@ fn token_to_opcode(token: &Token) -> Result<Opcode, String> {
         Token::Xor => Ok(Opcode::Xor),
         Token::Ret => Ok(Opcode::Ret),
         Token::Mov => Ok(Opcode::Mov),
+        Token::Jmp => Ok(Opcode::Jmp),
         x => Err(format!("unexpected token: {:?}", x)),
     }
 }

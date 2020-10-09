@@ -1,7 +1,10 @@
 use crate::instruction::{Instruction, Opcode, Operand, Register};
+use std::collections::HashMap;
 
 struct Generator {
     output: Vec<u8>,
+    labels: HashMap<String, u8>,
+    unresolved_jumps: HashMap<String, u8>,
 }
 
 pub fn generate(insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
@@ -11,20 +14,28 @@ pub fn generate(insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
 
 impl Generator {
     fn new() -> Self {
-        Self { output: Vec::new() }
+        Self {
+            output: Vec::new(),
+            labels: HashMap::new(),
+            unresolved_jumps: HashMap::new(),
+        }
     }
 
     fn generate(&mut self, insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
         for inst in insts {
             self.gen_inst(inst)?;
         }
+        self.resolve_jump()?;
         Ok(self.output.clone())
     }
 
     fn gen_inst(&mut self, inst: Instruction) -> Result<(), String> {
         match inst {
             Instruction::PseudoOp { .. } => {}
-            Instruction::Label { .. } => {}
+            Instruction::Label { name } => {
+                let addr = self.output.len();
+                self.labels.insert(name, addr as u8);
+            }
             Instruction::NullaryOp(op) => self.gen_nullary_op(op)?,
             Instruction::UnaryOp(op, operand) => self.gen_unary_op(op, operand)?,
             Instruction::BinaryOp(op, operand1, operand2) => {
@@ -52,6 +63,7 @@ impl Generator {
                 Operand::Register { reg } => {
                     self.gen(0x50 + reg_to_num(reg));
                 }
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::Pop => match operand {
                 Operand::Register { reg } => {
@@ -70,6 +82,17 @@ impl Generator {
                 Operand::Register { reg } => {
                     self.gen(0xF7);
                     self.gen(calc_modrm(0b11, 0b111, reg_to_num(reg)));
+                }
+                x => return Err(format!("unexpected operand: {:?}", x)),
+            },
+            Opcode::Jmp => match operand {
+                Operand::Label { name } => {
+                    // because of jmp opcode
+                    let cur_addr = self.output.len() as u8;
+                    let addr = self.lookup_label(name, cur_addr);
+                    let diff = cur_addr.wrapping_sub(addr + 2);
+                    self.gen(0xEB);
+                    self.gen(diff);
                 }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
@@ -100,6 +123,7 @@ impl Generator {
                         self.gen(calc_modrm(0b11, 0, reg1));
                         self.gen(value as u8);
                     }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
             Opcode::Sub => {
@@ -117,6 +141,7 @@ impl Generator {
                         self.gen(calc_modrm(0b11, 0b101, reg1));
                         self.gen(value as u8);
                     }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
             Opcode::Xor => {
@@ -134,6 +159,7 @@ impl Generator {
                         self.gen(calc_modrm(0b11, 0b110, reg1));
                         self.gen(value as u8);
                     }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
             Opcode::Mov => {
@@ -150,9 +176,34 @@ impl Generator {
                         self.gen(0xB0 + reg1);
                         self.gen(value as u8);
                     }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
             x => return Err(format!("unexpected opcode: {:?}", x)),
+        }
+        Ok(())
+    }
+
+    fn lookup_label(&mut self, name: String, code_addr: u8) -> u8 {
+        match self.labels.get(&name) {
+            Some(addr) => *addr,
+            None => {
+                self.unresolved_jumps.insert(name, code_addr);
+                0
+            }
+        }
+    }
+
+    fn resolve_jump(&mut self) -> Result<(), String> {
+        for (name, code_addr) in &self.unresolved_jumps {
+            match self.labels.get(name) {
+                Some(addr) => {
+                    let target_addr = (code_addr + 1) as usize;
+                    let diff = (*addr).wrapping_sub(*code_addr + 2);
+                    self.output[target_addr] = diff;
+                }
+                None => return Err(format!("undefined label: {}", name)),
+            }
         }
         Ok(())
     }
