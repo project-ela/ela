@@ -53,43 +53,43 @@ impl ElfSectionHeader {
         Default::default()
     }
 
-    pub fn set_name(&mut self, name: u32) {
+    pub fn set_name(&mut self, name: ElfWord) {
         self.name = name;
     }
 
     pub fn set_type(&mut self, typ: Type) {
-        self.section_type = typ as u32;
+        self.section_type = typ as ElfWord;
     }
 
     pub fn set_flags(&mut self, flag: Flags) {
-        self.flags |= flag as u64;
+        self.flags |= flag as ElfXword;
     }
 
-    pub fn set_addr(&mut self, addr: u64) {
+    pub fn set_addr(&mut self, addr: ElfAddr) {
         self.addr = addr;
     }
 
-    pub fn set_offset(&mut self, offset: u64) {
+    pub fn set_offset(&mut self, offset: ElfOff) {
         self.offset = offset;
     }
 
-    pub fn set_size(&mut self, size: u64) {
+    pub fn set_size(&mut self, size: ElfXword) {
         self.size = size;
     }
 
-    pub fn set_link(&mut self, link: u32) {
+    pub fn set_link(&mut self, link: ElfWord) {
         self.link = link;
     }
 
-    pub fn set_info(&mut self, info: u32) {
+    pub fn set_info(&mut self, info: ElfWord) {
         self.info = info;
     }
 
-    pub fn set_align(&mut self, align: u64) {
+    pub fn set_align(&mut self, align: ElfXword) {
         self.alignment = align;
     }
 
-    pub fn set_entry_size(&mut self, ent_size: u64) {
+    pub fn set_entry_size(&mut self, ent_size: ElfXword) {
         self.entry_size = ent_size;
     }
 
