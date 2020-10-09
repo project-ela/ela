@@ -14,6 +14,9 @@ type ElfOff = u64;
 type ElfSection = u16;
 type ElfIdent = u128;
 
+const SYM_ENTRY_SIZE_32: ElfXword = 0x10;
+const SYM_ENTRY_SIZE_64: ElfXword = 0x18;
+
 pub struct Elf {
     pub elf_header: ElfHeader,
     pub sections: Vec<Section>,
@@ -80,7 +83,7 @@ impl Elf {
         symtab_hdr.set_type(section_header::Type::Symtab);
         symtab_hdr.set_link(self.sections.len() as u32 + 1);
         symtab_hdr.set_info(self.symbols.len() as u32 - 1);
-        symtab_hdr.set_entry_size(0x18);
+        symtab_hdr.set_entry_size(SYM_ENTRY_SIZE_32);
         symtab_hdr.set_align(8);
         let mut symbol_data = Vec::new();
         for symbol in &self.symbols {
