@@ -60,11 +60,7 @@ impl Generator {
                 Operand::Register { reg } => {
                     self.gen(0x50 + reg_to_num(reg));
                 }
-                Operand::Label { name } => {
-                    let addr = self.lookup_label(name)?;
-                    self.gen(0x6A);
-                    self.gen(addr);
-                }
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::Pop => match operand {
                 Operand::Register { reg } => {
@@ -113,12 +109,7 @@ impl Generator {
                         self.gen(calc_modrm(0b11, 0, reg1));
                         self.gen(value as u8);
                     }
-                    Operand::Label { name } => {
-                        let addr = self.lookup_label(name)?;
-                        self.gen(0x83);
-                        self.gen(calc_modrm(0b11, 0, reg1));
-                        self.gen(addr as u8);
-                    }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
             Opcode::Sub => {
@@ -136,12 +127,7 @@ impl Generator {
                         self.gen(calc_modrm(0b11, 0b101, reg1));
                         self.gen(value as u8);
                     }
-                    Operand::Label { name } => {
-                        let addr = self.lookup_label(name)?;
-                        self.gen(0x83);
-                        self.gen(calc_modrm(0b11, 0b101, reg1));
-                        self.gen(addr as u8);
-                    }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
             Opcode::Xor => {
@@ -159,12 +145,7 @@ impl Generator {
                         self.gen(calc_modrm(0b11, 0b110, reg1));
                         self.gen(value as u8);
                     }
-                    Operand::Label { name } => {
-                        let addr = self.lookup_label(name)?;
-                        self.gen(0x83);
-                        self.gen(calc_modrm(0b11, 0b110, reg1));
-                        self.gen(addr as u8);
-                    }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
             Opcode::Mov => {
@@ -181,11 +162,7 @@ impl Generator {
                         self.gen(0xB0 + reg1);
                         self.gen(value as u8);
                     }
-                    Operand::Label { name } => {
-                        let addr = self.lookup_label(name)?;
-                        self.gen(0x80 + reg1);
-                        self.gen(addr as u8);
-                    }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
             x => return Err(format!("unexpected opcode: {:?}", x)),
