@@ -19,6 +19,7 @@ pub enum Opcode {
     Ret,
     Mov,
     Jmp,
+    And,
 }
 
 #[derive(Debug)]

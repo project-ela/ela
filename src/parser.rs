@@ -59,7 +59,12 @@ impl Parser {
                 let operand1 = self.parse_operand()?;
                 Ok(Instruction::UnaryOp(opcode, operand1))
             }
-            Token::Add | Token::Sub | Token::IMul | Token::Xor | Token::Mov => {
+            Token::Add
+            | Token::Sub
+            | Token::IMul
+            | Token::Xor
+            | Token::Mov
+            | Token::And => {
                 let operand1 = self.parse_operand()?;
                 self.expect(&Token::Commna)?;
                 let operand2 = self.parse_operand()?;
@@ -132,6 +137,7 @@ fn token_to_opcode(token: &Token) -> Result<Opcode, String> {
         Token::Ret => Ok(Opcode::Ret),
         Token::Mov => Ok(Opcode::Mov),
         Token::Jmp => Ok(Opcode::Jmp),
+        Token::And => Ok(Opcode::And),
         x => Err(format!("unexpected token: {:?}", x)),
     }
 }

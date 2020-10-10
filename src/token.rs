@@ -16,6 +16,7 @@ pub enum Token {
     Ret,
     Mov,
     Jmp,
+    And,
 
     Eax,
     Ecx,
