@@ -179,8 +179,8 @@ impl Generator {
                         self.gen(calc_modrm(0b11, reg1, reg_to_num(reg2)));
                     }
                     Operand::Immidiate { value } => {
-                        self.gen(0xB0 + reg1);
-                        self.gen(value as u8);
+                        self.gen(0xB8 + reg1);
+                        self.gen32(value);
                     }
                     x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
@@ -212,6 +212,13 @@ impl Generator {
             }
         }
         Ok(())
+    }
+
+    fn gen32(&mut self, bytes: u32) {
+        for i in 0..4 {
+            let byte = (bytes << (8 * i)) as u8;
+            self.gen(byte);
+        }
     }
 
     fn gen(&mut self, byte: u8) {
