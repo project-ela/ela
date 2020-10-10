@@ -71,13 +71,6 @@ impl Generator {
                 }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::IMul => match operand {
-                Operand::Register { reg } => {
-                    self.gen(0xF7);
-                    self.gen(calc_modrm(0b11, 0b101, reg_to_num(reg)));
-                }
-                x => return Err(format!("unexpected operand: {:?}", x)),
-            },
             Opcode::IDiv => match operand {
                 Operand::Register { reg } => {
                     self.gen(0xF7);
@@ -144,6 +137,19 @@ impl Generator {
                     x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
+            Opcode::IMul => {
+                let reg1 = match operand1 {
+                    Operand::Register { reg } => reg_to_num(reg),
+                    x => return Err(format!("unexpected operand: {:?}", x)),
+                };
+                let reg2 = match operand2 {
+                    Operand::Register { reg } => reg_to_num(reg),
+                    x => return Err(format!("unexpected operand: {:?}", x)),
+                };
+                self.gen(0x0F);
+                self.gen(0xAF);
+                self.gen(calc_modrm(0b11, reg1, reg2));
+            }
             Opcode::Xor => {
                 let reg1 = match operand1 {
                     Operand::Register { reg } => reg_to_num(reg),
@@ -173,8 +179,8 @@ impl Generator {
                         self.gen(calc_modrm(0b11, reg1, reg_to_num(reg2)));
                     }
                     Operand::Immidiate { value } => {
-                        self.gen(0xB0 + reg1);
-                        self.gen(value as u8);
+                        self.gen(0xB8 + reg1);
+                        self.gen32(value);
                     }
                     x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
@@ -206,6 +212,13 @@ impl Generator {
             }
         }
         Ok(())
+    }
+
+    fn gen32(&mut self, bytes: u32) {
+        for i in 0..4 {
+            let byte = (bytes << (8 * i)) as u8;
+            self.gen(byte);
+        }
     }
 
     fn gen(&mut self, byte: u8) {

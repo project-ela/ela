@@ -52,18 +52,14 @@ impl Parser {
 
     fn parse_inst(&mut self) -> Result<Instruction, String> {
         let token = self.consume();
+        let opcode = token_to_opcode(token)?;
         match token {
-            Token::Ret => {
-                let opcode = token_to_opcode(token)?;
-                Ok(Instruction::NullaryOp(opcode))
-            }
-            Token::Push | Token::Pop | Token::IMul | Token::IDiv | Token::Jmp => {
-                let opcode = token_to_opcode(token)?;
+            Token::Ret => Ok(Instruction::NullaryOp(opcode)),
+            Token::Push | Token::Pop | Token::IDiv | Token::Jmp => {
                 let operand1 = self.parse_operand()?;
                 Ok(Instruction::UnaryOp(opcode, operand1))
             }
-            Token::Add | Token::Sub | Token::Xor | Token::Mov => {
-                let opcode = token_to_opcode(token)?;
+            Token::Add | Token::Sub | Token::IMul | Token::Xor | Token::Mov => {
                 let operand1 = self.parse_operand()?;
                 self.expect(&Token::Commna)?;
                 let operand2 = self.parse_operand()?;
