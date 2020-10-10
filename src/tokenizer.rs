@@ -119,6 +119,7 @@ fn find_keyword(ident: &String) -> Option<Token> {
         "or" => Some(Token::Or),
         "cmp" => Some(Token::Cmp),
         "sete" => Some(Token::Sete),
+        "je" => Some(Token::Je),
 
         "eax" => Some(Token::Eax),
         "ecx" => Some(Token::Ecx),
