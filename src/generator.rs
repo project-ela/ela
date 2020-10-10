@@ -185,6 +185,23 @@ impl Generator {
                     x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
+            Opcode::And => {
+                let reg1 = match operand1 {
+                    Operand::Register { reg } => reg_to_num(reg),
+                    x => return Err(format!("unexpected operand: {:?}", x)),
+                };
+                match operand2 {
+                    Operand::Register { reg: reg2 } => {
+                        self.gen(0x23);
+                        self.gen(calc_modrm(0b11, reg1, reg_to_num(reg2)));
+                    }
+                    Operand::Immidiate { value } => {
+                        self.gen(0x81);
+                        self.gen(value as u8);
+                    }
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
+                }
+            }
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
         Ok(())
