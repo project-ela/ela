@@ -71,15 +71,9 @@ impl Generator {
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::Jmp => self.gen_jump(0xEB, operand)?,
-            Opcode::Sete => {
-                let reg1 = expect_register(operand)?;
-                if reg1.size() != RegSize::Byte {
-                    return Err(format!("expected r8"));
-                }
-                self.gen(0x0F);
-                self.gen_m(0x94, 0, reg1);
-            }
+            Opcode::Sete => self.gen_set(0x94, operand)?,
             Opcode::Je => self.gen_jump(0x7e, operand)?,
+            Opcode::Setne => self.gen_set(0x95, operand)?,
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
         Ok(())
@@ -170,6 +164,16 @@ impl Generator {
             }
             x => return Err(format!("unexpected operand: {:?}", x)),
         }
+        Ok(())
+    }
+
+    fn gen_set(&mut self, opcode: u8, operand: Operand) -> Result<(), String> {
+        let reg1 = expect_register(operand)?;
+        if reg1.size() != RegSize::Byte {
+            return Err(format!("expected r8"));
+        }
+        self.gen(0x0F);
+        self.gen_m(opcode, 0, reg1);
         Ok(())
     }
 

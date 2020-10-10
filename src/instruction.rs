@@ -24,6 +24,7 @@ pub enum Opcode {
     Cmp,
     Sete,
     Je,
+    Setne,
 }
 
 #[derive(Debug)]
