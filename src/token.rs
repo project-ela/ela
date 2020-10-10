@@ -20,6 +20,7 @@ pub enum Token {
     Or,
     Cmp,
     Sete,
+    Je,
 
     Eax,
     Ecx,

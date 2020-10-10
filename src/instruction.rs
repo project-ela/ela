@@ -23,6 +23,7 @@ pub enum Opcode {
     Or,
     Cmp,
     Sete,
+    Je,
 }
 
 #[derive(Debug)]

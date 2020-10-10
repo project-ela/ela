@@ -70,16 +70,7 @@ impl Generator {
                 Operand::Register { reg } => self.gen_m(0xF7, 7, reg),
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::Jmp => match operand {
-                Operand::Label { name } => {
-                    let cur_addr = self.output.len() as u8;
-                    let label_addr = self.lookup_label(name, cur_addr);
-                    let after_jump_addr = cur_addr + 2;
-                    let diff = label_addr.wrapping_sub(after_jump_addr);
-                    self.gen_d(0xEB, diff);
-                }
-                x => return Err(format!("unexpected operand: {:?}", x)),
-            },
+            Opcode::Jmp => self.gen_jump(0xEB, operand)?,
             Opcode::Sete => {
                 let reg1 = expect_register(operand)?;
                 if reg1.size() != RegSize::Byte {
@@ -88,6 +79,7 @@ impl Generator {
                 self.gen(0x0F);
                 self.gen_m(0x94, 0, reg1);
             }
+            Opcode::Je => self.gen_jump(0x7e, operand)?,
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
         Ok(())
@@ -163,6 +155,20 @@ impl Generator {
                 }
             }
             x => return Err(format!("unexpected opcode: {:?}", x)),
+        }
+        Ok(())
+    }
+
+    fn gen_jump(&mut self, opcode: u8, operand: Operand) -> Result<(), String> {
+        match operand {
+            Operand::Label { name } => {
+                let cur_addr = self.output.len() as u8;
+                let label_addr = self.lookup_label(name, cur_addr);
+                let after_jump_addr = cur_addr + 2;
+                let diff = label_addr.wrapping_sub(after_jump_addr);
+                self.gen_d(opcode, diff);
+            }
+            x => return Err(format!("unexpected operand: {:?}", x)),
         }
         Ok(())
     }
