@@ -25,6 +25,10 @@ pub enum Opcode {
     Sete,
     Je,
     Setne,
+    Setl,
+    Setle,
+    Setg,
+    Setge,
 }
 
 #[derive(Debug)]

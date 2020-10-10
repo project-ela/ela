@@ -22,6 +22,10 @@ pub enum Token {
     Sete,
     Je,
     Setne,
+    Setl,
+    Setle,
+    Setg,
+    Setge,
 
     Eax,
     Ecx,
