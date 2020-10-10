@@ -144,6 +144,14 @@ impl Generator {
                     x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
+            Opcode::Cmp => {
+                let reg1 = expect_register(operand1)?;
+                match operand2 {
+                    Operand::Register { reg: reg2 } => self.gen_mr(0x39, reg1, reg2),
+                    Operand::Immidiate { value } => self.gen_mi(0x83, 7, reg1, value),
+                    x => return Err(format!("unexpected opcode: {:?}", x)),
+                }
+            }
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
         Ok(())

@@ -65,7 +65,8 @@ impl Parser {
             | Token::Xor
             | Token::Mov
             | Token::And
-            | Token::Or => {
+            | Token::Or
+            | Token::Cmp => {
                 let operand1 = self.parse_operand()?;
                 self.expect(&Token::Commna)?;
                 let operand2 = self.parse_operand()?;
@@ -140,6 +141,7 @@ fn token_to_opcode(token: &Token) -> Result<Opcode, String> {
         Token::Jmp => Ok(Opcode::Jmp),
         Token::And => Ok(Opcode::And),
         Token::Or => Ok(Opcode::Or),
+        Token::Cmp => Ok(Opcode::Cmp),
         x => Err(format!("unexpected token: {:?}", x)),
     }
 }
