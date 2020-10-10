@@ -128,6 +128,11 @@ fn find_keyword(ident: &String) -> Option<Token> {
         "esi" => Some(Token::Esi),
         "edi" => Some(Token::Edi),
 
+        "al" => Some(Token::Al),
+        "cl" => Some(Token::Cl),
+        "dl" => Some(Token::Dl),
+        "bl" => Some(Token::Bl),
+
         _ => None,
     }
 }

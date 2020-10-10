@@ -90,6 +90,12 @@ impl Parser {
             Token::Ebp => Ok(Operand::Register { reg: Register::Ebp }),
             Token::Esi => Ok(Operand::Register { reg: Register::Esi }),
             Token::Edi => Ok(Operand::Register { reg: Register::Edi }),
+
+            Token::Al => Ok(Operand::Register { reg: Register::Al }),
+            Token::Cl => Ok(Operand::Register { reg: Register::Cl }),
+            Token::Dl => Ok(Operand::Register { reg: Register::Dl }),
+            Token::Bl => Ok(Operand::Register { reg: Register::Bl }),
+
             x => Err(format!("unexpected token: {:?}", x)),
         }
     }

@@ -41,9 +41,30 @@ pub enum Register {
     Ebp,
     Esi,
     Edi,
+
+    Al,
+    Cl,
+    Dl,
+    Bl,
+}
+
+#[derive(Eq, PartialEq)]
+pub enum RegSize {
+    Byte,
+    Word,
+    DWord,
+    QWord,
 }
 
 impl Register {
+    pub fn size(&self) -> RegSize {
+        use self::Register::*;
+        match self {
+            Eax | Ecx | Edx | Ebx | Esp | Ebp | Esi | Edi => RegSize::DWord,
+            Al | Cl | Dl | Bl => RegSize::Byte,
+        }
+    }
+
     pub fn number(self) -> u8 {
         use self::Register::*;
         match self {

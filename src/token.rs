@@ -29,5 +29,10 @@ pub enum Token {
     Esi,
     Edi,
 
+    Al,
+    Cl,
+    Dl,
+    Bl,
+
     EOF,
 }
