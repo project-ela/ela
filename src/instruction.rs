@@ -21,6 +21,7 @@ pub enum Opcode {
     Jmp,
     And,
     Or,
+    Cmp,
 }
 
 #[derive(Debug)]

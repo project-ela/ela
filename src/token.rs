@@ -18,6 +18,7 @@ pub enum Token {
     Jmp,
     And,
     Or,
+    Cmp,
 
     Eax,
     Ecx,
