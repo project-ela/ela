@@ -102,10 +102,7 @@ impl Generator {
     ) -> Result<(), String> {
         match op {
             Opcode::Add => {
-                let reg1 = match operand1 {
-                    Operand::Register { reg } => reg_to_num(reg),
-                    x => return Err(format!("unexpected operand: {:?}", x)),
-                };
+                let reg1 = expect_register(operand1)?;
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x01);
@@ -120,10 +117,7 @@ impl Generator {
                 }
             }
             Opcode::Sub => {
-                let reg1 = match operand1 {
-                    Operand::Register { reg } => reg_to_num(reg),
-                    x => return Err(format!("unexpected operand: {:?}", x)),
-                };
+                let reg1 = expect_register(operand1)?;
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x29);
@@ -138,10 +132,7 @@ impl Generator {
                 }
             }
             Opcode::IMul => {
-                let reg1 = match operand1 {
-                    Operand::Register { reg } => reg_to_num(reg),
-                    x => return Err(format!("unexpected operand: {:?}", x)),
-                };
+                let reg1 = expect_register(operand1)?;
                 let reg2 = match operand2 {
                     Operand::Register { reg } => reg_to_num(reg),
                     x => return Err(format!("unexpected operand: {:?}", x)),
@@ -151,10 +142,7 @@ impl Generator {
                 self.gen(calc_modrm(0b11, reg1, reg2));
             }
             Opcode::Xor => {
-                let reg1 = match operand1 {
-                    Operand::Register { reg } => reg_to_num(reg),
-                    x => return Err(format!("unexpected operand: {:?}", x)),
-                };
+                let reg1 = expect_register(operand1)?;
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x31);
@@ -169,10 +157,7 @@ impl Generator {
                 }
             }
             Opcode::Mov => {
-                let reg1 = match operand1 {
-                    Operand::Register { reg } => reg_to_num(reg),
-                    x => return Err(format!("unexpected operand: {:?}", x)),
-                };
+                let reg1 = expect_register(operand1)?;
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x8B);
@@ -186,10 +171,7 @@ impl Generator {
                 }
             }
             Opcode::And => {
-                let reg1 = match operand1 {
-                    Operand::Register { reg } => reg_to_num(reg),
-                    x => return Err(format!("unexpected operand: {:?}", x)),
-                };
+                let reg1 = expect_register(operand1)?;
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x23);
@@ -203,10 +185,7 @@ impl Generator {
                 }
             }
             Opcode::Or => {
-                let reg1 = match operand1 {
-                    Operand::Register { reg } => reg_to_num(reg),
-                    x => return Err(format!("unexpected operand: {:?}", x)),
-                };
+                let reg1 = expect_register(operand1)?;
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x09);
@@ -275,4 +254,11 @@ fn reg_to_num(reg: Register) -> u8 {
 
 fn calc_modrm(modval: u8, reg: u8, rm: u8) -> u8 {
     modval << 6 | reg << 3 | rm
+}
+
+fn expect_register(operand: Operand) -> Result<u8, String> {
+    match operand {
+        Operand::Register { reg } => Ok(reg_to_num(reg)),
+        x => Err(format!("unexpected operand: {:?}", x)),
+    }
 }
