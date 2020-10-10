@@ -61,20 +61,22 @@ impl Generator {
                     self.gen(value as u8);
                 }
                 Operand::Register { reg } => {
-                    self.gen(0x50 + reg_to_num(reg));
+                    let reg: u8 = reg.into();
+                    self.gen(0x50 + reg);
                 }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::Pop => match operand {
                 Operand::Register { reg } => {
-                    self.gen(0x58 + reg_to_num(reg));
+                    let reg: u8 = reg.into();
+                    self.gen(0x58 + reg);
                 }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::IDiv => match operand {
                 Operand::Register { reg } => {
                     self.gen(0xF7);
-                    self.gen(calc_modrm(0b11, 0b111, reg_to_num(reg)));
+                    self.gen(calc_modrm(0b11, 0b111, reg.into()));
                 }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
@@ -106,7 +108,7 @@ impl Generator {
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x01);
-                        self.gen(calc_modrm(0b11, reg_to_num(reg2), reg1));
+                        self.gen(calc_modrm(0b11, reg2.into(), reg1));
                     }
                     Operand::Immidiate { value } => {
                         self.gen(0x83);
@@ -121,7 +123,7 @@ impl Generator {
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x29);
-                        self.gen(calc_modrm(0b11, reg_to_num(reg2), reg1));
+                        self.gen(calc_modrm(0b11, reg2.into(), reg1));
                     }
                     Operand::Immidiate { value } => {
                         self.gen(0x83);
@@ -134,7 +136,7 @@ impl Generator {
             Opcode::IMul => {
                 let reg1 = expect_register(operand1)?;
                 let reg2 = match operand2 {
-                    Operand::Register { reg } => reg_to_num(reg),
+                    Operand::Register { reg } => reg.into(),
                     x => return Err(format!("unexpected operand: {:?}", x)),
                 };
                 self.gen(0x0F);
@@ -146,7 +148,7 @@ impl Generator {
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x31);
-                        self.gen(calc_modrm(0b11, reg_to_num(reg2), reg1));
+                        self.gen(calc_modrm(0b11, reg2.into(), reg1));
                     }
                     Operand::Immidiate { value } => {
                         self.gen(0x83);
@@ -161,7 +163,7 @@ impl Generator {
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x8B);
-                        self.gen(calc_modrm(0b11, reg1, reg_to_num(reg2)));
+                        self.gen(calc_modrm(0b11, reg1, reg2.into()));
                     }
                     Operand::Immidiate { value } => {
                         self.gen(0xB8 + reg1);
@@ -175,7 +177,7 @@ impl Generator {
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x23);
-                        self.gen(calc_modrm(0b11, reg1, reg_to_num(reg2)));
+                        self.gen(calc_modrm(0b11, reg1, reg2.into()));
                     }
                     Operand::Immidiate { value } => {
                         self.gen(0x81);
@@ -189,7 +191,7 @@ impl Generator {
                 match operand2 {
                     Operand::Register { reg: reg2 } => {
                         self.gen(0x09);
-                        self.gen(calc_modrm(0b11, reg1, reg_to_num(reg2)));
+                        self.gen(calc_modrm(0b11, reg1, reg2.into()));
                     }
                     Operand::Immidiate { value } => {
                         self.gen(0x83);
@@ -239,26 +241,13 @@ impl Generator {
     }
 }
 
-fn reg_to_num(reg: Register) -> u8 {
-    match reg {
-        Register::Eax => 0,
-        Register::Ecx => 1,
-        Register::Edx => 2,
-        Register::Ebx => 3,
-        Register::Esp => 4,
-        Register::Ebp => 5,
-        Register::Esi => 6,
-        Register::Edi => 7,
-    }
-}
-
 fn calc_modrm(modval: u8, reg: u8, rm: u8) -> u8 {
     modval << 6 | reg << 3 | rm
 }
 
 fn expect_register(operand: Operand) -> Result<u8, String> {
     match operand {
-        Operand::Register { reg } => Ok(reg_to_num(reg)),
+        Operand::Register { reg } => Ok(reg.into()),
         x => Err(format!("unexpected operand: {:?}", x)),
     }
 }
