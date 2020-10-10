@@ -120,6 +120,11 @@ fn find_keyword(ident: &String) -> Option<Token> {
         "cmp" => Some(Token::Cmp),
         "sete" => Some(Token::Sete),
         "je" => Some(Token::Je),
+        "setne" => Some(Token::Setne),
+        "setl" => Some(Token::Setl),
+        "setle" => Some(Token::Setle),
+        "setg" => Some(Token::Setg),
+        "setge" => Some(Token::Setge),
 
         "eax" => Some(Token::Eax),
         "ecx" => Some(Token::Ecx),

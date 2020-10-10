@@ -55,7 +55,17 @@ impl Parser {
         let opcode = token_to_opcode(token)?;
         match token {
             Token::Ret => Ok(Instruction::NullaryOp(opcode)),
-            Token::Push | Token::Pop | Token::IDiv | Token::Jmp | Token::Sete | Token::Je => {
+            Token::Push
+            | Token::Pop
+            | Token::IDiv
+            | Token::Jmp
+            | Token::Sete
+            | Token::Je
+            | Token::Setne
+            | Token::Setl
+            | Token::Setle
+            | Token::Setg
+            | Token::Setge => {
                 let operand1 = self.parse_operand()?;
                 Ok(Instruction::UnaryOp(opcode, operand1))
             }
@@ -150,6 +160,11 @@ fn token_to_opcode(token: &Token) -> Result<Opcode, String> {
         Token::Cmp => Ok(Opcode::Cmp),
         Token::Sete => Ok(Opcode::Sete),
         Token::Je => Ok(Opcode::Je),
+        Token::Setne => Ok(Opcode::Setne),
+        Token::Setl => Ok(Opcode::Setl),
+        Token::Setle => Ok(Opcode::Setle),
+        Token::Setg => Ok(Opcode::Setg),
+        Token::Setge => Ok(Opcode::Setge),
         x => Err(format!("unexpected token: {:?}", x)),
     }
 }

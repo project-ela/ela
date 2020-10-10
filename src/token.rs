@@ -21,6 +21,11 @@ pub enum Token {
     Cmp,
     Sete,
     Je,
+    Setne,
+    Setl,
+    Setle,
+    Setg,
+    Setge,
 
     Eax,
     Ecx,
