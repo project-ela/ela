@@ -20,6 +20,7 @@ pub enum Opcode {
     Mov,
     Jmp,
     And,
+    Or,
 }
 
 #[derive(Debug)]

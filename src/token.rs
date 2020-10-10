@@ -17,6 +17,7 @@ pub enum Token {
     Mov,
     Jmp,
     And,
+    Or,
 
     Eax,
     Ecx,
