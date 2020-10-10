@@ -118,6 +118,7 @@ fn find_keyword(ident: &String) -> Option<Token> {
         "and" => Some(Token::And),
         "or" => Some(Token::Or),
         "cmp" => Some(Token::Cmp),
+        "sete" => Some(Token::Sete),
 
         "eax" => Some(Token::Eax),
         "ecx" => Some(Token::Ecx),
@@ -127,6 +128,11 @@ fn find_keyword(ident: &String) -> Option<Token> {
         "ebp" => Some(Token::Ebp),
         "esi" => Some(Token::Esi),
         "edi" => Some(Token::Edi),
+
+        "al" => Some(Token::Al),
+        "cl" => Some(Token::Cl),
+        "dl" => Some(Token::Dl),
+        "bl" => Some(Token::Bl),
 
         _ => None,
     }

@@ -19,6 +19,7 @@ pub enum Token {
     And,
     Or,
     Cmp,
+    Sete,
 
     Eax,
     Ecx,
@@ -28,6 +29,11 @@ pub enum Token {
     Ebp,
     Esi,
     Edi,
+
+    Al,
+    Cl,
+    Dl,
+    Bl,
 
     EOF,
 }

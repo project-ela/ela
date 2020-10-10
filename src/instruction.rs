@@ -22,6 +22,7 @@ pub enum Opcode {
     And,
     Or,
     Cmp,
+    Sete,
 }
 
 #[derive(Debug)]
@@ -41,10 +42,41 @@ pub enum Register {
     Ebp,
     Esi,
     Edi,
+
+    Al,
+    Cl,
+    Dl,
+    Bl,
 }
 
-impl Into<u8> for Register {
-    fn into(self) -> u8 {
-        self as u8
+#[derive(Eq, PartialEq)]
+pub enum RegSize {
+    Byte,
+    Word,
+    DWord,
+    QWord,
+}
+
+impl Register {
+    pub fn size(&self) -> RegSize {
+        use self::Register::*;
+        match self {
+            Eax | Ecx | Edx | Ebx | Esp | Ebp | Esi | Edi => RegSize::DWord,
+            Al | Cl | Dl | Bl => RegSize::Byte,
+        }
+    }
+
+    pub fn number(self) -> u8 {
+        use self::Register::*;
+        match self {
+            Eax | Al => 0,
+            Ecx | Cl => 1,
+            Edx | Dl => 2,
+            Ebx | Bl => 3,
+            Esp => 4,
+            Ebp => 5,
+            Esi => 6,
+            Edi => 7,
+        }
     }
 }

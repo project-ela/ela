@@ -1,4 +1,4 @@
-use crate::instruction::{Instruction, Opcode, Operand, Register};
+use crate::instruction::{Instruction, Opcode, Operand, Register, RegSize};
 use std::collections::HashMap;
 
 struct Generator {
@@ -152,6 +152,14 @@ impl Generator {
                     x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
             }
+            Opcode::Sete => {
+                let reg1 = expect_register(operand1)?;
+                if reg1.size() != RegSize::Byte {
+                    return Err(format!("expected r8"));
+                }
+                self.gen(0x0F);
+                self.gen_m(0x94, 0, reg1);
+            }
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
         Ok(())
@@ -163,13 +171,12 @@ impl Generator {
     }
 
     fn gen_o(&mut self, opcode: u8, reg: Register) {
-        let reg: u8 = reg.into();
-        self.gen(opcode + reg);
+        self.gen(opcode + reg.number());
     }
 
     fn gen_m(&mut self, opcode: u8, reg: u8, r: Register) {
         self.gen(opcode);
-        self.gen(calc_modrm(0b11, reg, r.into()));
+        self.gen(calc_modrm(0b11, reg, r.number()));
     }
 
     fn gen_d(&mut self, opcode: u8, offset: u8) {
@@ -179,23 +186,22 @@ impl Generator {
 
     fn gen_mr(&mut self, opcode: u8, opr1: Register, opr2: Register) {
         self.gen(opcode);
-        self.gen(calc_modrm(0b11, opr2.into(), opr1.into()));
+        self.gen(calc_modrm(0b11, opr2.number(), opr1.number()));
     }
 
     fn gen_mi(&mut self, opcode: u8, reg: u8, opr1: Register, opr2: u32) {
         self.gen(opcode);
-        self.gen(calc_modrm(0b11, reg, opr1.into()));
+        self.gen(calc_modrm(0b11, reg, opr1.number()));
         self.gen(opr2 as u8);
     }
 
     fn gen_rm(&mut self, opcode: u8, opr1: Register, opr2: Register) {
         self.gen(opcode);
-        self.gen(calc_modrm(0b11, opr1.into(), opr2.into()));
+        self.gen(calc_modrm(0b11, opr1.number(), opr2.number()));
     }
 
     fn gen_oi(&mut self, opcode: u8, opr1: Register, opr2: u32) {
-        let opr1: u8 = opr1.into();
-        self.gen(opcode + opr1);
+        self.gen(opcode + opr1.number());
         self.gen32(opr2);
     }
 
