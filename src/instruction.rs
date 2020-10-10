@@ -41,3 +41,9 @@ pub enum Register {
     Esi,
     Edi,
 }
+
+impl Into<u8> for Register {
+    fn into(self) -> u8 {
+        self as u8
+    }
+}
