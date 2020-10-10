@@ -19,6 +19,7 @@ pub enum Token {
     And,
     Or,
     Cmp,
+    Sete,
 
     Eax,
     Ecx,

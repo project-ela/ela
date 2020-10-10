@@ -1,4 +1,4 @@
-use crate::instruction::{Instruction, Opcode, Operand, Register};
+use crate::instruction::{Instruction, Opcode, Operand, Register, RegSize};
 use std::collections::HashMap;
 
 struct Generator {
@@ -151,6 +151,14 @@ impl Generator {
                     Operand::Immidiate { value } => self.gen_mi(0x83, 7, reg1, value),
                     x => return Err(format!("unexpected opcode: {:?}", x)),
                 }
+            }
+            Opcode::Sete => {
+                let reg1 = expect_register(operand1)?;
+                if reg1.size() != RegSize::Byte {
+                    return Err(format!("expected r8"));
+                }
+                self.gen(0x0F);
+                self.gen_m(0x94, 0, reg1);
             }
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
