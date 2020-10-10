@@ -43,8 +43,18 @@ pub enum Register {
     Edi,
 }
 
-impl Into<u8> for Register {
-    fn into(self) -> u8 {
-        self as u8
+impl Register {
+    pub fn number(self) -> u8 {
+        use self::Register::*;
+        match self {
+            Eax | Al => 0,
+            Ecx | Cl => 1,
+            Edx | Dl => 2,
+            Ebx | Bl => 3,
+            Esp => 4,
+            Ebp => 5,
+            Esi => 6,
+            Edi => 7,
+        }
     }
 }
