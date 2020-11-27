@@ -83,6 +83,7 @@ impl TacGen {
             self.ctx.add_variable(param.name.to_owned(), operand);
             tac_func.params.push(self.param_index - 1);
         }
+        tac_func.new_block(format!(".L.{}.entry", func.name));
         self.gen_statement(func.body, &mut tac_func)?;
         Ok(tac_func)
     }
@@ -119,14 +120,14 @@ impl TacGen {
                     Some(value) => Some(self.gen_expression(*value, func)?),
                     None => None,
                 };
-                func.body.push(Tac::Ret { src });
+                func.push(Tac::Ret { src });
             }
             StatementKind::If { cond, then, els } => {
                 let label1 = self.next_label();
 
                 let cond = self.gen_expression(*cond, func)?;
-                func.body.push(Tac::JumpIfNot {
-                    label_index: label1,
+                func.push(Tac::JumpIfNot {
+                    label: label1.to_owned(),
                     cond,
                 });
                 self.gen_statement(*then, func)?;
@@ -134,14 +135,14 @@ impl TacGen {
                 if let Some(els) = els {
                     let label2 = self.next_label();
 
-                    func.body.push(Tac::Jump {
-                        label_index: label2,
+                    func.push(Tac::Jump {
+                        label: label2.to_owned(),
                     });
-                    func.body.push(Tac::Label { index: label1 });
+                    func.new_block(label1.to_owned());
                     self.gen_statement(*els, func)?;
-                    func.body.push(Tac::Label { index: label2 });
+                    func.new_block(label2);
                 } else {
-                    func.body.push(Tac::Label { index: label1 });
+                    func.new_block(label1);
                 }
             }
             StatementKind::While { cond, body } => {
@@ -149,20 +150,18 @@ impl TacGen {
                 let label2 = self.next_label();
 
                 // condition
-                func.body.push(Tac::Label { index: label1 });
+                func.new_block(label1.to_owned());
                 let cond = self.gen_expression(*cond, func)?;
-                func.body.push(Tac::JumpIfNot {
-                    label_index: label2,
+                func.push(Tac::JumpIfNot {
+                    label: label2.to_owned(),
                     cond,
                 });
 
                 // body
                 self.gen_statement(*body, func)?;
-                func.body.push(Tac::Jump {
-                    label_index: label1,
-                });
+                func.push(Tac::Jump { label: label1 });
 
-                func.body.push(Tac::Label { index: label2 });
+                func.new_block(label2);
             }
             StatementKind::Call { name, args } => self.gen_call(None, name, args, func)?,
         }
@@ -177,7 +176,7 @@ impl TacGen {
         match expr.kind {
             ExpressionKind::Integer { value } => {
                 let dst = self.next_reg();
-                func.body.push(Tac::Move {
+                func.push(Tac::Move {
                     dst: dst.clone(),
                     src: Operand::Const(value),
                 });
@@ -185,7 +184,7 @@ impl TacGen {
             }
             ExpressionKind::Bool { value } => {
                 let dst = self.next_reg();
-                func.body.push(Tac::Move {
+                func.push(Tac::Move {
                     dst: dst.clone(),
                     src: Operand::Const(value as i32),
                 });
@@ -194,7 +193,7 @@ impl TacGen {
             ExpressionKind::Ident { name } => {
                 let operand = self.ctx.find_variable(&name);
                 let dst = self.next_reg();
-                func.body.push(Tac::Move {
+                func.push(Tac::Move {
                     dst: dst.clone(),
                     src: operand,
                 });
@@ -202,7 +201,7 @@ impl TacGen {
             }
             ExpressionKind::UnaryOp { op, expr } => {
                 let src = self.gen_expression(*expr, func)?;
-                func.body.push(Tac::UnOp {
+                func.push(Tac::UnOp {
                     op,
                     src: src.clone(),
                 });
@@ -212,7 +211,7 @@ impl TacGen {
                 let lhs = self.gen_expression(*lhs, func)?;
                 let rhs = self.gen_expression(*rhs, func)?;
                 let dst = self.next_reg();
-                func.body.push(Tac::BinOp {
+                func.push(Tac::BinOp {
                     op,
                     dst: dst.clone(),
                     lhs,
@@ -236,11 +235,11 @@ impl TacGen {
     ) -> Result<(), Error> {
         let src = self.gen_expression(src, func)?;
         let src_reg = self.next_reg();
-        func.body.push(Tac::Move {
+        func.push(Tac::Move {
             dst: src_reg.clone(),
             src,
         });
-        func.body.push(Tac::Move { dst, src: src_reg });
+        func.push(Tac::Move { dst, src: src_reg });
         Ok(())
     }
 
@@ -255,7 +254,7 @@ impl TacGen {
         for arg in args {
             arg_operands.push(self.gen_expression(arg, func)?);
         }
-        func.body.push(Tac::Call {
+        func.push(Tac::Call {
             dst,
             name,
             args: arg_operands,
@@ -280,10 +279,10 @@ impl TacGen {
         })
     }
 
-    fn next_label(&mut self) -> u32 {
+    fn next_label(&mut self) -> String {
         let cur_label = self.label;
         self.label += 1;
-        cur_label
+        format!(".L.{}", cur_label)
     }
 
     fn alloc_stack_local(&mut self) -> Operand {
@@ -294,5 +293,16 @@ impl TacGen {
     fn next_param(&mut self) -> Operand {
         self.param_index += 1;
         Operand::Parameter(self.param_index - 1)
+    }
+}
+
+impl TacFunction {
+    fn push(&mut self, tac: Tac) {
+        let last_block = self.blocks.last_mut().unwrap();
+        last_block.tacs.push(tac);
+    }
+
+    fn new_block(&mut self, name: String) {
+        self.blocks.push(TacBlock::new(name));
     }
 }

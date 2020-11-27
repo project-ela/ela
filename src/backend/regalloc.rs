@@ -27,51 +27,54 @@ impl RegAlloc {
 
     fn alloc_register(&mut self, mut program: TacProgram) -> Result<TacProgram, Error> {
         for function in program.functions.iter_mut() {
-            for tac in function.body.iter_mut() {
-                match tac {
-                    Tac::Label { .. } => {}
-                    Tac::UnOp { op: _, ref mut src } => {
-                        self.get_operand(src, false);
-                    }
-                    Tac::BinOp {
-                        op: _,
-                        ref mut dst,
-                        ref mut lhs,
-                        ref mut rhs,
-                    } => {
-                        self.get_operand(lhs, true);
-                        self.get_operand(rhs, true);
-                        self.alloc_operand(dst)?;
-                    }
-                    Tac::Call { dst, name: _, args } => {
-                        for arg in args {
-                            self.get_operand(arg, true);
-                        }
-                        if let Some(dst) = dst {
-                            self.alloc_operand(dst)?;
-                        }
-                    }
-                    Tac::Move { dst, src } => {
-                        self.get_operand(src, true);
-                        self.alloc_operand(dst)?;
-                    }
-                    Tac::Jump { .. } => {}
-                    Tac::JumpIfNot {
-                        label_index: _,
-                        cond,
-                    } => {
-                        self.get_operand(cond, true);
-                    }
-                    Tac::Ret { src } => {
-                        if let Some(src) = src {
-                            self.get_operand(src, true);
-                        }
-                    }
-                }
+            for block in function.blocks.iter_mut() {
+                self.alloc_register_block(block)?;
             }
             self.reg_map.clear();
         }
         Ok(program)
+    }
+
+    fn alloc_register_block(&mut self, block: &mut TacBlock) -> Result<(), Error> {
+        for tac in block.tacs.iter_mut() {
+            match tac {
+                Tac::UnOp { op: _, ref mut src } => {
+                    self.get_operand(src, false);
+                }
+                Tac::BinOp {
+                    op: _,
+                    ref mut dst,
+                    ref mut lhs,
+                    ref mut rhs,
+                } => {
+                    self.get_operand(lhs, true);
+                    self.get_operand(rhs, true);
+                    self.alloc_operand(dst)?;
+                }
+                Tac::Call { dst, name: _, args } => {
+                    for arg in args {
+                        self.get_operand(arg, true);
+                    }
+                    if let Some(dst) = dst {
+                        self.alloc_operand(dst)?;
+                    }
+                }
+                Tac::Move { dst, src } => {
+                    self.get_operand(src, true);
+                    self.alloc_operand(dst)?;
+                }
+                Tac::Jump { .. } => {}
+                Tac::JumpIfNot { label: _, cond } => {
+                    self.get_operand(cond, true);
+                }
+                Tac::Ret { src } => {
+                    if let Some(src) = src {
+                        self.get_operand(src, true);
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     fn alloc_operand(&mut self, operand: &mut Operand) -> Result<(), Error> {

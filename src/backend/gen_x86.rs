@@ -48,8 +48,11 @@ impl GenX86 {
         self.gen("  push r13");
         self.gen("  push r14");
         self.gen("  push r15");
-        for tac in function.body {
-            self.gen_tac(tac, &function.name)?;
+        for block in function.blocks {
+            self.gen(format!("{}:", block.name).as_str());
+            for tac in block.tacs {
+                self.gen_tac(tac, &function.name)?;
+            }
         }
         self.gen(format!(".L.{}.ret:", function.name).as_str());
         self.gen("  pop r15");
@@ -64,7 +67,6 @@ impl GenX86 {
 
     fn gen_tac(&mut self, tac: Tac, func_name: &str) -> Result<(), Error> {
         match tac {
-            Tac::Label { index } => self.gen(format!(".L.{}:", index).as_str()),
             Tac::UnOp { op, src } => match op {
                 UnaryOperator::Not => {
                     self.gen(format!("  cmp {}, 0", opr(&src)).as_str());
@@ -108,10 +110,10 @@ impl GenX86 {
             Tac::Move { dst, src } => {
                 self.gen(format!("  mov {}, {}", opr(&dst), opr(&src)).as_str())
             }
-            Tac::Jump { label_index } => self.gen(format!("  jmp .L.{}", label_index).as_str()),
-            Tac::JumpIfNot { label_index, cond } => {
+            Tac::Jump { label } => self.gen(format!("  jmp {}", label).as_str()),
+            Tac::JumpIfNot { label, cond } => {
                 self.gen(format!("  cmp {}, 0", opr(&cond)).as_str());
-                self.gen(format!("  je .L.{}", label_index).as_str());
+                self.gen(format!("  je {}", label).as_str());
             }
             Tac::Ret { src } => {
                 if let Some(src) = src {
