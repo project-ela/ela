@@ -48,8 +48,14 @@ impl GenX86 {
         self.gen("  push r13");
         self.gen("  push r14");
         self.gen("  push r15");
-        for tac in function.body {
-            self.gen_tac(tac, &function.name)?;
+        for block in function.blocks {
+            self.gen(format!("{}:", block.name).as_str());
+            for tac in block.tacs {
+                self.gen_tac(&tac, &function.name)?;
+                if is_terminate_inst(&tac) {
+                    break;
+                }
+            }
         }
         self.gen(format!(".L.{}.ret:", function.name).as_str());
         self.gen("  pop r15");
@@ -62,18 +68,17 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_tac(&mut self, tac: Tac, func_name: &str) -> Result<(), Error> {
+    fn gen_tac(&mut self, tac: &Tac, func_name: &str) -> Result<(), Error> {
         match tac {
-            Tac::Label { index } => self.gen(format!(".L.{}:", index).as_str()),
             Tac::UnOp { op, src } => match op {
                 UnaryOperator::Not => {
-                    self.gen(format!("  cmp {}, 0", opr(&src)).as_str());
-                    self.gen(format!("  sete {}", opr8(&src)).as_str());
+                    self.gen(format!("  cmp {}, 0", opr(src)).as_str());
+                    self.gen(format!("  sete {}", opr8(src)).as_str());
                 }
             },
             Tac::BinOp { op, dst, lhs, rhs } => {
                 // r0 = r1 <op> r2 -> r1 = r0; r1 = r1 <op> r2
-                self.gen(format!("  mov {}, {}", opr(&dst), opr(&lhs)).as_str());
+                self.gen(format!("  mov {}, {}", opr(dst), opr(lhs)).as_str());
 
                 match op {
                     BinaryOperator::Add => self.gen_binop("add", dst, rhs),
@@ -101,21 +106,21 @@ impl GenX86 {
                     for reg in PARAM_REGS.iter().take(args.len()).rev() {
                         self.gen(format!("  pop {}", reg.dump()).as_str());
                     }
-                    self.gen(format!("  mov {}, rax", opr(&dst)).as_str());
+                    self.gen(format!("  mov {}, rax", opr(dst)).as_str());
                 }
                 None => self.gen(format!("  call {}", name).as_str()),
             },
             Tac::Move { dst, src } => {
-                self.gen(format!("  mov {}, {}", opr(&dst), opr(&src)).as_str())
+                self.gen(format!("  mov {}, {}", opr(dst), opr(src)).as_str())
             }
-            Tac::Jump { label_index } => self.gen(format!("  jmp .L.{}", label_index).as_str()),
-            Tac::JumpIfNot { label_index, cond } => {
-                self.gen(format!("  cmp {}, 0", opr(&cond)).as_str());
-                self.gen(format!("  je .L.{}", label_index).as_str());
+            Tac::Jump { label } => self.gen(format!("  jmp {}", label).as_str()),
+            Tac::JumpIfNot { label, cond } => {
+                self.gen(format!("  cmp {}, 0", opr(cond)).as_str());
+                self.gen(format!("  je {}", label).as_str());
             }
             Tac::Ret { src } => {
                 if let Some(src) = src {
-                    self.gen(format!("  mov rax, {}", opr(&src)).as_str());
+                    self.gen(format!("  mov rax, {}", opr(src)).as_str());
                 }
                 self.gen(format!("  jmp .L.{}.ret", func_name).as_str());
             }
@@ -125,31 +130,38 @@ impl GenX86 {
 
     fn gen_args(&mut self, args: &Vec<Operand>) {
         for (arg, reg) in (&args).iter().zip(&PARAM_REGS) {
-            self.gen(format!("  mov {}, {}", reg.dump(), opr(&arg)).as_str());
+            self.gen(format!("  mov {}, {}", reg.dump(), opr(arg)).as_str());
         }
         // TODO: when args.len() > 6
     }
 
-    fn gen_binop(&mut self, op: &str, lhs: Operand, rhs: Operand) {
-        self.gen(format!("  {} {}, {}", op, opr(&lhs), opr(&rhs)).as_str())
+    fn gen_binop(&mut self, op: &str, lhs: &Operand, rhs: &Operand) {
+        self.gen(format!("  {} {}, {}", op, opr(lhs), opr(rhs)).as_str())
     }
 
-    fn gen_div(&mut self, lhs: Operand, rhs: Operand) {
-        self.gen(format!("  mov rax, {}", opr(&lhs)).as_str());
-        self.gen(format!("  mov rcx, {}", opr(&rhs)).as_str());
+    fn gen_div(&mut self, lhs: &Operand, rhs: &Operand) {
+        self.gen(format!("  mov rax, {}", opr(lhs)).as_str());
+        self.gen(format!("  mov rcx, {}", opr(rhs)).as_str());
         self.gen("  xor rdx, rdx");
         self.gen("  idiv rcx");
-        self.gen(format!("  mov {}, rax", opr(&lhs)).as_str());
+        self.gen(format!("  mov {}, rax", opr(lhs)).as_str());
     }
 
-    fn gen_compare(&mut self, op: &str, lhs: Operand, rhs: Operand) {
-        self.gen(format!("  cmp {}, {}", opr(&lhs), opr(&rhs)).as_str());
-        self.gen(format!("  {} {}", op, opr8(&lhs)).as_str());
+    fn gen_compare(&mut self, op: &str, lhs: &Operand, rhs: &Operand) {
+        self.gen(format!("  cmp {}, {}", opr(lhs), opr(rhs)).as_str());
+        self.gen(format!("  {} {}", op, opr8(lhs)).as_str());
     }
 
     fn gen(&mut self, s: &str) {
         self.output.push_str(s);
         self.output.push_str("\n");
+    }
+}
+
+fn is_terminate_inst(tac: &Tac) -> bool {
+    match tac {
+        Tac::Ret { .. } | Tac::Jump { .. } => true,
+        _ => false,
     }
 }
 

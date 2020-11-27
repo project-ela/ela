@@ -9,7 +9,7 @@ pub struct TacProgram {
 pub struct TacFunction {
     pub name: String,
     pub params: Vec<u32>,
-    pub body: Vec<Tac>,
+    pub blocks: Vec<TacBlock>,
     pub stack_offset: u32,
 }
 
@@ -23,8 +23,23 @@ impl TacFunction {
         Self {
             name,
             params: Vec::new(),
-            body: Vec::new(),
+            blocks: Vec::new(),
             stack_offset: 0,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct TacBlock {
+    pub name: String,
+    pub tacs: Vec<Tac>,
+}
+
+impl TacBlock {
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            tacs: Vec::new(),
         }
     }
 }
@@ -51,14 +66,11 @@ pub enum Tac {
         src: Operand,
     },
     Jump {
-        label_index: u32,
+        label: String,
     },
     JumpIfNot {
-        label_index: u32,
+        label: String,
         cond: Operand,
-    },
-    Label {
-        index: u32,
     },
     Ret {
         src: Option<Operand>,
@@ -130,9 +142,8 @@ impl TacFunction {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         s.push_str(format!("func {}({}) {{\n", self.name, self.dump_params()).as_str());
-        for tac in &self.body {
-            s.push_str(tac.dump().as_str());
-            s.push('\n');
+        for block in &self.blocks {
+            s.push_str(block.dump().as_str());
         }
         s.push_str("}\n");
         s
@@ -144,6 +155,18 @@ impl TacFunction {
             .map(|offset| format!("param({})", offset))
             .collect::<Vec<String>>()
             .join(", ")
+    }
+}
+
+impl TacBlock {
+    pub fn dump(&self) -> String {
+        let mut s = String::new();
+        s.push_str(format!("{}:\n", self.name).as_str());
+        for tac in &self.tacs {
+            s.push_str(tac.dump().as_str());
+            s.push('\n');
+        }
+        s
     }
 }
 
@@ -166,11 +189,10 @@ impl Tac {
                 }
             }
             Tac::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
-            Tac::Jump { label_index } => format!("  jmp label {}", label_index),
-            Tac::JumpIfNot { label_index, cond } => {
-                format!("  jmpifnot {}, label {}", cond.dump(), label_index)
+            Tac::Jump { label } => format!("  jmp label {}", label),
+            Tac::JumpIfNot { label, cond } => {
+                format!("  jmpifnot {}, label {}", cond.dump(), label)
             }
-            Tac::Label { index } => format!("{}:", index),
             Tac::Ret { src } => match src {
                 Some(src) => format!("  ret {}", src.dump()),
                 None => "  ret".to_string(),
