@@ -7,7 +7,7 @@ use crate::{
 };
 use std::collections::HashMap;
 
-const REGS: [Register; 4] = [Register::Eax, Register::Ecx, Register::Edx, Register::Ebx];
+const REGS: [Register; 4] = [Register::R12, Register::R13, Register::R14, Register::R15];
 
 struct RegAlloc {
     reg_map: HashMap<u32, Register>,
@@ -48,7 +48,7 @@ impl RegAlloc {
                             self.get_operand(arg, true);
                         }
                         if let Some(dst) = dst {
-                            self.alloc_operand(dst);
+                            self.alloc_operand(dst)?;
                         }
                     }
                     Tac::Move { dst, src } => {

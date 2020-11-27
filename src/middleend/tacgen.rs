@@ -9,7 +9,7 @@ struct TacGen {
     label: u32,
 
     stack_offset_local: u32,
-    stack_offset_param: u32,
+    param_index: u32,
 
     ctx: Context,
 }
@@ -62,7 +62,7 @@ impl TacGen {
             reg: 0,
             label: 0,
             stack_offset_local: 0,
-            stack_offset_param: 4,
+            param_index: 0,
             ctx: Context::new(),
         }
     }
@@ -79,9 +79,9 @@ impl TacGen {
         self.init();
         let mut tac_func = TacFunction::new(func.name.to_owned());
         for param in &func.params {
-            let operand = self.alloc_stack_param();
+            let operand = self.next_param();
             self.ctx.add_variable(param.name.to_owned(), operand);
-            tac_func.params.push(self.stack_offset_param);
+            tac_func.params.push(self.param_index - 1);
         }
         self.gen_statement(func.body, &mut tac_func)?;
         Ok(tac_func)
@@ -267,7 +267,7 @@ impl TacGen {
         self.reg = 0;
         self.label = 0;
         self.stack_offset_local = 0;
-        self.stack_offset_param = 4; // because of ebp
+        self.param_index = 0; // because of ebp
         self.ctx.clear();
     }
 
@@ -287,12 +287,12 @@ impl TacGen {
     }
 
     fn alloc_stack_local(&mut self) -> Operand {
-        self.stack_offset_local += 4;
+        self.stack_offset_local += 8;
         Operand::Variable(self.stack_offset_local)
     }
 
-    fn alloc_stack_param(&mut self) -> Operand {
-        self.stack_offset_param += 4;
-        Operand::Parameter(self.stack_offset_param)
+    fn next_param(&mut self) -> Operand {
+        self.param_index += 1;
+        Operand::Parameter(self.param_index - 1)
     }
 }
