@@ -48,7 +48,7 @@ impl RegAlloc {
                             self.get_operand(arg, true);
                         }
                         if let Some(dst) = dst {
-                            self.alloc_operand(dst);
+                            self.alloc_operand(dst)?;
                         }
                     }
                     Tac::Move { dst, src } => {
