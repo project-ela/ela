@@ -7,7 +7,7 @@ do_try() {
 
   echo "$source" | tee tmp.vd
   cargo run -- $option tmp.vd tmp.s 2> /dev/null
-  gcc -m32 tmp.s -o tmp
+  gcc tmp.s -o tmp
   ./tmp
   actual=$?
   if [ "$actual" != "$expected" ]; then

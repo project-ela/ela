@@ -6,6 +6,15 @@ use crate::{
     middleend::tacgen::tac::*,
 };
 
+const PARAM_REGS: [Register; 6] = [
+    Register::Rdi,
+    Register::Rsi,
+    Register::Rdx,
+    Register::Rcx,
+    Register::R8,
+    Register::R9,
+];
+
 struct GenX86 {
     output: String,
 }
@@ -33,20 +42,22 @@ impl GenX86 {
     fn gen_function(&mut self, function: TacFunction) -> Result<(), Error> {
         self.gen(format!(".global {}", function.name).as_str());
         self.gen(format!("{}:", function.name).as_str());
-        self.gen("  push ebp");
-        self.gen("  mov ebp, esp");
-        self.gen("  push ecx");
-        self.gen("  push edx");
-        self.gen("  push ebx");
+        self.gen("  push rbp");
+        self.gen("  mov rbp, rsp");
+        self.gen("  push r12");
+        self.gen("  push r13");
+        self.gen("  push r14");
+        self.gen("  push r15");
         for tac in function.body {
             self.gen_tac(tac, &function.name)?;
         }
         self.gen(format!(".L.{}.ret:", function.name).as_str());
-        self.gen("  pop ebx");
-        self.gen("  pop edx");
-        self.gen("  pop ecx");
-        self.gen("  mov esp, ebp");
-        self.gen("  pop ebp");
+        self.gen("  pop r15");
+        self.gen("  pop r14");
+        self.gen("  pop r13");
+        self.gen("  pop r12");
+        self.gen("  mov rsp, rbp");
+        self.gen("  pop rbp");
         self.gen("  ret");
         Ok(())
     }
@@ -82,23 +93,15 @@ impl GenX86 {
             }
             Tac::Call { dst, name, args } => match dst {
                 Some(dst) => {
-                    let mut is_eax = false;
-                    if let Operand::Reg(reg) = &dst {
-                        if reg.physical_index.unwrap() == Register::Rax {
-                            is_eax = true;
-                        }
+                    for reg in PARAM_REGS.iter().take(args.len()) {
+                        self.gen(format!("  push {}", reg.dump()).as_str());
                     }
-                    if !is_eax {
-                        self.gen("  push eax");
-                    }
-                    for arg in &args {
-                        self.gen(format!("  push {}", opr(&arg)).as_str())
-                    }
+                    self.gen_args(&args);
                     self.gen(format!("  call {}", name).as_str());
-                    self.gen(format!("  mov {}, eax", opr(&dst)).as_str());
-                    if !is_eax {
-                        self.gen("  pop eax");
+                    for reg in PARAM_REGS.iter().take(args.len()).rev() {
+                        self.gen(format!("  pop {}", reg.dump()).as_str());
                     }
+                    self.gen(format!("  mov {}, rax", opr(&dst)).as_str());
                 }
                 None => self.gen(format!("  call {}", name).as_str()),
             },
@@ -112,7 +115,7 @@ impl GenX86 {
             }
             Tac::Ret { src } => {
                 if let Some(src) = src {
-                    self.gen(format!("  mov eax, {}", opr(&src)).as_str());
+                    self.gen(format!("  mov rax, {}", opr(&src)).as_str());
                 }
                 self.gen(format!("  jmp .L.{}.ret", func_name).as_str());
             }
@@ -120,32 +123,23 @@ impl GenX86 {
         Ok(())
     }
 
+    fn gen_args(&mut self, args: &Vec<Operand>) {
+        for (arg, reg) in (&args).iter().zip(&PARAM_REGS) {
+            self.gen(format!("  mov {}, {}", reg.dump(), opr(&arg)).as_str());
+        }
+        // TODO: when args.len() > 6
+    }
+
     fn gen_binop(&mut self, op: &str, lhs: Operand, rhs: Operand) {
         self.gen(format!("  {} {}, {}", op, opr(&lhs), opr(&rhs)).as_str())
     }
 
     fn gen_div(&mut self, lhs: Operand, rhs: Operand) {
-        let mut is_eax = false;
-        if let Operand::Reg(reg) = &lhs {
-            if reg.physical_index.unwrap() == Register::Rax {
-                is_eax = true;
-            }
-        }
-        if !is_eax {
-            self.gen("  push eax");
-        }
-        self.gen("  push ecx");
-        self.gen("  push edx");
-        self.gen(format!("  mov eax, {}", opr(&lhs)).as_str());
-        self.gen(format!("  mov ecx, {}", opr(&rhs)).as_str());
-        self.gen("  xor edx, edx");
-        self.gen("  idiv ecx");
-        self.gen(format!("  mov {}, eax", opr(&lhs)).as_str());
-        self.gen("  pop edx");
-        self.gen("  pop ecx");
-        if !is_eax {
-            self.gen("  pop eax");
-        }
+        self.gen(format!("  mov rax, {}", opr(&lhs)).as_str());
+        self.gen(format!("  mov rcx, {}", opr(&rhs)).as_str());
+        self.gen("  xor rdx, rdx");
+        self.gen("  idiv rcx");
+        self.gen(format!("  mov {}, rax", opr(&lhs)).as_str());
     }
 
     fn gen_compare(&mut self, op: &str, lhs: Operand, rhs: Operand) {
@@ -163,8 +157,8 @@ fn opr(operand: &Operand) -> String {
     match operand {
         Operand::Const(value) => format!("{}", value),
         Operand::Reg(info) => reg(&info.physical_index.unwrap()).to_string(),
-        Operand::Variable(offset) => format!("[ebp-{}]", offset),
-        Operand::Parameter(offset) => format!("[ebp+{}]", offset),
+        Operand::Variable(offset) => format!("[rbp-{}]", offset),
+        Operand::Parameter(idx) => PARAM_REGS[*idx as usize].dump().to_string(),
     }
 }
 
