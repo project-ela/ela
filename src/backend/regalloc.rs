@@ -7,7 +7,7 @@ use crate::{
 };
 use std::collections::HashMap;
 
-const REGS: [Register; 4] = [Register::Eax, Register::Ecx, Register::Edx, Register::Ebx];
+const REGS: [Register; 4] = [Register::Rax, Register::Rcx, Register::Rdx, Register::Rbx];
 
 struct RegAlloc {
     reg_map: HashMap<u32, Register>,

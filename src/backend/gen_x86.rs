@@ -84,7 +84,7 @@ impl GenX86 {
                 Some(dst) => {
                     let mut is_eax = false;
                     if let Operand::Reg(reg) = &dst {
-                        if reg.physical_index.unwrap() == Register::Eax {
+                        if reg.physical_index.unwrap() == Register::Rax {
                             is_eax = true;
                         }
                     }
@@ -127,7 +127,7 @@ impl GenX86 {
     fn gen_div(&mut self, lhs: Operand, rhs: Operand) {
         let mut is_eax = false;
         if let Operand::Reg(reg) = &lhs {
-            if reg.physical_index.unwrap() == Register::Eax {
+            if reg.physical_index.unwrap() == Register::Rax {
                 is_eax = true;
             }
         }
@@ -177,18 +177,44 @@ fn opr8(operand: &Operand) -> String {
 
 fn reg(reg: &Register) -> &'static str {
     match reg {
-        Register::Eax => "eax",
-        Register::Ecx => "ecx",
-        Register::Edx => "edx",
-        Register::Ebx => "ebx",
+        Register::Rax => "rax",
+        Register::Rbx => "rbx",
+        Register::Rcx => "rcx",
+        Register::Rdx => "rdx",
+        Register::Rdi => "rdi",
+        Register::Rsi => "rsi",
+        Register::Rbp => "rbp",
+        Register::Rsp => "rsp",
+
+        Register::R8 => "r8",
+        Register::R9 => "r9",
+        Register::R10 => "r10",
+        Register::R11 => "r11",
+        Register::R12 => "r12",
+        Register::R13 => "r13",
+        Register::R14 => "r14",
+        Register::R15 => "r15",
     }
 }
 
 fn reg8(reg: Register) -> &'static str {
     match reg {
-        Register::Eax => "al",
-        Register::Ecx => "cl",
-        Register::Edx => "dl",
-        Register::Ebx => "bl",
+        Register::Rax => "al",
+        Register::Rcx => "cl",
+        Register::Rdx => "dl",
+        Register::Rbx => "bl",
+        Register::Rdi => "dil",
+        Register::Rsi => "sil",
+        Register::Rbp => "bpl",
+        Register::Rsp => "spl",
+
+        Register::R8 => "r8b",
+        Register::R9 => "r9b",
+        Register::R10 => "r10b",
+        Register::R11 => "r11b",
+        Register::R12 => "r12b",
+        Register::R13 => "r13b",
+        Register::R14 => "r14b",
+        Register::R15 => "r15b",
     }
 }
