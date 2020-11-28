@@ -64,7 +64,7 @@ impl<'a> Context<'a> {
             }
         }
 
-        return None;
+        None
     }
 
     fn find_variable(&self, name: &str) -> Option<&Variable> {
@@ -74,7 +74,7 @@ impl<'a> Context<'a> {
             }
         }
 
-        return None;
+        None
     }
 
     fn push(&mut self) {
@@ -318,13 +318,11 @@ impl<'a> SymbolPass<'a> {
     }
 
     // TODO refactor
-    fn check_call(&mut self, name: &str, args: &Vec<Expression>, pos: Pos) -> Option<Type> {
+    fn check_call(&mut self, name: &str, args: &[Expression], pos: Pos) -> Option<Type> {
         let mut issues = Vec::new();
 
-        let arg_types: Vec<Option<Type>> = args
-            .into_iter()
-            .map(|arg| self.apply_expression(arg))
-            .collect();
+        let arg_types: Vec<Option<Type>> =
+            args.iter().map(|arg| self.apply_expression(arg)).collect();
 
         let do_check = || {
             let sig = if let Some(sig) = self.ctx.find_function(name) {

@@ -117,7 +117,7 @@ impl IRGen {
                 value,
             } => {
                 let operand = self.alloc_stack_local();
-                self.ctx.add_variable(name, operand.clone());
+                self.ctx.add_variable(name, operand);
                 // init by 0 if value is None
                 let value = value.unwrap_or(Box::new(Expression::new(
                     ExpressionKind::Integer { value: 0 },
@@ -152,7 +152,7 @@ impl IRGen {
                     func.push(IR::Jump {
                         label: label2.to_owned(),
                     });
-                    func.new_block(label1.to_owned());
+                    func.new_block(label1);
                     self.gen_statement(*els, func)?;
                     func.new_block(label2);
                 } else {
@@ -191,7 +191,7 @@ impl IRGen {
             ExpressionKind::Integer { value } => {
                 let dst = self.next_reg();
                 func.push(IR::Move {
-                    dst: dst.clone(),
+                    dst,
                     src: Operand::Const(value),
                 });
                 Ok(dst)
@@ -199,7 +199,7 @@ impl IRGen {
             ExpressionKind::Bool { value } => {
                 let dst = self.next_reg();
                 func.push(IR::Move {
-                    dst: dst.clone(),
+                    dst,
                     src: Operand::Const(value as i32),
                 });
                 Ok(dst)
@@ -207,30 +207,19 @@ impl IRGen {
             ExpressionKind::Ident { name } => {
                 let operand = self.ctx.find_variable(&name);
                 let dst = self.next_reg();
-                func.push(IR::Move {
-                    dst: dst.clone(),
-                    src: operand,
-                });
+                func.push(IR::Move { dst, src: operand });
                 Ok(dst)
             }
             ExpressionKind::UnaryOp { op, expr } => {
                 let src = self.gen_expression(*expr, func)?;
-                func.push(IR::UnOp {
-                    op,
-                    src: src.clone(),
-                });
+                func.push(IR::UnOp { op, src });
                 Ok(src)
             }
             ExpressionKind::BinaryOp { op, lhs, rhs } => {
                 let lhs = self.gen_expression(*lhs, func)?;
                 let rhs = self.gen_expression(*rhs, func)?;
                 let dst = self.next_reg();
-                func.push(IR::BinOp {
-                    op,
-                    dst: dst.clone(),
-                    lhs,
-                    rhs,
-                });
+                func.push(IR::BinOp { op, dst, lhs, rhs });
                 Ok(dst)
             }
             ExpressionKind::Call { name, args } => {
@@ -249,10 +238,7 @@ impl IRGen {
     ) -> Result<(), Error> {
         let src = self.gen_expression(src, func)?;
         let src_reg = self.next_reg();
-        func.push(IR::Move {
-            dst: src_reg.clone(),
-            src,
-        });
+        func.push(IR::Move { dst: src_reg, src });
         func.push(IR::Move { dst, src: src_reg });
         Ok(())
     }

@@ -39,12 +39,12 @@ fn opt_statement(statement: Statement) -> Option<Statement> {
         StatementKind::Var { name, typ, value } => StatementKind::Var {
             name,
             typ,
-            value: value.and_then(|x| Some(Box::new(opt_expression(*x)))),
+            value: value.map(|x| Box::new(opt_expression(*x))),
         },
         StatementKind::Val { name, typ, value } => StatementKind::Val {
             name,
             typ,
-            value: value.and_then(|x| Some(Box::new(opt_expression(*x)))),
+            value: value.map(|x| Box::new(opt_expression(*x))),
         },
         StatementKind::Assign { name, value } => StatementKind::Assign {
             name,

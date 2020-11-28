@@ -127,7 +127,7 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_args(&mut self, args: &Vec<Operand>) {
+    fn gen_args(&mut self, args: &[Operand]) {
         for (arg, reg) in (&args).iter().zip(&PARAM_REGS) {
             self.gen(format!("  mov {}, {}", reg.dump(), opr(arg)).as_str());
         }
@@ -158,10 +158,7 @@ impl GenX86 {
 }
 
 fn is_terminate_inst(ir: &IR) -> bool {
-    match ir {
-        IR::Ret { .. } | IR::Jump { .. } => true,
-        _ => false,
-    }
+    matches!(ir, IR::Ret {.. }|IR::Jump {..})
 }
 
 fn opr(operand: &Operand) -> String {
