@@ -135,7 +135,7 @@ pub struct Errors(pub Vec<Error>);
 impl fmt::Display for Errors {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for err in self.0.iter() {
-            write!(f, "{}\n", err)?;
+            writeln!(f, "{}", err)?;
         }
         Ok(())
     }

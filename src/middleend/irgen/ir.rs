@@ -87,17 +87,11 @@ pub enum Operand {
 
 impl Operand {
     pub fn is_reg(&self) -> bool {
-        match self {
-            Operand::Reg(_) => true,
-            _ => false,
-        }
+        matches!(self, Operand::Reg(_))
     }
 
     pub fn is_const(&self) -> bool {
-        match self {
-            Operand::Const(_) => true,
-            _ => false,
-        }
+        matches!(self, Operand::Const(_))
     }
 
     pub fn is_same(&self, other: &Operand) -> bool {
@@ -119,7 +113,7 @@ pub struct RegisterInfo {
 
 impl RegisterInfo {
     pub fn is_same_reg(&self, other: &RegisterInfo) -> bool {
-        return self.physical_index == other.physical_index;
+        self.physical_index == other.physical_index
     }
 }
 
