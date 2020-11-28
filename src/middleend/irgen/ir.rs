@@ -185,7 +185,7 @@ impl IR {
                     .join(", ");
                 match dst {
                     Some(dst) => format!("  {} = call {}({})", dst.dump(), name, args),
-                    None => format!("  call {}", name),
+                    None => format!("  call {}({})", name, args),
                 }
             }
             IR::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
