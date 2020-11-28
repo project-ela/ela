@@ -109,6 +109,11 @@ impl TacGen {
             } => {
                 let operand = self.alloc_stack_local();
                 self.ctx.add_variable(name, operand.clone());
+                // init by 0 if value is None
+                let value = value.unwrap_or(Box::new(Expression::new(
+                    ExpressionKind::Integer { value: 0 },
+                    stmt.pos,
+                )));
                 self.gen_assign(operand, *value, func)?;
             }
             StatementKind::Assign { name, value } => {

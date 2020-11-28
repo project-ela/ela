@@ -45,12 +45,12 @@ pub enum StatementKind {
     Var {
         name: String,
         typ: Type,
-        value: Box<Expression>,
+        value: Option<Box<Expression>>,
     },
     Val {
         name: String,
         typ: Type,
-        value: Box<Expression>,
+        value: Option<Box<Expression>>,
     },
     Assign {
         name: String,

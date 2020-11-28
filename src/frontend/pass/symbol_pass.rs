@@ -144,7 +144,11 @@ impl<'a> SymbolPass<'a> {
                 self.ctx.pop();
             }
             StatementKind::Var { name, typ, value } => {
-                if let Some(value_typ) = self.apply_expression(&*value) {
+                self.ctx.add_variable(name.to_owned(), *typ, false);
+                if value.is_none() {
+                    return;
+                }
+                if let Some(value_typ) = self.apply_expression(value.as_deref().unwrap()) {
                     if &value_typ != typ {
                         self.issue(Error::new(
                             stmt.pos.clone(),
@@ -155,10 +159,13 @@ impl<'a> SymbolPass<'a> {
                         ));
                     }
                 }
-                self.ctx.add_variable(name.to_owned(), *typ, false);
             }
             StatementKind::Val { name, typ, value } => {
-                if let Some(value_typ) = self.apply_expression(&*value) {
+                self.ctx.add_variable(name.to_owned(), *typ, true);
+                if value.is_none() {
+                    return;
+                }
+                if let Some(value_typ) = self.apply_expression(value.as_deref().unwrap()) {
                     if &value_typ != typ {
                         self.issue(Error::new(
                             stmt.pos.clone(),
@@ -169,7 +176,6 @@ impl<'a> SymbolPass<'a> {
                         ));
                     }
                 }
-                self.ctx.add_variable(name.to_owned(), *typ, true);
             }
             StatementKind::Assign { name, value } => {
                 let value_typ = self.apply_expression(&*value);

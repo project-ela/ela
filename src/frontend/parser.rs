@@ -156,32 +156,24 @@ impl Parser {
         let name = self.consume_ident()?;
         self.expect(TokenKind::Colon)?;
         let typ = self.consume_type()?;
-        self.expect(TokenKind::Assign)?;
-        let value = self.parse_expression()?;
-        Ok(Statement::new(
-            StatementKind::Var {
-                name,
-                typ,
-                value: Box::new(value),
-            },
-            pos,
-        ))
+        let mut value = None;
+        if self.peek().kind == TokenKind::Assign {
+            self.consume();
+            value = Some(Box::new(self.parse_expression()?));
+        }
+        Ok(Statement::new(StatementKind::Var { name, typ, value }, pos))
     }
 
     fn parse_val_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
         let name = self.consume_ident()?;
         self.expect(TokenKind::Colon)?;
         let typ = self.consume_type()?;
-        self.expect(TokenKind::Assign)?;
-        let value = self.parse_expression()?;
-        Ok(Statement::new(
-            StatementKind::Val {
-                name,
-                typ,
-                value: Box::new(value),
-            },
-            pos,
-        ))
+        let mut value = None;
+        if self.peek().kind == TokenKind::Assign {
+            self.consume();
+            value = Some(Box::new(self.parse_expression()?));
+        }
+        Ok(Statement::new(StatementKind::Val { name, typ, value }, pos))
     }
 
     fn parse_assign_statement(&mut self, name: String, pos: Pos) -> Result<Statement, Error> {
