@@ -1,44 +1,200 @@
-fn assert(actual: int, expected: int): int {
+func exit(no: int)
+
+func asserti(actual: int, expected: int) {
   if actual != expected {
-    print("$expected expected, but got $actual")
-    exit 1
-  } else {
-    print("{}")
+    exit(1)
   }
 }
 
-fn main(): int {
-  assert(0, 0)
-  assert(42, 42)
-  assert(1 + 2, 3)
-  assert(1 + 2 + 3, 6)
-  assert(6 - 1, 5)
-  assert(20 - 5 + 2, 17)
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
-  assert(, )
+func assertb(actual: bool, expected: bool) {
+  if actual != expected {
+    exit(1)
+  }
+}
 
+func hoge(): int {
+  return 1 * 2 + 3 * 4
+}
+
+func fuga(): int {
+  return 3 * 4 + 1 * hoge()
+}
+
+func add(a: int, b: int): int {
+  return a + b
+}
+
+func fib(n: int): int {
+  if n <= 1 {
+    return n
+  } else {
+    return fib(n - 1) + fib(n - 2)
+  }
+}
+
+func // hoge
+test1(): // bool
+int {
+  /*/ return 0
+  /*/
+  return 1
+}
+
+func test2(): int {
+  hoge()hoge()hoge()hoge()hoge()
+  return 1
+}
+
+func test3(): int {
+  return 1
+  if true {
+    return 0
+  }
+}
+
+
+func main(): int {
+  asserti(0, 0)
+  asserti(42, 42)
+
+  asserti(1 + 2, 3)
+  asserti(1 + 2 + 3, 6)
+  asserti(6 - 1, 5)
+  asserti(20 - 5 + 2, 17)
+
+  asserti(2 * 2 * 5, 20)
+  asserti(20 / 4, 5)
+  asserti(1 + 2 * 3 + 5 / 1, 12)
+
+  asserti(3 + 5 * 7, 38)
+  asserti((3 + 5) * 7, 56)
+  asserti(((1)), 1)
+
+  asserti(--2, 2)
+  asserti(-3 * -1, 3)
+
+  asserti(1 & 0, 0)
+  asserti(1 & 1, 1)
+  asserti(0 | 0, 0)
+  asserti(1 | 1, 1)
+  asserti(1 ^ 1, 0)
+  asserti(1 ^ 0, 1)
+
+  assertb(0 == 1, false)
+  assertb(1 == 1, true)
+  assertb(0 != 1, true)
+  assertb(1 != 1, false)
+
+  assertb(1 < 1, false)
+  assertb(0 < 1, true)
+  assertb(2 <= 1, false)
+  assertb(1 <= 1, true)
+  assertb(1 > 1, false)
+  assertb(2 > 1, true)
+  assertb(0 >= 1, false)
+  assertb(1 >= 1, true)
+  assertb(!true, false)
+  assertb(!false, true)
+
+  var i: int
+  var j: int
+  var a: int
+  var b: int
+
+  asserti(i, 0)
+
+  if true {
+    i = 1
+  } else {
+    i = 0
+  }
+  asserti(i, 1)
+
+  if false {
+    i = 1
+  } else {
+    i = 0
+  }
+  asserti(i, 0)
+
+  if true {
+    if true {
+      i = 2
+    } else {
+      i = 1
+    }
+  } else {
+    i = 0
+  }
+  asserti(i, 2)
+
+  if true {
+    if false {
+      i = 2
+    } else {
+      i = 1
+    }
+  } else {
+    i = 0
+  }
+  asserti(i, 1)
+
+  if false {
+    i = 0
+  } else if false {
+    i = 1
+  } else {
+    i = 2
+  }
+  asserti(i, 2)
+
+  a = 10
+  asserti(a, 10)
+
+  a = 10
+  b = 5
+  asserti(a + b, 15)
+
+  a = 10
+  b = a
+  a = -10
+  asserti(a + b, 0)
+
+  a = 10
+  b = a
+  asserti(a + b, 20)
+
+  a = 0
+  i = 0
+  while i <= 10 {
+    a = a + i
+    i = i + 1
+  }
+  asserti(a, 55)
+
+  a = 0
+  i = 0
+  while i < 2 {
+    j = 0
+    while j <= 10 {
+      a = a + j
+      j = j + 1
+    }
+    i = i + 1
+  }
+  asserti(a, 110)
+
+  asserti(test1(), 1)
+
+  asserti(hoge() + fuga(), 40)
+
+  asserti(test2(), 1)
+
+  asserti(test3(), 1)
+
+  asserti(add(1, 2), 3)
+
+  asserti(fib(5), 5)
+
+  return 0
 }
