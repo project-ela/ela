@@ -96,20 +96,19 @@ impl GenX86 {
                     BinaryOperator::Gte => self.gen_compare("setge", dst, rhs),
                 }
             }
-            IR::Call { dst, name, args } => match dst {
-                Some(dst) => {
-                    for reg in PARAM_REGS.iter().take(args.len()) {
-                        self.gen(format!("  push {}", reg.dump()).as_str());
-                    }
-                    self.gen_args(&args);
-                    self.gen(format!("  call {}", name).as_str());
-                    for reg in PARAM_REGS.iter().take(args.len()).rev() {
-                        self.gen(format!("  pop {}", reg.dump()).as_str());
-                    }
-                    self.gen(format!("  mov {}, rax", opr(dst)).as_str());
+            IR::Call { dst, name, args } => {
+                for reg in PARAM_REGS.iter().take(args.len()) {
+                    self.gen(format!("  push {}", reg.dump()).as_str());
                 }
-                None => self.gen(format!("  call {}", name).as_str()),
-            },
+                self.gen_args(&args);
+                self.gen(format!("  call {}", name).as_str());
+                for reg in PARAM_REGS.iter().take(args.len()).rev() {
+                    self.gen(format!("  pop {}", reg.dump()).as_str());
+                }
+                if dst.is_some() {
+                    self.gen(format!("  mov {}, rax", opr(&dst.unwrap())).as_str());
+                }
+            }
             IR::Move { dst, src } => self.gen(format!("  mov {}, {}", opr(dst), opr(src)).as_str()),
             IR::Jump { label } => self.gen(format!("  jmp {}", label).as_str()),
             IR::JumpIfNot { label, cond } => {
