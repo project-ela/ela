@@ -99,12 +99,28 @@ impl Operand {
             _ => false,
         }
     }
+
+    pub fn is_same(&self, other: &Operand) -> bool {
+        match (self, other) {
+            (Operand::Reg(info1), Operand::Reg(info2)) => info1.is_same_reg(info2),
+            (Operand::Const(value1), Operand::Const(value2)) => value1 == value2,
+            (Operand::Variable(offset1), Operand::Variable(offset2)) => offset1 == offset2,
+            (Operand::Parameter(index1), Operand::Parameter(index2)) => index1 == index2,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct RegisterInfo {
     pub virtual_index: u32,
     pub physical_index: Option<Register>,
+}
+
+impl RegisterInfo {
+    pub fn is_same_reg(&self, other: &RegisterInfo) -> bool {
+        return self.physical_index == other.physical_index;
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
