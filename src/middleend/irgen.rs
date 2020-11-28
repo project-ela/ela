@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 struct IRGen {
+    cur_funcname: String,
     reg: u32,
     label: u32,
 
@@ -59,6 +60,7 @@ pub fn generate(program: Program) -> Result<IRProgram, Error> {
 impl IRGen {
     fn new() -> Self {
         Self {
+            cur_funcname: "".into(),
             reg: 0,
             label: 0,
             stack_offset_local: 0,
@@ -83,6 +85,7 @@ impl IRGen {
         }
 
         self.init();
+        self.cur_funcname = func.name.clone();
         let mut ir_func = IRFunction::new(func.name.to_owned());
         for param in &func.params {
             let operand = self.next_param();
@@ -293,7 +296,7 @@ impl IRGen {
     fn next_label(&mut self) -> String {
         let cur_label = self.label;
         self.label += 1;
-        format!(".L.{}", cur_label)
+        format!(".L.{}.{}", self.cur_funcname, cur_label)
     }
 
     fn alloc_stack_local(&mut self) -> Operand {
