@@ -3,7 +3,7 @@ use crate::{
         error::{Error, ErrorKind},
         pos::Pos,
     },
-    middleend::tacgen::tac::*,
+    middleend::irgen::ir::*,
 };
 use std::collections::HashMap;
 
@@ -13,7 +13,7 @@ struct RegAlloc {
     reg_map: HashMap<u32, Register>,
 }
 
-pub fn alloc_register(program: TacProgram) -> Result<TacProgram, Error> {
+pub fn alloc_register(program: IRProgram) -> Result<IRProgram, Error> {
     let mut regalloc = RegAlloc::new();
     Ok(regalloc.alloc_register(program)?)
 }
@@ -25,7 +25,7 @@ impl RegAlloc {
         }
     }
 
-    fn alloc_register(&mut self, mut program: TacProgram) -> Result<TacProgram, Error> {
+    fn alloc_register(&mut self, mut program: IRProgram) -> Result<IRProgram, Error> {
         for function in program.functions.iter_mut() {
             for block in function.blocks.iter_mut() {
                 self.alloc_register_block(block)?;
@@ -35,13 +35,13 @@ impl RegAlloc {
         Ok(program)
     }
 
-    fn alloc_register_block(&mut self, block: &mut TacBlock) -> Result<(), Error> {
-        for tac in block.tacs.iter_mut() {
-            match tac {
-                Tac::UnOp { op: _, ref mut src } => {
+    fn alloc_register_block(&mut self, block: &mut IRBlock) -> Result<(), Error> {
+        for ir in block.irs.iter_mut() {
+            match ir {
+                IR::UnOp { op: _, ref mut src } => {
                     self.get_operand(src, false);
                 }
-                Tac::BinOp {
+                IR::BinOp {
                     op: _,
                     ref mut dst,
                     ref mut lhs,
@@ -51,7 +51,7 @@ impl RegAlloc {
                     self.get_operand(rhs, true);
                     self.alloc_operand(dst)?;
                 }
-                Tac::Call { dst, name: _, args } => {
+                IR::Call { dst, name: _, args } => {
                     for arg in args {
                         self.get_operand(arg, true);
                     }
@@ -59,15 +59,15 @@ impl RegAlloc {
                         self.alloc_operand(dst)?;
                     }
                 }
-                Tac::Move { dst, src } => {
+                IR::Move { dst, src } => {
                     self.get_operand(src, true);
                     self.alloc_operand(dst)?;
                 }
-                Tac::Jump { .. } => {}
-                Tac::JumpIfNot { label: _, cond } => {
+                IR::Jump { .. } => {}
+                IR::JumpIfNot { label: _, cond } => {
                     self.get_operand(cond, true);
                 }
-                Tac::Ret { src } => {
+                IR::Ret { src } => {
                     if let Some(src) = src {
                         self.get_operand(src, true);
                     }

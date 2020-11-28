@@ -3,7 +3,7 @@ use crate::{
         error::Error,
         operator::{BinaryOperator, UnaryOperator},
     },
-    middleend::tacgen::tac::*,
+    middleend::irgen::ir::*,
 };
 
 const PARAM_REGS: [Register; 6] = [
@@ -19,7 +19,7 @@ struct GenX86 {
     output: String,
 }
 
-pub fn generate(program: TacProgram) -> Result<String, Error> {
+pub fn generate(program: IRProgram) -> Result<String, Error> {
     let mut generator = GenX86::new();
     generator.generate(program)
 }
@@ -31,7 +31,7 @@ impl GenX86 {
         }
     }
 
-    fn generate(&mut self, program: TacProgram) -> Result<String, Error> {
+    fn generate(&mut self, program: IRProgram) -> Result<String, Error> {
         self.gen(".intel_syntax noprefix");
         for function in program.functions {
             self.gen_function(function)?;
@@ -39,7 +39,7 @@ impl GenX86 {
         Ok(self.output.to_owned())
     }
 
-    fn gen_function(&mut self, function: TacFunction) -> Result<(), Error> {
+    fn gen_function(&mut self, function: IRFunction) -> Result<(), Error> {
         self.gen(format!(".global {}", function.name).as_str());
         self.gen(format!("{}:", function.name).as_str());
         self.gen("  push rbp");
@@ -50,9 +50,9 @@ impl GenX86 {
         self.gen("  push r15");
         for block in function.blocks {
             self.gen(format!("{}:", block.name).as_str());
-            for tac in block.tacs {
-                self.gen_tac(&tac, &function.name)?;
-                if is_terminate_inst(&tac) {
+            for ir in block.irs {
+                self.gen_ir(&ir, &function.name)?;
+                if is_terminate_inst(&ir) {
                     break;
                 }
             }
@@ -68,15 +68,15 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_tac(&mut self, tac: &Tac, func_name: &str) -> Result<(), Error> {
-        match tac {
-            Tac::UnOp { op, src } => match op {
+    fn gen_ir(&mut self, ir: &IR, func_name: &str) -> Result<(), Error> {
+        match ir {
+            IR::UnOp { op, src } => match op {
                 UnaryOperator::Not => {
                     self.gen(format!("  cmp {}, 0", opr(src)).as_str());
                     self.gen(format!("  sete {}", opr8(src)).as_str());
                 }
             },
-            Tac::BinOp { op, dst, lhs, rhs } => {
+            IR::BinOp { op, dst, lhs, rhs } => {
                 // r0 = r1 <op> r2 -> r1 = r0; r1 = r1 <op> r2
                 self.gen(format!("  mov {}, {}", opr(dst), opr(lhs)).as_str());
 
@@ -96,7 +96,7 @@ impl GenX86 {
                     BinaryOperator::Gte => self.gen_compare("setge", dst, rhs),
                 }
             }
-            Tac::Call { dst, name, args } => match dst {
+            IR::Call { dst, name, args } => match dst {
                 Some(dst) => {
                     for reg in PARAM_REGS.iter().take(args.len()) {
                         self.gen(format!("  push {}", reg.dump()).as_str());
@@ -110,15 +110,13 @@ impl GenX86 {
                 }
                 None => self.gen(format!("  call {}", name).as_str()),
             },
-            Tac::Move { dst, src } => {
-                self.gen(format!("  mov {}, {}", opr(dst), opr(src)).as_str())
-            }
-            Tac::Jump { label } => self.gen(format!("  jmp {}", label).as_str()),
-            Tac::JumpIfNot { label, cond } => {
+            IR::Move { dst, src } => self.gen(format!("  mov {}, {}", opr(dst), opr(src)).as_str()),
+            IR::Jump { label } => self.gen(format!("  jmp {}", label).as_str()),
+            IR::JumpIfNot { label, cond } => {
                 self.gen(format!("  cmp {}, 0", opr(cond)).as_str());
                 self.gen(format!("  je {}", label).as_str());
             }
-            Tac::Ret { src } => {
+            IR::Ret { src } => {
                 if let Some(src) = src {
                     self.gen(format!("  mov rax, {}", opr(src)).as_str());
                 }
@@ -158,9 +156,9 @@ impl GenX86 {
     }
 }
 
-fn is_terminate_inst(tac: &Tac) -> bool {
-    match tac {
-        Tac::Ret { .. } | Tac::Jump { .. } => true,
+fn is_terminate_inst(ir: &IR) -> bool {
+    match ir {
+        IR::Ret { .. } | IR::Jump { .. } => true,
         _ => false,
     }
 }

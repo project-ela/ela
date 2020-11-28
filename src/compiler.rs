@@ -6,7 +6,7 @@ use crate::{
         parser,
         pass::symbol_pass,
     },
-    middleend::{optimize::constant_folding, tacgen},
+    middleend::{irgen, optimize::constant_folding},
 };
 use std::{error::Error, fs};
 
@@ -37,9 +37,9 @@ pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String, Bo
         program = constant_folding::optimize(program);
     }
 
-    let program = tacgen::generate(program)?;
+    let program = irgen::generate(program)?;
     let program = regalloc::alloc_register(program)?;
-    if config.dump_tac {
+    if config.dump_ir {
         println!("{}", program.dump());
     }
 

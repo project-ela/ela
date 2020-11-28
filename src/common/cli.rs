@@ -7,7 +7,7 @@ pub struct CompilerConfig {
     pub optimize: bool,
     pub dump_token: bool,
     pub dump_ast: bool,
-    pub dump_tac: bool,
+    pub dump_ir: bool,
 }
 
 pub fn parse_arguments() -> Result<CompilerConfig, ()> {
@@ -18,7 +18,7 @@ pub fn parse_arguments() -> Result<CompilerConfig, ()> {
             "--optimize" => config.optimize = true,
             "--dump-token" => config.dump_token = true,
             "--dump-ast" => config.dump_ast = true,
-            "--dump-tac" => config.dump_tac = true,
+            "--dump-ir" => config.dump_ir = true,
             _ => {
                 if args.len() != i + 2 {
                     return Err(());

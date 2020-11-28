@@ -1,15 +1,15 @@
 use crate::common::operator::{BinaryOperator, UnaryOperator};
 
 #[derive(Debug, Default)]
-pub struct TacProgram {
-    pub functions: Vec<TacFunction>,
+pub struct IRProgram {
+    pub functions: Vec<IRFunction>,
 }
 
 #[derive(Debug)]
-pub struct TacFunction {
+pub struct IRFunction {
     pub name: String,
     pub params: Vec<u32>,
-    pub blocks: Vec<TacBlock>,
+    pub blocks: Vec<IRBlock>,
     pub stack_offset: u32,
 }
 
@@ -18,7 +18,7 @@ pub struct Parameter {
     pub offset: u32,
 }
 
-impl TacFunction {
+impl IRFunction {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -30,22 +30,22 @@ impl TacFunction {
 }
 
 #[derive(Debug)]
-pub struct TacBlock {
+pub struct IRBlock {
     pub name: String,
-    pub tacs: Vec<Tac>,
+    pub irs: Vec<IR>,
 }
 
-impl TacBlock {
+impl IRBlock {
     pub fn new(name: String) -> Self {
         Self {
             name,
-            tacs: Vec::new(),
+            irs: Vec::new(),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Tac {
+pub enum IR {
     UnOp {
         op: UnaryOperator,
         src: Operand,
@@ -128,7 +128,7 @@ pub enum Register {
     R15,
 }
 
-impl TacProgram {
+impl IRProgram {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         for function in &self.functions {
@@ -138,7 +138,7 @@ impl TacProgram {
     }
 }
 
-impl TacFunction {
+impl IRFunction {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         s.push_str(format!("func {}({}) {{\n", self.name, self.dump_params()).as_str());
@@ -158,26 +158,26 @@ impl TacFunction {
     }
 }
 
-impl TacBlock {
+impl IRBlock {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         s.push_str(format!("{}:\n", self.name).as_str());
-        for tac in &self.tacs {
-            s.push_str(tac.dump().as_str());
+        for ir in &self.irs {
+            s.push_str(ir.dump().as_str());
             s.push('\n');
         }
         s
     }
 }
 
-impl Tac {
+impl IR {
     pub fn dump(&self) -> String {
         match self {
-            Tac::UnOp { op, src } => format!("  {} = {:?} {}", src.dump(), op, src.dump()),
-            Tac::BinOp { op, dst, lhs, rhs } => {
+            IR::UnOp { op, src } => format!("  {} = {:?} {}", src.dump(), op, src.dump()),
+            IR::BinOp { op, dst, lhs, rhs } => {
                 format!("  {} = {} {:?} {}", dst.dump(), lhs.dump(), op, rhs.dump())
             }
-            Tac::Call { dst, name, args } => {
+            IR::Call { dst, name, args } => {
                 let args = args
                     .iter()
                     .map(|arg| arg.dump())
@@ -188,12 +188,10 @@ impl Tac {
                     None => format!("  call {}", name),
                 }
             }
-            Tac::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
-            Tac::Jump { label } => format!("  jmp label {}", label),
-            Tac::JumpIfNot { label, cond } => {
-                format!("  jmpifnot {}, label {}", cond.dump(), label)
-            }
-            Tac::Ret { src } => match src {
+            IR::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
+            IR::Jump { label } => format!("  jmp label {}", label),
+            IR::JumpIfNot { label, cond } => format!("  jmpifnot {}, label {}", cond.dump(), label),
+            IR::Ret { src } => match src {
                 Some(src) => format!("  ret {}", src.dump()),
                 None => "  ret".to_string(),
             },
