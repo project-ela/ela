@@ -5,8 +5,8 @@ pub struct CompilerConfig {
     pub input_file: String,
     pub output_file: String,
     pub optimize: bool,
-    pub dump_tokens: bool,
-    pub dump_nodes: bool,
+    pub dump_token: bool,
+    pub dump_ast: bool,
     pub dump_tac: bool,
 }
 
@@ -16,8 +16,8 @@ pub fn parse_arguments() -> Result<CompilerConfig, ()> {
     for (i, arg) in args.iter().enumerate() {
         match arg.as_str() {
             "--optimize" => config.optimize = true,
-            "--dump-tokens" => config.dump_tokens = true,
-            "--dump-nodes" => config.dump_nodes = true,
+            "--dump-token" => config.dump_token = true,
+            "--dump-ast" => config.dump_ast = true,
             "--dump-tac" => config.dump_tac = true,
             _ => {
                 if args.len() != i + 2 {
