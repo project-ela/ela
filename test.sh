@@ -205,3 +205,14 @@ try 5 "func fib(n: int): int {
   }
 }
 func main(): int { return fib(5) }"
+
+try 0 "func main(): int {
+  val a: int
+  return a
+}"
+
+try 10 "func main(): int {
+  val a: int
+  val b: int = a + 10
+  return b
+}"
