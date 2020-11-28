@@ -78,7 +78,9 @@ impl GenX86 {
             },
             IR::BinOp { op, dst, lhs, rhs } => {
                 // r0 = r1 <op> r2 -> r1 = r0; r1 = r1 <op> r2
-                self.gen(format!("  mov {}, {}", opr(dst), opr(lhs)).as_str());
+                if !dst.is_same(lhs) {
+                    self.gen(format!("  mov {}, {}", opr(dst), opr(lhs)).as_str());
+                }
 
                 match op {
                     BinaryOperator::Add => self.gen_binop("add", dst, rhs),
