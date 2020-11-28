@@ -1,10 +1,10 @@
-pub mod tac;
+pub mod ir;
 
-use crate::{common::error::Error, frontend::parser::ast::*, middleend::tacgen::tac::*};
+use crate::{common::error::Error, frontend::parser::ast::*, middleend::irgen::ir::*};
 use std::collections::HashMap;
 
 #[derive(Debug)]
-struct TacGen {
+struct IRGen {
     reg: u32,
     label: u32,
 
@@ -51,12 +51,12 @@ impl Context {
     }
 }
 
-pub fn generate(program: Program) -> Result<TacProgram, Error> {
-    let mut generator = TacGen::new();
+pub fn generate(program: Program) -> Result<IRProgram, Error> {
+    let mut generator = IRGen::new();
     Ok(generator.generate(program)?)
 }
 
-impl TacGen {
+impl IRGen {
     fn new() -> Self {
         Self {
             reg: 0,
@@ -67,28 +67,28 @@ impl TacGen {
         }
     }
 
-    fn generate(&mut self, program: Program) -> Result<TacProgram, Error> {
-        let mut tac_program = TacProgram::default();
+    fn generate(&mut self, program: Program) -> Result<IRProgram, Error> {
+        let mut ir_program = IRProgram::default();
         for function in program.functions {
-            tac_program.functions.push(self.gen_function(function)?);
+            ir_program.functions.push(self.gen_function(function)?);
         }
-        Ok(tac_program)
+        Ok(ir_program)
     }
 
-    fn gen_function(&mut self, func: Function) -> Result<TacFunction, Error> {
+    fn gen_function(&mut self, func: Function) -> Result<IRFunction, Error> {
         self.init();
-        let mut tac_func = TacFunction::new(func.name.to_owned());
+        let mut ir_func = IRFunction::new(func.name.to_owned());
         for param in &func.params {
             let operand = self.next_param();
             self.ctx.add_variable(param.name.to_owned(), operand);
-            tac_func.params.push(self.param_index - 1);
+            ir_func.params.push(self.param_index - 1);
         }
-        tac_func.new_block(format!(".L.{}.entry", func.name));
-        self.gen_statement(func.body, &mut tac_func)?;
-        Ok(tac_func)
+        ir_func.new_block(format!(".L.{}.entry", func.name));
+        self.gen_statement(func.body, &mut ir_func)?;
+        Ok(ir_func)
     }
 
-    fn gen_statement(&mut self, stmt: Statement, func: &mut TacFunction) -> Result<(), Error> {
+    fn gen_statement(&mut self, stmt: Statement, func: &mut IRFunction) -> Result<(), Error> {
         match stmt.kind {
             StatementKind::Block { stmts } => {
                 self.ctx.push();
@@ -125,13 +125,13 @@ impl TacGen {
                     Some(value) => Some(self.gen_expression(*value, func)?),
                     None => None,
                 };
-                func.push(Tac::Ret { src });
+                func.push(IR::Ret { src });
             }
             StatementKind::If { cond, then, els } => {
                 let label1 = self.next_label();
 
                 let cond = self.gen_expression(*cond, func)?;
-                func.push(Tac::JumpIfNot {
+                func.push(IR::JumpIfNot {
                     label: label1.to_owned(),
                     cond,
                 });
@@ -140,7 +140,7 @@ impl TacGen {
                 if let Some(els) = els {
                     let label2 = self.next_label();
 
-                    func.push(Tac::Jump {
+                    func.push(IR::Jump {
                         label: label2.to_owned(),
                     });
                     func.new_block(label1.to_owned());
@@ -157,14 +157,14 @@ impl TacGen {
                 // condition
                 func.new_block(label1.to_owned());
                 let cond = self.gen_expression(*cond, func)?;
-                func.push(Tac::JumpIfNot {
+                func.push(IR::JumpIfNot {
                     label: label2.to_owned(),
                     cond,
                 });
 
                 // body
                 self.gen_statement(*body, func)?;
-                func.push(Tac::Jump { label: label1 });
+                func.push(IR::Jump { label: label1 });
 
                 func.new_block(label2);
             }
@@ -176,12 +176,12 @@ impl TacGen {
     fn gen_expression(
         &mut self,
         expr: Expression,
-        func: &mut TacFunction,
+        func: &mut IRFunction,
     ) -> Result<Operand, Error> {
         match expr.kind {
             ExpressionKind::Integer { value } => {
                 let dst = self.next_reg();
-                func.push(Tac::Move {
+                func.push(IR::Move {
                     dst: dst.clone(),
                     src: Operand::Const(value),
                 });
@@ -189,7 +189,7 @@ impl TacGen {
             }
             ExpressionKind::Bool { value } => {
                 let dst = self.next_reg();
-                func.push(Tac::Move {
+                func.push(IR::Move {
                     dst: dst.clone(),
                     src: Operand::Const(value as i32),
                 });
@@ -198,7 +198,7 @@ impl TacGen {
             ExpressionKind::Ident { name } => {
                 let operand = self.ctx.find_variable(&name);
                 let dst = self.next_reg();
-                func.push(Tac::Move {
+                func.push(IR::Move {
                     dst: dst.clone(),
                     src: operand,
                 });
@@ -206,7 +206,7 @@ impl TacGen {
             }
             ExpressionKind::UnaryOp { op, expr } => {
                 let src = self.gen_expression(*expr, func)?;
-                func.push(Tac::UnOp {
+                func.push(IR::UnOp {
                     op,
                     src: src.clone(),
                 });
@@ -216,7 +216,7 @@ impl TacGen {
                 let lhs = self.gen_expression(*lhs, func)?;
                 let rhs = self.gen_expression(*rhs, func)?;
                 let dst = self.next_reg();
-                func.push(Tac::BinOp {
+                func.push(IR::BinOp {
                     op,
                     dst: dst.clone(),
                     lhs,
@@ -236,15 +236,15 @@ impl TacGen {
         &mut self,
         dst: Operand,
         src: Expression,
-        func: &mut TacFunction,
+        func: &mut IRFunction,
     ) -> Result<(), Error> {
         let src = self.gen_expression(src, func)?;
         let src_reg = self.next_reg();
-        func.push(Tac::Move {
+        func.push(IR::Move {
             dst: src_reg.clone(),
             src,
         });
-        func.push(Tac::Move { dst, src: src_reg });
+        func.push(IR::Move { dst, src: src_reg });
         Ok(())
     }
 
@@ -253,13 +253,13 @@ impl TacGen {
         dst: Option<Operand>,
         name: String,
         args: Vec<Expression>,
-        func: &mut TacFunction,
+        func: &mut IRFunction,
     ) -> Result<(), Error> {
         let mut arg_operands = Vec::new();
         for arg in args {
             arg_operands.push(self.gen_expression(arg, func)?);
         }
-        func.push(Tac::Call {
+        func.push(IR::Call {
             dst,
             name,
             args: arg_operands,
@@ -301,13 +301,13 @@ impl TacGen {
     }
 }
 
-impl TacFunction {
-    fn push(&mut self, tac: Tac) {
+impl IRFunction {
+    fn push(&mut self, ir: IR) {
         let last_block = self.blocks.last_mut().unwrap();
-        last_block.tacs.push(tac);
+        last_block.irs.push(ir);
     }
 
     fn new_block(&mut self, name: String) {
-        self.blocks.push(TacBlock::new(name));
+        self.blocks.push(IRBlock::new(name));
     }
 }
