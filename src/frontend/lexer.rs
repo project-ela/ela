@@ -137,7 +137,7 @@ impl Tokenizer {
 
     fn consume_ident(&mut self) -> TokenKind {
         let mut name = String::new();
-        while !self.is_eof() && self.peek_char().is_alphabetic() {
+        while !self.is_eof() && self.peek_char().is_alphabetic() || self.peek_char().is_digit(10) {
             name.push(self.consume_char());
         }
 
