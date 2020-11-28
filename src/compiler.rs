@@ -22,12 +22,12 @@ pub fn compile_to_file(config: CompilerConfig) -> Result<(), Box<dyn Error>> {
 
 pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String, Box<dyn Error>> {
     let tokens = lexer::tokenize(source)?;
-    if config.dump_tokens {
+    if config.dump_token {
         println!("{:#?}", tokens);
     }
 
     let mut program = parser::parse(tokens)?;
-    if config.dump_nodes {
+    if config.dump_ast {
         println!("{:#?}", program);
     }
 
