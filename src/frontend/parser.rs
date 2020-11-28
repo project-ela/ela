@@ -80,7 +80,10 @@ impl Parser {
             }
             _ => Type::Void,
         };
-        let body = self.parse_statement()?;
+        let mut body = None;
+        if self.peek().kind == TokenKind::LBrace {
+            body = Some(self.parse_statement()?);
+        }
         Ok(Function {
             name,
             params,

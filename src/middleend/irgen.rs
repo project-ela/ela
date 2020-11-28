@@ -70,12 +70,18 @@ impl IRGen {
     fn generate(&mut self, program: Program) -> Result<IRProgram, Error> {
         let mut ir_program = IRProgram::default();
         for function in program.functions {
-            ir_program.functions.push(self.gen_function(function)?);
+            if let Some(func) = self.gen_function(function)? {
+                ir_program.functions.push(func);
+            }
         }
         Ok(ir_program)
     }
 
-    fn gen_function(&mut self, func: Function) -> Result<IRFunction, Error> {
+    fn gen_function(&mut self, func: Function) -> Result<Option<IRFunction>, Error> {
+        if func.body.is_none() {
+            return Ok(None);
+        }
+
         self.init();
         let mut ir_func = IRFunction::new(func.name.to_owned());
         for param in &func.params {
@@ -84,8 +90,8 @@ impl IRGen {
             ir_func.params.push(self.param_index - 1);
         }
         ir_func.new_block(format!(".L.{}.entry", func.name));
-        self.gen_statement(func.body, &mut ir_func)?;
-        Ok(ir_func)
+        self.gen_statement(func.body.unwrap(), &mut ir_func)?;
+        Ok(Some(ir_func))
     }
 
     fn gen_statement(&mut self, stmt: Statement, func: &mut IRFunction) -> Result<(), Error> {

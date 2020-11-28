@@ -14,7 +14,7 @@ pub struct Function {
     pub name: String,
     pub params: Vec<Parameter>,
     pub ret_typ: Type,
-    pub body: Statement,
+    pub body: Option<Statement>,
     pub pos: Pos,
 }
 

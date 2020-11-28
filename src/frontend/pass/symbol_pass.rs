@@ -130,7 +130,9 @@ impl<'a> SymbolPass<'a> {
             self.ctx
                 .add_variable(param.name.to_owned(), param.typ, false);
         }
-        self.apply_statement(&function.body, &function.ret_typ);
+        if function.body.is_some() {
+            self.apply_statement(function.body.as_ref().unwrap(), &function.ret_typ);
+        }
         self.ctx.pop();
     }
 
