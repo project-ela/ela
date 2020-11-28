@@ -6,7 +6,10 @@ use crate::{
 pub fn optimize(mut program: Program) -> Program {
     let mut functions = Vec::new();
     for function in program.functions {
-        let optimized_body = opt_statement(function.body).unwrap_or(Statement::new(
+        if function.body.is_none() {
+            continue;
+        }
+        let optimized_body = opt_statement(function.body.unwrap()).unwrap_or(Statement::new(
             StatementKind::Block { stmts: Vec::new() },
             function.pos.clone(),
         ));
@@ -14,7 +17,7 @@ pub fn optimize(mut program: Program) -> Program {
             name: function.name,
             params: function.params,
             ret_typ: function.ret_typ,
-            body: optimized_body,
+            body: Some(optimized_body),
             pos: function.pos,
         });
     }
