@@ -92,6 +92,24 @@ impl Parser {
             Token::Ident { name } => Ok(Operand::Label {
                 name: name.to_owned(),
             }),
+
+            Token::Rax => Ok(Operand::Register { reg: Register::Rax }),
+            Token::Rcx => Ok(Operand::Register { reg: Register::Rcx }),
+            Token::Rdx => Ok(Operand::Register { reg: Register::Rdx }),
+            Token::Rbx => Ok(Operand::Register { reg: Register::Rbx }),
+            Token::Rsp => Ok(Operand::Register { reg: Register::Rsp }),
+            Token::Rbp => Ok(Operand::Register { reg: Register::Rbp }),
+            Token::Rsi => Ok(Operand::Register { reg: Register::Rsi }),
+            Token::Rdi => Ok(Operand::Register { reg: Register::Rdi }),
+            Token::R8 => Ok(Operand::Register { reg: Register::R8 }),
+            Token::R9 => Ok(Operand::Register { reg: Register::R9 }),
+            Token::R10 => Ok(Operand::Register { reg: Register::R10 }),
+            Token::R11 => Ok(Operand::Register { reg: Register::R11 }),
+            Token::R12 => Ok(Operand::Register { reg: Register::R12 }),
+            Token::R13 => Ok(Operand::Register { reg: Register::R13 }),
+            Token::R14 => Ok(Operand::Register { reg: Register::R14 }),
+            Token::R15 => Ok(Operand::Register { reg: Register::R15 }),
+
             Token::Eax => Ok(Operand::Register { reg: Register::Eax }),
             Token::Ecx => Ok(Operand::Register { reg: Register::Ecx }),
             Token::Edx => Ok(Operand::Register { reg: Register::Edx }),
@@ -105,6 +123,27 @@ impl Parser {
             Token::Cl => Ok(Operand::Register { reg: Register::Cl }),
             Token::Dl => Ok(Operand::Register { reg: Register::Dl }),
             Token::Bl => Ok(Operand::Register { reg: Register::Bl }),
+
+            Token::R8b => Ok(Operand::Register { reg: Register::R8b }),
+            Token::R9b => Ok(Operand::Register { reg: Register::R9b }),
+            Token::R10b => Ok(Operand::Register {
+                reg: Register::R10b,
+            }),
+            Token::R11b => Ok(Operand::Register {
+                reg: Register::R11b,
+            }),
+            Token::R12b => Ok(Operand::Register {
+                reg: Register::R12b,
+            }),
+            Token::R13b => Ok(Operand::Register {
+                reg: Register::R13b,
+            }),
+            Token::R14b => Ok(Operand::Register {
+                reg: Register::R14b,
+            }),
+            Token::R15b => Ok(Operand::Register {
+                reg: Register::R15b,
+            }),
 
             x => Err(format!("unexpected token: {:?}", x)),
         }
