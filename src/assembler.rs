@@ -31,11 +31,11 @@ pub fn assemble(source: String) -> Result<Vec<u8>, String> {
 
 fn gen_elf(program_data: Vec<u8>) -> Result<Vec<u8>, String> {
     let mut elf = Elf::new();
-    elf.elf_header.set_class(elf_header::Class::Class32);
+    elf.elf_header.set_class(elf_header::Class::Class64);
     elf.elf_header.set_data(elf_header::Data::Data2LSB);
     elf.elf_header.set_osabi(elf_header::OSABI::OSABISysV);
     elf.elf_header.set_filetype(elf_header::Type::Rel);
-    elf.elf_header.set_machine(elf_header::Machine::X86);
+    elf.elf_header.set_machine(elf_header::Machine::X86_64);
 
     elf.add_section(
         "".to_string(),
