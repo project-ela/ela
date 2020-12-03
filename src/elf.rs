@@ -2,15 +2,17 @@ pub mod elf_header;
 pub mod section_header;
 pub mod symbol;
 
+use std::mem::size_of;
+
 use crate::elf::elf_header::ElfHeader;
 use crate::elf::section_header::ElfSectionHeader;
 use crate::elf::symbol::ElfSymbol;
 
 type ElfHalf = u16;
 type ElfWord = u32;
-type ElfXword = u32;
-type ElfAddr = u32;
-type ElfOff = u32;
+type ElfXword = u64;
+type ElfAddr = u64;
+type ElfOff = u64;
 type ElfSection = u16;
 type ElfIdent = u128;
 
@@ -69,7 +71,7 @@ impl Elf {
         self.add_shstrtab();
 
         let mut data_length = 0;
-        data_length += 52;
+        data_length += size_of::<ElfHeader>();
         for section in self.sections.as_mut_slice() {
             section.header.offset = data_length as ElfOff;
             section.header.size = section.data.len() as ElfXword;
@@ -83,7 +85,7 @@ impl Elf {
         symtab_hdr.set_type(section_header::Type::Symtab);
         symtab_hdr.set_link(self.sections.len() as u32 + 1);
         symtab_hdr.set_info(self.symbols.len() as u32 - 1);
-        symtab_hdr.set_entry_size(SYM_ENTRY_SIZE_32);
+        symtab_hdr.set_entry_size(SYM_ENTRY_SIZE_64);
         symtab_hdr.set_align(8);
         let mut symbol_data = Vec::new();
         for symbol in &self.symbols {

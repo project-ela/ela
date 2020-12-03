@@ -60,8 +60,8 @@ impl ElfHeader {
         hdr.ident = 0x7f454c46 << 12 * 8;
         hdr.ident |= 0x1 << 9 * 8; // version
         hdr.version = 0x1;
-        hdr.elf_header_size = ELF_HDR_SIZE_32;
-        hdr.section_header_size = SECTION_HDR_SIZE_32;
+        hdr.elf_header_size = ELF_HDR_SIZE_64;
+        hdr.section_header_size = SECTION_HDR_SIZE_64;
         hdr
     }
 
