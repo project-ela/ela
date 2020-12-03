@@ -89,6 +89,13 @@ impl Generator {
         operand1: Operand,
         operand2: Operand,
     ) -> Result<(), String> {
+        if !is_same_reg_size(&operand1, &operand2) {
+            return Err(format!(
+                "operand type mismatch: {:?} and {:?}",
+                operand1, operand2
+            ));
+        }
+
         let reg1 = expect_register(operand1)?;
         match op {
             Opcode::Add => match operand2 {
@@ -244,5 +251,14 @@ fn expect_register(operand: Operand) -> Result<Register, String> {
     match operand {
         Operand::Register { reg } => Ok(reg),
         x => Err(format!("unexpected operand: {:?}", x)),
+    }
+}
+
+fn is_same_reg_size(op1: &Operand, op2: &Operand) -> bool {
+    match (op1, op2) {
+        (Operand::Register { reg: reg1 }, Operand::Register { reg: reg2 }) => {
+            reg1.size() == reg2.size()
+        }
+        _ => true,
     }
 }
