@@ -67,7 +67,7 @@ impl Generator {
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::IDiv => match operand {
-                Operand::Register { reg } => self.gen_m(0xF7, 7, reg),
+                Operand::Register { reg } => self.gen_m(&[0xF7], 7, reg),
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::Jmp => self.gen_jump(0xEB, operand)?,
@@ -161,8 +161,7 @@ impl Generator {
         if reg1.size() != RegSize::Byte {
             return Err(format!("expected r8"));
         }
-        self.gen(0x0F);
-        self.gen_m(opcode, 0, reg1);
+        self.gen_m(&[0x0F, opcode], 0, reg1);
         Ok(())
     }
 
@@ -178,11 +177,9 @@ impl Generator {
         self.gen(opcode + reg.number());
     }
 
-    fn gen_m(&mut self, opcode: u8, reg: u8, r: Register) {
-        if r.size() == RegSize::QWord {
-            self.gen_rex(true, false, false, r.only_in_64bit());
-        }
-        self.gen(opcode);
+    fn gen_m(&mut self, opcodes: &[u8], reg: u8, r: Register) {
+        self.gen_rex(false, false, false, r.only_in_64bit());
+        self.gen_bytes(opcodes);
         self.gen(calc_modrm(0b11, reg, r.number()));
     }
 
@@ -222,9 +219,7 @@ impl Generator {
         if opr1.size() == RegSize::QWord {
             self.gen_rex(true, opr1.only_in_64bit(), false, opr2.only_in_64bit());
         }
-        for opcode in opcodes {
-            self.gen(*opcode);
-        }
+        self.gen_bytes(opcodes);
         self.gen(calc_modrm(0b11, opr1.number(), opr2.number()));
     }
 
@@ -268,6 +263,12 @@ impl Generator {
         for i in 0..4 {
             let byte = (bytes << (8 * i)) as u8;
             self.gen(byte);
+        }
+    }
+
+    fn gen_bytes(&mut self, bytes: &[u8]) {
+        for byte in bytes {
+            self.gen(*byte)
         }
     }
 
