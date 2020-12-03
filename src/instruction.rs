@@ -115,4 +115,9 @@ impl Register {
             Rdi | R15 | Edi | R15b => 7,
         }
     }
+
+    pub fn only_in_64bit(&self) -> bool {
+        use self::Register::*;
+        matches!(self, R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15)
+    }
 }

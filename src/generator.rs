@@ -110,27 +110,26 @@ impl Generator {
             },
             Opcode::IMul => {
                 let reg2 = expect_register(operand2)?;
-                self.gen(0x0F);
-                self.gen_rm(0xAF, reg1, reg2);
+                self.gen_rm(&[0x0F, 0xAF], reg1, reg2);
             }
             Opcode::Xor => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_mr(0x31, reg1, reg2),
-                Operand::Immidiate { value } => self.gen_mi(0x84, 6, reg1, value),
+                Operand::Immidiate { value } => self.gen_mi(0x83, 6, reg1, value),
                 x => return Err(format!("unexpected opcode: {:?}", x)),
             },
             Opcode::Mov => match operand2 {
-                Operand::Register { reg: reg2 } => self.gen_rm(0x8B, reg1, reg2),
-                Operand::Immidiate { value } => self.gen_oi(0xB8, reg1, value),
+                Operand::Register { reg: reg2 } => self.gen_rm(&[0x8B], reg1, reg2),
+                Operand::Immidiate { value } => self.gen_mi32(0xC7, 0, reg1, value),
                 x => return Err(format!("unexpected opcode: {:?}", x)),
             },
             Opcode::And => match operand2 {
-                Operand::Register { reg: reg2 } => self.gen_rm(0x23, reg1, reg2),
-                Operand::Immidiate { value } => self.gen_i(0x81, value),
+                Operand::Register { reg: reg2 } => self.gen_rm(&[0x23], reg1, reg2),
+                Operand::Immidiate { value } => self.gen_mi(0x83, 4, reg1, value),
                 x => return Err(format!("unexpected opcode: {:?}", x)),
             },
             Opcode::Or => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_mr(0x09, reg1, reg2),
-                Operand::Immidiate { value } => self.gen_i(0x83, value),
+                Operand::Immidiate { value } => self.gen_mi(0x83, 1, reg1, value),
                 x => return Err(format!("unexpected opcode: {:?}", x)),
             },
             Opcode::Cmp => match operand2 {
@@ -173,10 +172,16 @@ impl Generator {
     }
 
     fn gen_o(&mut self, opcode: u8, reg: Register) {
+        if reg.only_in_64bit() {
+            self.gen_rex(false, false, false, true);
+        }
         self.gen(opcode + reg.number());
     }
 
     fn gen_m(&mut self, opcode: u8, reg: u8, r: Register) {
+        if r.size() == RegSize::QWord {
+            self.gen_rex(true, false, false, r.only_in_64bit());
+        }
         self.gen(opcode);
         self.gen(calc_modrm(0b11, reg, r.number()));
     }
@@ -187,24 +192,52 @@ impl Generator {
     }
 
     fn gen_mr(&mut self, opcode: u8, opr1: Register, opr2: Register) {
+        if opr1.size() == RegSize::QWord {
+            self.gen_rex(true, opr2.only_in_64bit(), false, opr1.only_in_64bit());
+        }
         self.gen(opcode);
         self.gen(calc_modrm(0b11, opr2.number(), opr1.number()));
     }
 
     fn gen_mi(&mut self, opcode: u8, reg: u8, opr1: Register, opr2: u32) {
+        if opr1.size() == RegSize::QWord {
+            self.gen_rex(true, false, false, opr1.only_in_64bit());
+        }
         self.gen(opcode);
         self.gen(calc_modrm(0b11, reg, opr1.number()));
         self.gen(opr2 as u8);
     }
 
-    fn gen_rm(&mut self, opcode: u8, opr1: Register, opr2: Register) {
+    // TODO
+    fn gen_mi32(&mut self, opcode: u8, reg: u8, opr1: Register, opr2: u32) {
+        if opr1.size() == RegSize::QWord {
+            self.gen_rex(true, false, false, opr1.only_in_64bit());
+        }
         self.gen(opcode);
+        self.gen(calc_modrm(0b11, reg, opr1.number()));
+        self.gen32(opr2);
+    }
+
+    fn gen_rm(&mut self, opcodes: &[u8], opr1: Register, opr2: Register) {
+        if opr1.size() == RegSize::QWord {
+            self.gen_rex(true, opr1.only_in_64bit(), false, opr2.only_in_64bit());
+        }
+        for opcode in opcodes {
+            self.gen(*opcode);
+        }
         self.gen(calc_modrm(0b11, opr1.number(), opr2.number()));
     }
 
     fn gen_oi(&mut self, opcode: u8, opr1: Register, opr2: u32) {
+        if opr1.size() == RegSize::QWord {
+            self.gen_rex(true, false, false, opr1.only_in_64bit());
+        }
         self.gen(opcode + opr1.number());
         self.gen32(opr2);
+    }
+
+    fn gen_rex(&mut self, w: bool, r: bool, x: bool, b: bool) {
+        self.gen(0b01000000 | (w as u8) << 3 | (r as u8) << 2 | (x as u8) << 1 | (b as u8))
     }
 
     fn lookup_label(&mut self, name: String, code_addr: u8) -> u8 {
