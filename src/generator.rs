@@ -59,11 +59,21 @@ impl Generator {
         match op {
             Opcode::Push => match operand {
                 Operand::Immidiate { value } => self.gen_i(0x6A, value),
-                Operand::Register { reg } => self.gen_o(0x50, reg),
+                Operand::Register { reg } => {
+                    if reg.size() != RegSize::QWord {
+                        return Err(format!("unexpected operand: {:?}", reg));
+                    }
+                    self.gen_o(0x50, reg)
+                }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::Pop => match operand {
-                Operand::Register { reg } => self.gen_o(0x58, reg),
+                Operand::Register { reg } => {
+                    if reg.size() != RegSize::QWord {
+                        return Err(format!("unexpected operand: {:?}", reg));
+                    }
+                    self.gen_o(0x58, reg)
+                }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Opcode::IDiv => match operand {
