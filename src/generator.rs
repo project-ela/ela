@@ -89,69 +89,48 @@ impl Generator {
         operand1: Operand,
         operand2: Operand,
     ) -> Result<(), String> {
+        let reg1 = expect_register(operand1)?;
         match op {
-            Opcode::Add => {
-                let reg1 = expect_register(operand1)?;
-                match operand2 {
-                    Operand::Register { reg: reg2 } => self.gen_mr(0x01, reg1, reg2),
-                    Operand::Immidiate { value } => self.gen_mi(0x83, 0, reg1, value),
-                    x => return Err(format!("unexpected opcode: {:?}", x)),
-                }
-            }
-            Opcode::Sub => {
-                let reg1 = expect_register(operand1)?;
-                match operand2 {
-                    Operand::Register { reg: reg2 } => self.gen_mr(0x29, reg1, reg2),
-                    Operand::Immidiate { value } => self.gen_mi(0x83, 5, reg1, value),
-                    x => return Err(format!("unexpected opcode: {:?}", x)),
-                }
-            }
+            Opcode::Add => match operand2 {
+                Operand::Register { reg: reg2 } => self.gen_mr(0x01, reg1, reg2),
+                Operand::Immidiate { value } => self.gen_mi(0x83, 0, reg1, value),
+                x => return Err(format!("unexpected opcode: {:?}", x)),
+            },
+            Opcode::Sub => match operand2 {
+                Operand::Register { reg: reg2 } => self.gen_mr(0x29, reg1, reg2),
+                Operand::Immidiate { value } => self.gen_mi(0x83, 5, reg1, value),
+                x => return Err(format!("unexpected opcode: {:?}", x)),
+            },
             Opcode::IMul => {
-                let reg1 = expect_register(operand1)?;
                 let reg2 = expect_register(operand2)?;
                 self.gen(0x0F);
                 self.gen_rm(0xAF, reg1, reg2);
             }
-            Opcode::Xor => {
-                let reg1 = expect_register(operand1)?;
-                match operand2 {
-                    Operand::Register { reg: reg2 } => self.gen_mr(0x31, reg1, reg2),
-                    Operand::Immidiate { value } => self.gen_mi(0x84, 6, reg1, value),
-                    x => return Err(format!("unexpected opcode: {:?}", x)),
-                }
-            }
-            Opcode::Mov => {
-                let reg1 = expect_register(operand1)?;
-                match operand2 {
-                    Operand::Register { reg: reg2 } => self.gen_rm(0x8B, reg1, reg2),
-                    Operand::Immidiate { value } => self.gen_oi(0xB8, reg1, value),
-                    x => return Err(format!("unexpected opcode: {:?}", x)),
-                }
-            }
-            Opcode::And => {
-                let reg1 = expect_register(operand1)?;
-                match operand2 {
-                    Operand::Register { reg: reg2 } => self.gen_rm(0x23, reg1, reg2),
-                    Operand::Immidiate { value } => self.gen_i(0x81, value),
-                    x => return Err(format!("unexpected opcode: {:?}", x)),
-                }
-            }
-            Opcode::Or => {
-                let reg1 = expect_register(operand1)?;
-                match operand2 {
-                    Operand::Register { reg: reg2 } => self.gen_mr(0x09, reg1, reg2),
-                    Operand::Immidiate { value } => self.gen_i(0x83, value),
-                    x => return Err(format!("unexpected opcode: {:?}", x)),
-                }
-            }
-            Opcode::Cmp => {
-                let reg1 = expect_register(operand1)?;
-                match operand2 {
-                    Operand::Register { reg: reg2 } => self.gen_mr(0x39, reg1, reg2),
-                    Operand::Immidiate { value } => self.gen_mi(0x83, 7, reg1, value),
-                    x => return Err(format!("unexpected opcode: {:?}", x)),
-                }
-            }
+            Opcode::Xor => match operand2 {
+                Operand::Register { reg: reg2 } => self.gen_mr(0x31, reg1, reg2),
+                Operand::Immidiate { value } => self.gen_mi(0x84, 6, reg1, value),
+                x => return Err(format!("unexpected opcode: {:?}", x)),
+            },
+            Opcode::Mov => match operand2 {
+                Operand::Register { reg: reg2 } => self.gen_rm(0x8B, reg1, reg2),
+                Operand::Immidiate { value } => self.gen_oi(0xB8, reg1, value),
+                x => return Err(format!("unexpected opcode: {:?}", x)),
+            },
+            Opcode::And => match operand2 {
+                Operand::Register { reg: reg2 } => self.gen_rm(0x23, reg1, reg2),
+                Operand::Immidiate { value } => self.gen_i(0x81, value),
+                x => return Err(format!("unexpected opcode: {:?}", x)),
+            },
+            Opcode::Or => match operand2 {
+                Operand::Register { reg: reg2 } => self.gen_mr(0x09, reg1, reg2),
+                Operand::Immidiate { value } => self.gen_i(0x83, value),
+                x => return Err(format!("unexpected opcode: {:?}", x)),
+            },
+            Opcode::Cmp => match operand2 {
+                Operand::Register { reg: reg2 } => self.gen_mr(0x39, reg1, reg2),
+                Operand::Immidiate { value } => self.gen_mi(0x83, 7, reg1, value),
+                x => return Err(format!("unexpected opcode: {:?}", x)),
+            },
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
         Ok(())
