@@ -118,6 +118,23 @@ impl Register {
 
     pub fn only_in_64bit(&self) -> bool {
         use self::Register::*;
-        matches!(self, R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15)
+        matches!(
+            self,
+            R8 | R9
+                | R10
+                | R11
+                | R12
+                | R13
+                | R14
+                | R15
+                | R8b
+                | R9b
+                | R10b
+                | R11b
+                | R12b
+                | R13b
+                | R14b
+                | R15b
+        )
     }
 }
