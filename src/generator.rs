@@ -3,11 +3,11 @@ use std::collections::HashMap;
 
 struct Generator {
     output: Vec<u8>,
-    labels: HashMap<String, u8>,
+    labels: HashMap<String, u32>,
     unresolved_jumps: Vec<UnresolvedJump>,
 }
 
-type UnresolvedJump = (String, u8);
+type UnresolvedJump = (String, u32);
 
 pub fn generate(insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
     let mut generator = Generator::new();
@@ -36,7 +36,7 @@ impl Generator {
             Instruction::PseudoOp { .. } => {}
             Instruction::Label { name } => {
                 let addr = self.output.len();
-                self.labels.insert(name, addr as u8);
+                self.labels.insert(name, addr as u32);
             }
             Instruction::NullaryOp(op) => self.gen_nullary_op(op)?,
             Instruction::UnaryOp(op, operand) => self.gen_unary_op(op, operand)?,
@@ -80,9 +80,9 @@ impl Generator {
                 Operand::Register { reg } => self.gen_m(&[0xF7], 7, reg),
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::Jmp => self.gen_jump(0xEB, operand)?,
+            Opcode::Jmp => self.gen_jump(&[0xE9], operand)?,
             Opcode::Sete => self.gen_set(0x94, operand)?,
-            Opcode::Je => self.gen_jump(0x7e, operand)?,
+            Opcode::Je => self.gen_jump(&[0x0F, 0x84], operand)?,
             Opcode::Setne => self.gen_set(0x95, operand)?,
             Opcode::Setl => self.gen_set(0x9C, operand)?,
             Opcode::Setle => self.gen_set(0x9E, operand)?,
@@ -152,14 +152,18 @@ impl Generator {
         Ok(())
     }
 
-    fn gen_jump(&mut self, opcode: u8, operand: Operand) -> Result<(), String> {
+    // [opcodes]+[opr](4)
+    fn gen_jump(&mut self, opcodes: &[u8], operand: Operand) -> Result<(), String> {
         match operand {
             Operand::Label { name } => {
-                let cur_addr = self.output.len() as u8;
-                let label_addr = self.lookup_label(name, cur_addr);
-                let after_jump_addr = cur_addr + 2;
+                // jmp命令のオペランド部分の開始アドレス
+                let jump_opr = (self.output.len() + opcodes.len()) as u32;
+                // labelのアドレス(labelの次の命令の開始アドレス)
+                let label_addr = self.lookup_label(name, jump_opr);
+                // jmp命令の次の命令の開始アドレス
+                let after_jump_addr = jump_opr + 4;
                 let diff = label_addr.wrapping_sub(after_jump_addr);
-                self.gen_d(opcode, diff);
+                self.gen_d32(opcodes, diff);
             }
             x => return Err(format!("unexpected operand: {:?}", x)),
         }
@@ -196,6 +200,12 @@ impl Generator {
     fn gen_d(&mut self, opcode: u8, offset: u8) {
         self.gen(opcode);
         self.gen(offset);
+    }
+
+    // TODO
+    fn gen_d32(&mut self, opcodes: &[u8], offset: u32) {
+        self.gen_bytes(opcodes);
+        self.gen32(offset);
     }
 
     fn gen_mr(&mut self, opcode: u8, opr1: Register, opr2: Register) {
@@ -245,7 +255,7 @@ impl Generator {
         self.gen(0b01000000 | (w as u8) << 3 | (r as u8) << 2 | (x as u8) << 1 | (b as u8))
     }
 
-    fn lookup_label(&mut self, name: String, code_addr: u8) -> u8 {
+    fn lookup_label(&mut self, name: String, code_addr: u32) -> u32 {
         match self.labels.get(&name) {
             Some(addr) => *addr,
             None => {
@@ -256,12 +266,14 @@ impl Generator {
     }
 
     fn resolve_jump(&mut self) -> Result<(), String> {
-        for (name, code_addr) in &self.unresolved_jumps {
+        for (name, jump_opr) in &self.unresolved_jumps {
             match self.labels.get(name) {
                 Some(label_addr) => {
-                    let target_addr = (code_addr + 1) as usize;
-                    let diff = (*label_addr).wrapping_sub(*code_addr) - 2;
-                    self.output[target_addr] = diff;
+                    let after_jump_addr = jump_opr + 4;
+                    let diff = (*label_addr).wrapping_sub(after_jump_addr);
+                    for (i, byte) in diff.to_le_bytes().iter().enumerate() {
+                        self.output[*jump_opr as usize + i] = *byte;
+                    }
                 }
                 None => return Err(format!("undefined label: {}", name)),
             }
