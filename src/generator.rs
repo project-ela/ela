@@ -271,7 +271,7 @@ impl Generator {
 
     fn gen32(&mut self, bytes: u32) {
         for i in 0..4 {
-            let byte = (bytes << (8 * i)) as u8;
+            let byte = (bytes >> (8 * i)) as u8;
             self.gen(byte);
         }
     }
