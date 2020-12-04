@@ -26,6 +26,7 @@ pub enum Token {
     Setle,
     Setg,
     Setge,
+    Call,
 
     Rax,
     Rbx,
