@@ -88,6 +88,7 @@ impl Generator {
             Opcode::Setle => self.gen_set(0x9E, operand)?,
             Opcode::Setg => self.gen_set(0x9F, operand)?,
             Opcode::Setge => self.gen_set(0x9D, operand)?,
+            Opcode::Call => self.gen_jump(&[0xE8], operand)?,
             x => return Err(format!("unexpected opcode: {:?}", x)),
         }
         Ok(())

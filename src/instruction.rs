@@ -29,6 +29,7 @@ pub enum Opcode {
     Setle,
     Setg,
     Setge,
+    Call,
 }
 
 #[derive(Debug)]

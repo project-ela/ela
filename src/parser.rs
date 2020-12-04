@@ -65,7 +65,8 @@ impl Parser {
             | Token::Setl
             | Token::Setle
             | Token::Setg
-            | Token::Setge => {
+            | Token::Setge
+            | Token::Call => {
                 let operand1 = self.parse_operand()?;
                 Ok(Instruction::UnaryOp(opcode, operand1))
             }
@@ -204,6 +205,7 @@ fn token_to_opcode(token: &Token) -> Result<Opcode, String> {
         Token::Setle => Ok(Opcode::Setle),
         Token::Setg => Ok(Opcode::Setg),
         Token::Setge => Ok(Opcode::Setge),
+        Token::Call => Ok(Opcode::Call),
         x => Err(format!("unexpected token: {:?}", x)),
     }
 }

@@ -125,6 +125,7 @@ fn find_keyword(ident: &String) -> Option<Token> {
         "setle" => Some(Token::Setle),
         "setg" => Some(Token::Setg),
         "setge" => Some(Token::Setge),
+        "call" => Some(Token::Call),
 
         "rax" => Some(Token::Rax),
         "rcx" => Some(Token::Rcx),
