@@ -1,4 +1,4 @@
-use crate::instruction::{Instruction, MnemonicType, Operand};
+use crate::instruction::{Address, Instruction, MnemonicType, Operand};
 use crate::token::{Symbol, Token};
 
 struct Parser {
@@ -81,8 +81,18 @@ impl Parser {
             Token::Register(reg) => Ok(Operand::Register {
                 reg: reg.to_owned(),
             }),
+            Token::Symbol(Symbol::LBracket) => self.parse_operand_address(),
             x => Err(format!("unexpected token: {:?}", x)),
         }
+    }
+
+    fn parse_operand_address(&mut self) -> Result<Operand, String> {
+        let operand = match self.consume() {
+            Token::Register(reg) => Ok(Operand::Address(Address { base: reg.clone() })),
+            x => return Err(format!("unexpected token: {:?}", x)),
+        };
+        self.expect(&Token::Symbol(Symbol::RBracket))?;
+        operand
     }
 
     fn expect(&mut self, token: &Token) -> Result<&Token, String> {

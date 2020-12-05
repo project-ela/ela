@@ -1,4 +1,4 @@
-use crate::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
+use crate::instruction::{Address, Instruction, Mnemonic, Operand, RegSize, Register};
 use std::collections::HashMap;
 
 struct Generator {
@@ -131,6 +131,7 @@ impl Generator {
             Mnemonic::Mov => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_rm(&[0x8B], reg1, reg2),
                 Operand::Immidiate { value } => self.gen_mi32(0xC7, 0, reg1, value),
+                Operand::Address(addr) => self.gen_rm2(&[0x8B], reg1, addr),
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Mnemonic::And => match operand2 {
@@ -244,6 +245,17 @@ impl Generator {
         }
         self.gen_bytes(opcodes);
         self.gen(calc_modrm(0b11, opr1.number(), opr2.number()));
+    }
+
+    fn gen_rm2(&mut self, opcodes: &[u8], opr1: Register, opr2: Address) {
+        if opr2.base.size() != RegSize::QWord {
+            unimplemented!()
+        }
+        if opr1.size() == RegSize::QWord {
+            self.gen_rex(true, opr1.only_in_64bit(), false, opr2.base.only_in_64bit());
+        }
+        self.gen_bytes(opcodes);
+        self.gen(calc_modrm(0b00, opr1.number(), opr2.base.number()));
     }
 
     fn gen_oi(&mut self, opcode: u8, opr1: Register, opr2: u32) {

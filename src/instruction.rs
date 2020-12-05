@@ -58,6 +58,7 @@ pub enum Operand {
     Immidiate { value: u32 },
     Register { reg: Register },
     Label { name: String },
+    Address(Address),
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -159,4 +160,9 @@ impl Register {
                 | R15b
         )
     }
+}
+
+#[derive(Debug)]
+pub struct Address {
+    pub base: Register,
 }
