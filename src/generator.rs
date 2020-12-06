@@ -1,4 +1,4 @@
-use crate::instruction::{Instruction, Opcode, Operand, RegSize, Register};
+use crate::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
 use std::collections::HashMap;
 
 struct Generator {
@@ -47,17 +47,17 @@ impl Generator {
         Ok(())
     }
 
-    fn gen_nullary_op(&mut self, op: Opcode) -> Result<(), String> {
-        match op {
-            Opcode::Ret => self.gen(0xC3),
-            x => return Err(format!("unexpected opcode: {:?}", x)),
+    fn gen_nullary_op(&mut self, m: Mnemonic) -> Result<(), String> {
+        match m {
+            Mnemonic::Ret => self.gen(0xC3),
+            x => return Err(format!("unexpected mnemonic: {:?}", x)),
         }
         Ok(())
     }
 
-    fn gen_unary_op(&mut self, op: Opcode, operand: Operand) -> Result<(), String> {
-        match op {
-            Opcode::Push => match operand {
+    fn gen_unary_op(&mut self, m: Mnemonic, operand: Operand) -> Result<(), String> {
+        match m {
+            Mnemonic::Push => match operand {
                 Operand::Immidiate { value } => self.gen_i(0x6A, value),
                 Operand::Register { reg } => {
                     if reg.size() != RegSize::QWord {
@@ -67,7 +67,7 @@ impl Generator {
                 }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::Pop => match operand {
+            Mnemonic::Pop => match operand {
                 Operand::Register { reg } => {
                     if reg.size() != RegSize::QWord {
                         return Err(format!("unexpected operand: {:?}", reg));
@@ -76,27 +76,27 @@ impl Generator {
                 }
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::IDiv => match operand {
+            Mnemonic::IDiv => match operand {
                 Operand::Register { reg } => self.gen_m(&[0xF7], 7, reg),
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::Jmp => self.gen_jump(&[0xE9], operand)?,
-            Opcode::Sete => self.gen_set(0x94, operand)?,
-            Opcode::Je => self.gen_jump(&[0x0F, 0x84], operand)?,
-            Opcode::Setne => self.gen_set(0x95, operand)?,
-            Opcode::Setl => self.gen_set(0x9C, operand)?,
-            Opcode::Setle => self.gen_set(0x9E, operand)?,
-            Opcode::Setg => self.gen_set(0x9F, operand)?,
-            Opcode::Setge => self.gen_set(0x9D, operand)?,
-            Opcode::Call => self.gen_jump(&[0xE8], operand)?,
-            x => return Err(format!("unexpected opcode: {:?}", x)),
+            Mnemonic::Jmp => self.gen_jump(&[0xE9], operand)?,
+            Mnemonic::Sete => self.gen_set(0x94, operand)?,
+            Mnemonic::Je => self.gen_jump(&[0x0F, 0x84], operand)?,
+            Mnemonic::Setne => self.gen_set(0x95, operand)?,
+            Mnemonic::Setl => self.gen_set(0x9C, operand)?,
+            Mnemonic::Setle => self.gen_set(0x9E, operand)?,
+            Mnemonic::Setg => self.gen_set(0x9F, operand)?,
+            Mnemonic::Setge => self.gen_set(0x9D, operand)?,
+            Mnemonic::Call => self.gen_jump(&[0xE8], operand)?,
+            x => return Err(format!("unexpected mnemonic: {:?}", x)),
         }
         Ok(())
     }
 
     fn gen_biary_op(
         &mut self,
-        op: Opcode,
+        m: Mnemonic,
         operand1: Operand,
         operand2: Operand,
     ) -> Result<(), String> {
@@ -108,47 +108,47 @@ impl Generator {
         }
 
         let reg1 = expect_register(operand1)?;
-        match op {
-            Opcode::Add => match operand2 {
+        match m {
+            Mnemonic::Add => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_mr(0x01, reg1, reg2),
                 Operand::Immidiate { value } => self.gen_mi(0x83, 0, reg1, value),
-                x => return Err(format!("unexpected opcode: {:?}", x)),
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::Sub => match operand2 {
+            Mnemonic::Sub => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_mr(0x29, reg1, reg2),
                 Operand::Immidiate { value } => self.gen_mi(0x83, 5, reg1, value),
-                x => return Err(format!("unexpected opcode: {:?}", x)),
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::IMul => {
+            Mnemonic::IMul => {
                 let reg2 = expect_register(operand2)?;
                 self.gen_rm(&[0x0F, 0xAF], reg1, reg2);
             }
-            Opcode::Xor => match operand2 {
+            Mnemonic::Xor => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_mr(0x31, reg1, reg2),
                 Operand::Immidiate { value } => self.gen_mi(0x83, 6, reg1, value),
-                x => return Err(format!("unexpected opcode: {:?}", x)),
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::Mov => match operand2 {
+            Mnemonic::Mov => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_rm(&[0x8B], reg1, reg2),
                 Operand::Immidiate { value } => self.gen_mi32(0xC7, 0, reg1, value),
-                x => return Err(format!("unexpected opcode: {:?}", x)),
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::And => match operand2 {
+            Mnemonic::And => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_rm(&[0x23], reg1, reg2),
                 Operand::Immidiate { value } => self.gen_mi(0x83, 4, reg1, value),
-                x => return Err(format!("unexpected opcode: {:?}", x)),
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::Or => match operand2 {
+            Mnemonic::Or => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_mr(0x09, reg1, reg2),
                 Operand::Immidiate { value } => self.gen_mi(0x83, 1, reg1, value),
-                x => return Err(format!("unexpected opcode: {:?}", x)),
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            Opcode::Cmp => match operand2 {
+            Mnemonic::Cmp => match operand2 {
                 Operand::Register { reg: reg2 } => self.gen_mr(0x39, reg1, reg2),
                 Operand::Immidiate { value } => self.gen_mi(0x83, 7, reg1, value),
-                x => return Err(format!("unexpected opcode: {:?}", x)),
+                x => return Err(format!("unexpected operand: {:?}", x)),
             },
-            x => return Err(format!("unexpected opcode: {:?}", x)),
+            x => return Err(format!("unexpected mnemonic: {:?}", x)),
         }
         Ok(())
     }

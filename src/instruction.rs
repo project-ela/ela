@@ -2,13 +2,13 @@
 pub enum Instruction {
     PseudoOp { name: String, arg: String },
     Label { name: String },
-    NullaryOp(Opcode),
-    UnaryOp(Opcode, Operand),
-    BinaryOp(Opcode, Operand, Operand),
+    NullaryOp(Mnemonic),
+    UnaryOp(Mnemonic, Operand),
+    BinaryOp(Mnemonic, Operand, Operand),
 }
 
-#[derive(Debug)]
-pub enum Opcode {
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum Mnemonic {
     Push,
     Pop,
     Add,
@@ -33,13 +33,34 @@ pub enum Opcode {
 }
 
 #[derive(Debug)]
+pub enum MnemonicType {
+    Nullary,
+    Unary,
+    Binary,
+}
+
+impl Mnemonic {
+    pub fn typ(&self) -> MnemonicType {
+        use Mnemonic::*;
+        use MnemonicType::*;
+        match self {
+            Ret => Nullary,
+            Push | Pop | IDiv | Jmp | Sete | Je | Setne | Setl | Setle | Setg | Setge | Call => {
+                Unary
+            }
+            Add | Sub | IMul | Xor | Mov | And | Or | Cmp => Binary,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Operand {
     Immidiate { value: u32 },
     Register { reg: Register },
     Label { name: String },
 }
 
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum Register {
     Rax,
     Rbx,

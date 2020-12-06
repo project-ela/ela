@@ -1,4 +1,5 @@
-use crate::token::Token;
+use crate::instruction::{Mnemonic, Register};
+use crate::token::{Symbol, Token};
 
 struct Tokenizer {
     pos: usize,
@@ -30,17 +31,17 @@ impl Tokenizer {
         }
 
         let token = match self.peek_char() {
-            ',' => Token::Commna,
-            ':' => Token::Colon,
+            ',' => Token::Symbol(Symbol::Comma),
+            ':' => Token::Symbol(Symbol::Colon),
             x if x.is_digit(10) => {
                 let value = self.consume_number();
-                return Ok(Token::Integer { value });
+                return Ok(Token::Integer(value));
             }
             x if self.is_ident(x) => {
                 let name = self.consume_ident();
                 return match find_keyword(&name) {
                     Some(token) => Ok(token),
-                    None => Ok(Token::Ident { name }),
+                    None => Ok(Token::Ident(name)),
                 };
             }
             x => return Err(format!("unexpected char: {}", x)),
@@ -105,67 +106,67 @@ impl Tokenizer {
 
 fn find_keyword(ident: &String) -> Option<Token> {
     match ident.as_str() {
-        "push" => Some(Token::Push),
-        "pop" => Some(Token::Pop),
-        "add" => Some(Token::Add),
-        "sub" => Some(Token::Sub),
-        "imul" => Some(Token::IMul),
-        "idiv" => Some(Token::IDiv),
-        "xor" => Some(Token::Xor),
-        "ret" => Some(Token::Ret),
-        "mov" => Some(Token::Mov),
-        "jmp" => Some(Token::Jmp),
-        "and" => Some(Token::And),
-        "or" => Some(Token::Or),
-        "cmp" => Some(Token::Cmp),
-        "sete" => Some(Token::Sete),
-        "je" => Some(Token::Je),
-        "setne" => Some(Token::Setne),
-        "setl" => Some(Token::Setl),
-        "setle" => Some(Token::Setle),
-        "setg" => Some(Token::Setg),
-        "setge" => Some(Token::Setge),
-        "call" => Some(Token::Call),
+        "push" => Some(Token::Mnemonic(Mnemonic::Push)),
+        "pop" => Some(Token::Mnemonic(Mnemonic::Pop)),
+        "add" => Some(Token::Mnemonic(Mnemonic::Add)),
+        "sub" => Some(Token::Mnemonic(Mnemonic::Sub)),
+        "imul" => Some(Token::Mnemonic(Mnemonic::IMul)),
+        "idiv" => Some(Token::Mnemonic(Mnemonic::IDiv)),
+        "xor" => Some(Token::Mnemonic(Mnemonic::Xor)),
+        "ret" => Some(Token::Mnemonic(Mnemonic::Ret)),
+        "mov" => Some(Token::Mnemonic(Mnemonic::Mov)),
+        "jmp" => Some(Token::Mnemonic(Mnemonic::Jmp)),
+        "and" => Some(Token::Mnemonic(Mnemonic::And)),
+        "or" => Some(Token::Mnemonic(Mnemonic::Or)),
+        "cmp" => Some(Token::Mnemonic(Mnemonic::Cmp)),
+        "sete" => Some(Token::Mnemonic(Mnemonic::Sete)),
+        "je" => Some(Token::Mnemonic(Mnemonic::Je)),
+        "setne" => Some(Token::Mnemonic(Mnemonic::Setne)),
+        "setl" => Some(Token::Mnemonic(Mnemonic::Setl)),
+        "setle" => Some(Token::Mnemonic(Mnemonic::Setle)),
+        "setg" => Some(Token::Mnemonic(Mnemonic::Setg)),
+        "setge" => Some(Token::Mnemonic(Mnemonic::Setge)),
+        "call" => Some(Token::Mnemonic(Mnemonic::Call)),
 
-        "rax" => Some(Token::Rax),
-        "rcx" => Some(Token::Rcx),
-        "rdx" => Some(Token::Rdx),
-        "rbx" => Some(Token::Rbx),
-        "rsp" => Some(Token::Rsp),
-        "rbp" => Some(Token::Rbp),
-        "rsi" => Some(Token::Rsi),
-        "rdi" => Some(Token::Rdi),
-        "r8" => Some(Token::R8),
-        "r9" => Some(Token::R9),
-        "r10" => Some(Token::R10),
-        "r11" => Some(Token::R11),
-        "r12" => Some(Token::R12),
-        "r13" => Some(Token::R13),
-        "r14" => Some(Token::R14),
-        "r15" => Some(Token::R15),
+        "rax" => Some(Token::Register(Register::Rax)),
+        "rcx" => Some(Token::Register(Register::Rcx)),
+        "rdx" => Some(Token::Register(Register::Rdx)),
+        "rbx" => Some(Token::Register(Register::Rbx)),
+        "rsp" => Some(Token::Register(Register::Rsp)),
+        "rbp" => Some(Token::Register(Register::Rbp)),
+        "rsi" => Some(Token::Register(Register::Rsi)),
+        "rdi" => Some(Token::Register(Register::Rdi)),
+        "r8" => Some(Token::Register(Register::R8)),
+        "r9" => Some(Token::Register(Register::R9)),
+        "r10" => Some(Token::Register(Register::R10)),
+        "r11" => Some(Token::Register(Register::R11)),
+        "r12" => Some(Token::Register(Register::R12)),
+        "r13" => Some(Token::Register(Register::R13)),
+        "r14" => Some(Token::Register(Register::R14)),
+        "r15" => Some(Token::Register(Register::R15)),
 
-        "eax" => Some(Token::Eax),
-        "ecx" => Some(Token::Ecx),
-        "edx" => Some(Token::Edx),
-        "ebx" => Some(Token::Ebx),
-        "esp" => Some(Token::Esp),
-        "ebp" => Some(Token::Ebp),
-        "esi" => Some(Token::Esi),
-        "edi" => Some(Token::Edi),
+        "eax" => Some(Token::Register(Register::Eax)),
+        "ecx" => Some(Token::Register(Register::Ecx)),
+        "edx" => Some(Token::Register(Register::Edx)),
+        "ebx" => Some(Token::Register(Register::Ebx)),
+        "esp" => Some(Token::Register(Register::Esp)),
+        "ebp" => Some(Token::Register(Register::Ebp)),
+        "esi" => Some(Token::Register(Register::Esi)),
+        "edi" => Some(Token::Register(Register::Edi)),
 
-        "al" => Some(Token::Al),
-        "cl" => Some(Token::Cl),
-        "dl" => Some(Token::Dl),
-        "bl" => Some(Token::Bl),
+        "al" => Some(Token::Register(Register::Al)),
+        "cl" => Some(Token::Register(Register::Cl)),
+        "dl" => Some(Token::Register(Register::Dl)),
+        "bl" => Some(Token::Register(Register::Bl)),
 
-        "r8b" => Some(Token::R8b),
-        "r9b" => Some(Token::R9b),
-        "r10b" => Some(Token::R10b),
-        "r11b" => Some(Token::R11b),
-        "r12b" => Some(Token::R12b),
-        "r13b" => Some(Token::R13b),
-        "r14b" => Some(Token::R14b),
-        "r15b" => Some(Token::R15b),
+        "r8b" => Some(Token::Register(Register::R8b)),
+        "r9b" => Some(Token::Register(Register::R9b)),
+        "r10b" => Some(Token::Register(Register::R10b)),
+        "r11b" => Some(Token::Register(Register::R11b)),
+        "r12b" => Some(Token::Register(Register::R12b)),
+        "r13b" => Some(Token::Register(Register::R13b)),
+        "r14b" => Some(Token::Register(Register::R14b)),
+        "r15b" => Some(Token::Register(Register::R15b)),
 
         _ => None,
     }

@@ -1,72 +1,17 @@
-#[derive(Eq, PartialEq, Debug)]
+use crate::instruction::{Mnemonic, Register};
+
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum Token {
-    Integer { value: u32 },
-    Ident { name: String },
-
-    Commna,
-    Colon,
-
-    Push,
-    Pop,
-    Add,
-    Sub,
-    IMul,
-    IDiv,
-    Xor,
-    Ret,
-    Mov,
-    Jmp,
-    And,
-    Or,
-    Cmp,
-    Sete,
-    Je,
-    Setne,
-    Setl,
-    Setle,
-    Setg,
-    Setge,
-    Call,
-
-    Rax,
-    Rbx,
-    Rcx,
-    Rdx,
-    Rdi,
-    Rsi,
-    Rbp,
-    Rsp,
-    R8,
-    R9,
-    R10,
-    R11,
-    R12,
-    R13,
-    R14,
-    R15,
-
-    Eax,
-    Ecx,
-    Edx,
-    Ebx,
-    Esp,
-    Ebp,
-    Esi,
-    Edi,
-
-    Al,
-    Cl,
-    Dl,
-    Bl,
-
-    R8b,
-    R9b,
-    R10b,
-    R11b,
-    R12b,
-    R13b,
-    R14b,
-    R15b,
-
+    Integer(u32),
+    Ident(String),
+    Symbol(Symbol),
+    Mnemonic(Mnemonic),
+    Register(Register),
     EOF,
+}
+
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum Symbol {
+    Comma,
+    Colon,
 }
