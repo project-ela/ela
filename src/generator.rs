@@ -193,7 +193,9 @@ impl Generator {
     }
 
     fn gen_m(&mut self, opcodes: &[u8], reg: u8, r: Register) {
-        self.gen_rex(false, false, false, r.only_in_64bit());
+        if r.size() == RegSize::QWord || r.only_in_64bit() {
+            self.gen_rex(r.size() == RegSize::QWord, false, false, r.only_in_64bit());
+        }
         self.gen_bytes(opcodes);
         self.gen(calc_modrm(0b11, reg, r.number()));
     }
