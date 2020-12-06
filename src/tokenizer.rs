@@ -33,6 +33,10 @@ impl Tokenizer {
         let token = match self.peek_char() {
             ',' => Token::Symbol(Symbol::Comma),
             ':' => Token::Symbol(Symbol::Colon),
+            ';' => {
+                self.consume_char();
+                return Ok(Token::Comment(self.consume_comment()));
+            }
             x if x.is_digit(10) => {
                 let value = self.consume_number();
                 return Ok(Token::Integer(value));
@@ -48,6 +52,14 @@ impl Tokenizer {
         };
         self.consume_char();
         Ok(token)
+    }
+
+    fn consume_comment(&mut self) -> String {
+        let mut result = String::new();
+        while !self.is_eof() && self.peek_char() != '\n' {
+            result.push(self.consume_char());
+        }
+        result
     }
 
     fn consume_whitespace(&mut self) {

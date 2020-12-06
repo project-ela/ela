@@ -7,6 +7,7 @@ pub enum Token {
     Symbol(Symbol),
     Mnemonic(Mnemonic),
     Register(Register),
+    Comment(String),
     EOF,
 }
 
