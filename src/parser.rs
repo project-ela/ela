@@ -23,6 +23,11 @@ impl Parser {
                 break;
             }
 
+            if matches!(self.peek(), Token::Comment(_)) {
+                self.consume();
+                continue;
+            }
+
             if !matches!(self.peek(), Token::Ident(_)) {
                 insts.push(self.parse_inst()?);
                 continue;
