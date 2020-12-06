@@ -107,6 +107,20 @@ impl Generator {
             ));
         }
 
+        match &operand1 {
+            Operand::Address(addr1) => match m {
+                Mnemonic::Mov => match operand2 {
+                    Operand::Register { reg: reg2 } => {
+                        self.gen_mr2(0x89, addr1.clone(), reg2);
+                        return Ok(());
+                    }
+                    x => return Err(format!("unexpected operand: {:?}", x)),
+                },
+                x => unimplemented!(),
+            },
+            _ => {}
+        }
+
         let reg1 = expect_register(operand1)?;
         match m {
             Mnemonic::Add => match operand2 {
@@ -218,6 +232,17 @@ impl Generator {
         }
         self.gen(opcode);
         self.gen(calc_modrm(0b11, opr2.number(), opr1.number()));
+    }
+
+    fn gen_mr2(&mut self, opcode: u8, opr1: Address, opr2: Register) {
+        if opr1.base.size() != RegSize::QWord {
+            unimplemented!()
+        }
+        if opr2.size() == RegSize::QWord {
+            self.gen_rex(true, opr2.only_in_64bit(), false, opr1.base.only_in_64bit());
+        }
+        self.gen(opcode);
+        self.gen(calc_modrm(0b00, opr2.number(), opr1.base.number()));
     }
 
     fn gen_mi(&mut self, opcode: u8, reg: u8, opr1: Register, opr2: u32) {

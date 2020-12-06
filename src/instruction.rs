@@ -53,7 +53,7 @@ impl Mnemonic {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operand {
     Immidiate { value: u32 },
     Register { reg: Register },
@@ -162,7 +162,7 @@ impl Register {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Address {
     pub base: Register,
 }
