@@ -135,8 +135,8 @@ fn mov() {
     do_test("mov r9,r9", "4d 8b c9");
     do_test("mov rax,[rax]", "48 8b 00");
     do_test("mov rax,[r9]", "49 8b 01");
-    do_test("mov [rax], rax", "48 89 00");
-    do_test("mov [r9], rax", "49 89 01");
+    do_test("mov [rax],rax", "48 89 00");
+    do_test("mov [r9],rax", "49 89 01");
 }
 
 #[test]
