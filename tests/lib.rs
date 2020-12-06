@@ -124,6 +124,18 @@ fn xor() {
 }
 
 #[test]
+fn mov() {
+    do_test("mov eax,1", "c7 c0 01 00 00 00");
+    do_test("mov rax,1", "48 c7 c0 01 00 00 00");
+    do_test("mov r9,1", "49 c7 c1 01 00 00 00");
+    do_test("mov eax,eax", "8b c0");
+    do_test("mov rax,rax", "48 8b c0");
+    do_test("mov rax,r9", "49 8b c1");
+    do_test("mov r9,rax", "4c 8b c8");
+    do_test("mov r9,r9", "4d 8b c9");
+}
+
+#[test]
 fn and() {
     do_test("and eax,1", "83 e0 01");
     do_test("and rax,1", "48 83 e0 01");
