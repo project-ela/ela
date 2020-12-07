@@ -100,6 +100,27 @@ impl Generator {
         operand1: Operand,
         operand2: Operand,
     ) -> Result<(), String> {
+        macro_rules! gen {
+            ($op1: expr, $op2: expr, $reg1: expr, $op3: expr, $op4: expr) => {{
+                match (operand1.clone(), operand2.clone()) {
+                    (Operand::Register { .. }, Operand::Register { .. }) => {
+                        self.gen_mr($op1, operand1.clone(), operand2.clone())?
+                    }
+                    (Operand::Register { reg: reg1 }, Operand::Immidiate { value: value2 }) => {
+                        self.gen_mi($op2, $reg1, reg1, value2)
+                    }
+                    (Operand::Register { .. }, Operand::Address(_)) => {
+                        self.gen_rm($op3, operand1.clone(), operand2.clone())?
+                    }
+                    (Operand::Address(_), Operand::Register { .. }) => {
+                        self.gen_mr($op4, operand1.clone(), operand2.clone())?
+                    }
+                    _ => unimplemented!(),
+                }
+                return Ok(());
+            }};
+        }
+
         if !is_same_reg_size(&operand1, &operand2) {
             return Err(format!(
                 "operand type mismatch: {:?} and {:?}",
@@ -107,45 +128,19 @@ impl Generator {
             ));
         }
 
-        if matches!(m, Mnemonic::Mov) {
-            match (operand1.clone(), operand2.clone()) {
-                (Operand::Register { .. }, Operand::Register { .. }) => {
-                    self.gen_rm(&[0x8B], operand1.clone(), operand2.clone())?
-                }
-                (Operand::Register { reg: reg1 }, Operand::Immidiate { value: value2 }) => {
-                    self.gen_mi32(0xC7, 0, reg1, value2)
-                }
-                (Operand::Register { .. }, Operand::Address(_)) => {
-                    self.gen_rm(&[0x8B], operand1.clone(), operand2.clone())?
-                }
-                (Operand::Address(addr1), Operand::Register { reg: reg2 }) => {
-                    self.gen_mr(&[0x89], operand1.clone(), operand2.clone())?
-                }
-                _ => unimplemented!(),
-            }
-            return Ok(());
+        match m {
+            Mnemonic::Mov => gen!(&[0x8B], 0xC7, 0, &[0x8B], &[0x89]),
+            Mnemonic::Add => gen!(&[0x01], 0x83, 0, &[0x03], &[0x01]),
+            Mnemonic::Or => gen!(&[0x09], 0x83, 1, &[0x0b], &[0x09]),
+            Mnemonic::And => gen!(&[0x21], 0x83, 4, &[0x23], &[0x21]),
+            Mnemonic::Sub => gen!(&[0x29], 0x83, 5, &[0x2b], &[0x29]),
+            Mnemonic::Xor => gen!(&[0x31], 0x83, 6, &[0x33], &[0x31]),
+            Mnemonic::Cmp => gen!(&[0x39], 0x83, 7, &[0x3b], &[0x39]),
+            _ => (),
         }
 
         let reg1 = expect_register(operand1)?;
         match m {
-            Mnemonic::Add => match operand2 {
-                Operand::Register { reg: reg2 } => self.gen_mr(
-                    &[0x01],
-                    Operand::Register { reg: reg1 },
-                    Operand::Register { reg: reg2 },
-                )?,
-                Operand::Immidiate { value } => self.gen_mi(0x83, 0, reg1, value),
-                x => return Err(format!("unexpected operand: {:?}", x)),
-            },
-            Mnemonic::Sub => match operand2 {
-                Operand::Register { reg: reg2 } => self.gen_mr(
-                    &[0x29],
-                    Operand::Register { reg: reg1 },
-                    Operand::Register { reg: reg2 },
-                )?,
-                Operand::Immidiate { value } => self.gen_mi(0x83, 5, reg1, value),
-                x => return Err(format!("unexpected operand: {:?}", x)),
-            },
             Mnemonic::IMul => {
                 let reg2 = expect_register(operand2)?;
                 self.gen_rm(
@@ -154,42 +149,6 @@ impl Generator {
                     Operand::Register { reg: reg2 },
                 )?;
             }
-            Mnemonic::Xor => match operand2 {
-                Operand::Register { reg: reg2 } => self.gen_mr(
-                    &[0x31],
-                    Operand::Register { reg: reg1 },
-                    Operand::Register { reg: reg2 },
-                )?,
-                Operand::Immidiate { value } => self.gen_mi(0x83, 6, reg1, value),
-                x => return Err(format!("unexpected operand: {:?}", x)),
-            },
-            Mnemonic::And => match operand2 {
-                Operand::Register { reg: reg2 } => self.gen_rm(
-                    &[0x23],
-                    Operand::Register { reg: reg1 },
-                    Operand::Register { reg: reg2 },
-                )?,
-                Operand::Immidiate { value } => self.gen_mi(0x83, 4, reg1, value),
-                x => return Err(format!("unexpected operand: {:?}", x)),
-            },
-            Mnemonic::Or => match operand2 {
-                Operand::Register { reg: reg2 } => self.gen_mr(
-                    &[0x09],
-                    Operand::Register { reg: reg1 },
-                    Operand::Register { reg: reg2 },
-                )?,
-                Operand::Immidiate { value } => self.gen_mi(0x83, 1, reg1, value),
-                x => return Err(format!("unexpected operand: {:?}", x)),
-            },
-            Mnemonic::Cmp => match operand2 {
-                Operand::Register { reg: reg2 } => self.gen_mr(
-                    &[0x39],
-                    Operand::Register { reg: reg1 },
-                    Operand::Register { reg: reg2 },
-                )?,
-                Operand::Immidiate { value } => self.gen_mi(0x83, 7, reg1, value),
-                x => return Err(format!("unexpected operand: {:?}", x)),
-            },
             x => return Err(format!("unexpected mnemonic: {:?}", x)),
         }
         Ok(())
