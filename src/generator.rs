@@ -1,10 +1,11 @@
 use crate::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 struct Generator {
     output: Vec<u8>,
     labels: HashMap<String, u32>,
-    global_symbols: Vec<String>,
+    global_symbols: HashSet<String>,
+    unknown_symbols: HashSet<String>,
     unresolved_jumps: Vec<UnresolvedJump>,
 }
 
@@ -18,6 +19,7 @@ pub struct GlobalSymbol {
 pub struct GeneratedData {
     pub program: Vec<u8>,
     pub symbols: Vec<GlobalSymbol>,
+    pub unknown_symbols: HashSet<String>,
 }
 
 pub fn generate(insts: Vec<Instruction>) -> Result<GeneratedData, String> {
@@ -26,6 +28,7 @@ pub fn generate(insts: Vec<Instruction>) -> Result<GeneratedData, String> {
     Ok(GeneratedData {
         program: generator.generate(insts)?,
         symbols: generator.global_symbols(),
+        unknown_symbols: generator.unknown_symbols,
     })
 }
 
@@ -34,7 +37,8 @@ impl Generator {
         Self {
             output: Vec::new(),
             labels: HashMap::new(),
-            global_symbols: Vec::new(),
+            global_symbols: HashSet::new(),
+            unknown_symbols: HashSet::new(),
             unresolved_jumps: Vec::new(),
         }
     }
@@ -66,7 +70,9 @@ impl Generator {
     fn gen_inst(&mut self, inst: Instruction) -> Result<(), String> {
         match inst {
             Instruction::PseudoOp { name, arg } => match name.as_str() {
-                ".global" => self.global_symbols.push(arg),
+                ".global" => {
+                    self.global_symbols.insert(arg);
+                }
                 _ => {}
             },
             Instruction::Label { name } => {
@@ -341,7 +347,9 @@ impl Generator {
                         self.output[*jump_opr as usize + i] = *byte;
                     }
                 }
-                None => return Err(format!("undefined label: {}", name)),
+                None => {
+                    self.unknown_symbols.insert(name.clone());
+                }
             }
         }
         Ok(())

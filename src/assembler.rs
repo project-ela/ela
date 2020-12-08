@@ -65,6 +65,13 @@ fn gen_elf(data: GeneratedData) -> Result<Vec<u8>, String> {
         elf.add_symbol(sym.name, symbol);
     }
 
+    for usym_name in data.unknown_symbols {
+        let mut symbol = symbol::ElfSymbol::new();
+        symbol.set_binding(symbol::Binding::Global);
+        symbol.set_index_type(symbol::IndexType::Index(0));
+        elf.add_symbol(usym_name, symbol);
+    }
+
     elf.update_elf_header();
     Ok(elf.to_bytes())
 }
