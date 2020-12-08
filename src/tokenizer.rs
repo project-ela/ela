@@ -120,8 +120,8 @@ impl Tokenizer {
     }
 }
 
-fn find_keyword(ident: &String) -> Option<Token> {
-    match ident.as_str() {
+fn find_keyword(ident: &str) -> Option<Token> {
+    match ident {
         "push" => Some(Token::Mnemonic(Mnemonic::Push)),
         "pop" => Some(Token::Mnemonic(Mnemonic::Pop)),
         "add" => Some(Token::Mnemonic(Mnemonic::Add)),

@@ -25,13 +25,13 @@ pub fn assemble_to_file(input_file: String, output_file: String) -> Result<(), S
 
 pub fn assemble(source: String) -> Result<Vec<u8>, String> {
     tokenize(source)
-        .and_then(|tokens| parse(tokens))
-        .and_then(|insts| generate(insts))
-        .and_then(|generated_data| gen_elf(generated_data))
+        .and_then(parse)
+        .and_then(generate)
+        .and_then(gen_elf)
 }
 
 fn gen_elf(data: GeneratedData) -> Result<Vec<u8>, String> {
-    let mut elf = Elf::new();
+    let mut elf = Elf::default();
     elf.elf_header.set_class(elf_header::Class::Class64);
     elf.elf_header.set_data(elf_header::Data::Data2LSB);
     elf.elf_header.set_osabi(elf_header::OSABI::OSABISysV);

@@ -16,9 +16,12 @@ type ElfOff = u64;
 type ElfSection = u16;
 type ElfIdent = u128;
 
+#[allow(dead_code)]
 const SYM_ENTRY_SIZE_32: ElfXword = 0x10;
+#[allow(dead_code)]
 const SYM_ENTRY_SIZE_64: ElfXword = 0x18;
 
+#[derive(Default)]
 pub struct Elf {
     pub elf_header: ElfHeader,
     pub sections: Vec<Section>,
@@ -33,22 +36,12 @@ pub struct Section {
 }
 
 impl Elf {
-    pub fn new() -> Self {
-        Self {
-            elf_header: ElfHeader::new(),
-            sections: Vec::new(),
-            section_names: Vec::new(),
-            symbols: Vec::new(),
-            symbol_names: Vec::new(),
-        }
-    }
-
     pub fn add_section(&mut self, name: String, header: ElfSectionHeader, data: Vec<u8>) {
         let name_index = self.section_names.len();
         self.section_names.extend(name.as_bytes());
         self.section_names.push(0x0);
 
-        let mut header = header.clone(); // TODO FIXME
+        let mut header = header;
         header.name = name_index as ElfWord;
         self.sections.push(Section { header, data });
 
@@ -60,7 +53,7 @@ impl Elf {
         self.symbol_names.extend(name.as_bytes());
         self.symbol_names.push(0x0);
 
-        let mut symbol = symbol.clone(); // TODO FIXME
+        let mut symbol = symbol;
         symbol.name = name_index as ElfWord;
 
         self.symbols.push(symbol);
@@ -104,7 +97,7 @@ impl Elf {
         shstrtab_hdr.name = self.section_names.len() as ElfWord;
         shstrtab_hdr.set_type(section_header::Type::Strtab);
         shstrtab_hdr.set_align(1);
-        self.section_names.extend(".shstrtab".as_bytes());
+        self.section_names.extend(b".shstrtab");
         self.section_names.push(0x0);
 
         self.sections.push(Section {

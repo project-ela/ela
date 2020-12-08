@@ -48,17 +48,21 @@ pub enum Machine {
     X86_64 = 62,
 }
 
+#[allow(dead_code)]
 const ELF_HDR_SIZE_32: ElfHalf = 52;
+#[allow(dead_code)]
 const SECTION_HDR_SIZE_32: ElfHalf = 40;
 
+#[allow(dead_code)]
 const ELF_HDR_SIZE_64: ElfHalf = 64;
+#[allow(dead_code)]
 const SECTION_HDR_SIZE_64: ElfHalf = 64;
 
 impl ElfHeader {
     pub fn new() -> Self {
         let mut hdr: Self = Default::default();
-        hdr.ident = 0x7f454c46 << 12 * 8;
-        hdr.ident |= 0x1 << 9 * 8; // version
+        hdr.ident = 0x7f454c46 << (12 * 8);
+        hdr.ident |= 0x1 << (9 * 8); // version
         hdr.version = 0x1;
         hdr.elf_header_size = ELF_HDR_SIZE_64;
         hdr.section_header_size = SECTION_HDR_SIZE_64;
@@ -66,15 +70,15 @@ impl ElfHeader {
     }
 
     pub fn set_class(&mut self, class: Class) {
-        self.ident |= (class as u128) << 11 * 8;
+        self.ident |= (class as u128) << (11 * 8);
     }
 
     pub fn set_data(&mut self, data: Data) {
-        self.ident |= (data as u128) << 10 * 8;
+        self.ident |= (data as u128) << (10 * 8);
     }
 
     pub fn set_osabi(&mut self, osabi: OSABI) {
-        self.ident |= (osabi as u128) << 8 * 8;
+        self.ident |= (osabi as u128) << (8 * 8);
     }
 
     pub fn set_filetype(&mut self, typ: Type) {

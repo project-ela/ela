@@ -33,6 +33,7 @@ pub enum Type {
     SymtabShndx = 18,
 }
 
+#[repr(u64)]
 pub enum Flags {
     Write = 1 << 0,
     Alloc = 1 << 1,
