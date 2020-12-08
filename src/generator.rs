@@ -1,4 +1,4 @@
-use crate::instruction::{Address, Instruction, Mnemonic, Operand, RegSize, Register};
+use crate::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
 use std::collections::HashMap;
 
 struct Generator {
@@ -102,22 +102,21 @@ impl Generator {
     ) -> Result<(), String> {
         macro_rules! gen {
             ($op1: expr, $op2: expr, $reg1: expr, $op3: expr, $op4: expr) => {{
-                match (operand1.clone(), operand2.clone()) {
+                match (&operand1, &operand2) {
                     (Operand::Register { .. }, Operand::Register { .. }) => {
-                        self.gen_mr($op1, operand1.clone(), operand2.clone())?
+                        self.gen_mr($op1, operand1, operand2)?
                     }
                     (Operand::Register { reg: reg1 }, Operand::Immidiate { value: value2 }) => {
-                        self.gen_mi($op2, $reg1, reg1, value2)
+                        self.gen_mi($op2, $reg1, reg1.clone(), *value2)
                     }
                     (Operand::Register { .. }, Operand::Address(_)) => {
-                        self.gen_rm($op3, operand1.clone(), operand2.clone())?
+                        self.gen_rm($op3, operand1, operand2)?
                     }
                     (Operand::Address(_), Operand::Register { .. }) => {
-                        self.gen_mr($op4, operand1.clone(), operand2.clone())?
+                        self.gen_mr($op4, operand1, operand2)?
                     }
                     _ => unimplemented!(),
                 }
-                return Ok(());
             }};
         }
 
@@ -136,12 +135,9 @@ impl Generator {
             Mnemonic::Sub => gen!(&[0x29], 0x83, 5, &[0x2b], &[0x29]),
             Mnemonic::Xor => gen!(&[0x31], 0x83, 6, &[0x33], &[0x31]),
             Mnemonic::Cmp => gen!(&[0x39], 0x83, 7, &[0x3b], &[0x39]),
-            _ => (),
-        }
 
-        let reg1 = expect_register(operand1)?;
-        match m {
             Mnemonic::IMul => {
+                let reg1 = expect_register(operand1)?;
                 let reg2 = expect_register(operand2)?;
                 self.gen_rm(
                     &[0x0F, 0xAF],
@@ -149,8 +145,10 @@ impl Generator {
                     Operand::Register { reg: reg2 },
                 )?;
             }
+
             x => return Err(format!("unexpected mnemonic: {:?}", x)),
         }
+
         Ok(())
     }
 
@@ -188,70 +186,51 @@ impl Generator {
 
     fn gen_o(&mut self, opcode: u8, reg: Register) {
         if reg.only_in_64bit() {
-            self.gen_rex(false, false, false, true);
+            self.gen(calc_rex(false, false, false, true));
         }
         self.gen(opcode + reg.number());
     }
 
     fn gen_m(&mut self, opcodes: &[u8], reg: u8, r: Register) {
         if r.size() == RegSize::QWord || r.only_in_64bit() {
-            self.gen_rex(r.size() == RegSize::QWord, false, false, r.only_in_64bit());
+            self.gen(calc_rex(
+                r.size() == RegSize::QWord,
+                false,
+                false,
+                r.only_in_64bit(),
+            ));
         }
         self.gen_bytes(opcodes);
         self.gen(calc_modrm(0b11, reg, r.number()));
     }
 
-    fn gen_d(&mut self, opcode: u8, offset: u8) {
-        self.gen(opcode);
-        self.gen(offset);
-    }
-
-    // TODO
     fn gen_d32(&mut self, opcodes: &[u8], offset: u32) {
         self.gen_bytes(opcodes);
         self.gen32(offset);
     }
 
     fn gen_mr(&mut self, opcodes: &[u8], opr1: Operand, opr2: Operand) -> Result<(), String> {
-        self.gen_rex2(&opr2, &opr1);
+        self.gen_rex(&opr2, &opr1);
         self.gen_bytes(opcodes);
         self.gen_modrm(opr2, opr1)
     }
 
     fn gen_mi(&mut self, opcode: u8, reg: u8, opr1: Register, opr2: u32) {
         if opr1.size() == RegSize::QWord {
-            self.gen_rex(true, false, false, opr1.only_in_64bit());
+            self.gen(calc_rex(true, false, false, opr1.only_in_64bit()));
         }
         self.gen(opcode);
         self.gen(calc_modrm(0b11, reg, opr1.number()));
         self.gen(opr2 as u8);
     }
 
-    // TODO
-    fn gen_mi32(&mut self, opcode: u8, reg: u8, opr1: Register, opr2: u32) {
-        if opr1.size() == RegSize::QWord {
-            self.gen_rex(true, false, false, opr1.only_in_64bit());
-        }
-        self.gen(opcode);
-        self.gen(calc_modrm(0b11, reg, opr1.number()));
-        self.gen32(opr2);
-    }
-
     fn gen_rm(&mut self, opcodes: &[u8], opr1: Operand, opr2: Operand) -> Result<(), String> {
-        self.gen_rex2(&opr1, &opr2);
+        self.gen_rex(&opr1, &opr2);
         self.gen_bytes(opcodes);
         self.gen_modrm(opr1, opr2)
     }
 
-    fn gen_oi(&mut self, opcode: u8, opr1: Register, opr2: u32) {
-        if opr1.size() == RegSize::QWord {
-            self.gen_rex(true, false, false, opr1.only_in_64bit());
-        }
-        self.gen(opcode + opr1.number());
-        self.gen32(opr2);
-    }
-
-    fn gen_rex2(&mut self, opr1: &Operand, opr2: &Operand) {
+    fn gen_rex(&mut self, opr1: &Operand, opr2: &Operand) {
         let reg1 = match opr1.clone() {
             Operand::Register { reg } => reg,
             Operand::Address(addr) => addr.base,
@@ -268,7 +247,12 @@ impl Generator {
             return;
         }
 
-        self.gen_rex(true, reg1.only_in_64bit(), false, reg2.only_in_64bit());
+        self.gen(calc_rex(
+            true,
+            reg1.only_in_64bit(),
+            false,
+            reg2.only_in_64bit(),
+        ));
     }
 
     fn gen_modrm(&mut self, opr1: Operand, opr2: Operand) -> Result<(), String> {
@@ -289,10 +273,6 @@ impl Generator {
 
         self.gen(modrm);
         Ok(())
-    }
-
-    fn gen_rex(&mut self, w: bool, r: bool, x: bool, b: bool) {
-        self.gen(0b01000000 | (w as u8) << 3 | (r as u8) << 2 | (x as u8) << 1 | (b as u8))
     }
 
     fn lookup_label(&mut self, name: String, code_addr: u32) -> u32 {
@@ -337,6 +317,10 @@ impl Generator {
     fn gen(&mut self, byte: u8) {
         self.output.push(byte);
     }
+}
+
+fn calc_rex(w: bool, r: bool, x: bool, b: bool) -> u8 {
+    0b01000000 | (w as u8) << 3 | (r as u8) << 2 | (x as u8) << 1 | (b as u8)
 }
 
 fn calc_modrm(modval: u8, reg: u8, rm: u8) -> u8 {
