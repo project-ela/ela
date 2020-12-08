@@ -37,6 +37,10 @@ impl Tokenizer {
                 self.consume_char();
                 return Ok(Token::Comment(self.consume_comment()));
             }
+            '[' => Token::Symbol(Symbol::LBracket),
+            ']' => Token::Symbol(Symbol::RBracket),
+            '+' => Token::Symbol(Symbol::Plus),
+            '-' => Token::Symbol(Symbol::Minus),
             x if x.is_digit(10) => {
                 let value = self.consume_number();
                 return Ok(Token::Integer(value));

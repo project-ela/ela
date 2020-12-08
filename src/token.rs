@@ -15,4 +15,8 @@ pub enum Token {
 pub enum Symbol {
     Comma,
     Colon,
+    LBracket,
+    RBracket,
+    Plus,
+    Minus,
 }

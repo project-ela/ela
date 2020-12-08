@@ -1,4 +1,4 @@
-use crate::instruction::{Instruction, MnemonicType, Operand};
+use crate::instruction::{Address, Instruction, MnemonicType, Operand};
 use crate::token::{Symbol, Token};
 
 struct Parser {
@@ -81,8 +81,31 @@ impl Parser {
             Token::Register(reg) => Ok(Operand::Register {
                 reg: reg.to_owned(),
             }),
+            Token::Symbol(Symbol::LBracket) => self.parse_operand_address(),
             x => Err(format!("unexpected token: {:?}", x)),
         }
+    }
+
+    fn parse_operand_address(&mut self) -> Result<Operand, String> {
+        let base = match self.consume() {
+            Token::Register(reg) => reg.clone(),
+            x => return Err(format!("unexpected token: {:?}", x)),
+        };
+
+        let disp = match self.peek() {
+            Token::Symbol(Symbol::Plus) => {
+                self.consume();
+                Some(self.consume_integer()? as i32)
+            }
+            Token::Symbol(Symbol::Minus) => {
+                self.consume();
+                Some(-(self.consume_integer()? as i32))
+            }
+            _ => None,
+        };
+
+        self.expect(&Token::Symbol(Symbol::RBracket))?;
+        Ok(Operand::Address(Address { base, disp }))
     }
 
     fn expect(&mut self, token: &Token) -> Result<&Token, String> {
@@ -96,6 +119,15 @@ impl Parser {
 
     fn peek(&self) -> &Token {
         self.tokens.get(self.pos).unwrap_or(&Token::EOF)
+    }
+
+    fn consume_integer(&mut self) -> Result<u32, String> {
+        let next_token = self.consume();
+        if let Token::Integer(value) = next_token {
+            Ok(*value)
+        } else {
+            Err(format!("expected integer, but got {:?}", next_token))
+        }
     }
 
     fn consume_ident(&mut self) -> Result<String, String> {
