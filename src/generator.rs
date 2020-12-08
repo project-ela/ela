@@ -128,13 +128,13 @@ impl Generator {
         }
 
         match m {
-            Mnemonic::Mov => gen!(&[0x8B], 0xC7, 0, &[0x8B], &[0x89]),
-            Mnemonic::Add => gen!(&[0x01], 0x83, 0, &[0x03], &[0x01]),
-            Mnemonic::Or => gen!(&[0x09], 0x83, 1, &[0x0b], &[0x09]),
-            Mnemonic::And => gen!(&[0x21], 0x83, 4, &[0x23], &[0x21]),
-            Mnemonic::Sub => gen!(&[0x29], 0x83, 5, &[0x2b], &[0x29]),
-            Mnemonic::Xor => gen!(&[0x31], 0x83, 6, &[0x33], &[0x31]),
-            Mnemonic::Cmp => gen!(&[0x39], 0x83, 7, &[0x3b], &[0x39]),
+            Mnemonic::Mov => gen!(&[0x89], 0xC7, 0, &[0x8B], &[0x89]),
+            Mnemonic::Add => gen!(&[0x01], 0x81, 0, &[0x03], &[0x01]),
+            Mnemonic::Or => gen!(&[0x09], 0x81, 1, &[0x0b], &[0x09]),
+            Mnemonic::And => gen!(&[0x21], 0x81, 4, &[0x23], &[0x21]),
+            Mnemonic::Sub => gen!(&[0x29], 0x81, 5, &[0x2b], &[0x29]),
+            Mnemonic::Xor => gen!(&[0x31], 0x81, 6, &[0x33], &[0x31]),
+            Mnemonic::Cmp => gen!(&[0x39], 0x81, 7, &[0x3b], &[0x39]),
 
             Mnemonic::IMul => {
                 let reg1 = expect_register(operand1)?;
@@ -221,7 +221,7 @@ impl Generator {
         }
         self.gen(opcode);
         self.gen(calc_modrm(0b11, reg, opr1.number()));
-        self.gen(opr2 as u8);
+        self.gen32(opr2);
     }
 
     fn gen_rm(&mut self, opcodes: &[u8], opr1: Operand, opr2: Operand) -> Result<(), String> {

@@ -80,9 +80,9 @@ fn setge() {
 
 #[test]
 fn add() {
-    do_test("add eax,1", "83 c0 01");
-    do_test("add rax,1", "48 83 c0 01");
-    do_test("add r9,1", "49 83 c1 01");
+    do_test("add eax,1", "81 c0 01 00 00 00");
+    do_test("add rax,1", "48 81 c0 01 00 00 00");
+    do_test("add r9,1", "49 81 c1 01 00 00 00");
     do_test("add eax,eax", "01 c0");
     do_test("add rax,rax", "48 01 c0");
     do_test("add rax,r9", "4c 01 c8");
@@ -100,9 +100,9 @@ fn add() {
 
 #[test]
 fn sub() {
-    do_test("sub eax,1", "83 e8 01");
-    do_test("sub rax,1", "48 83 e8 01");
-    do_test("sub r9,1", "49 83 e9 01");
+    do_test("sub eax,1", "81 e8 01 00 00 00");
+    do_test("sub rax,1", "48 81 e8 01 00 00 00");
+    do_test("sub r9,1", "49 81 e9 01 00 00 00");
     do_test("sub eax,eax", "29 c0");
     do_test("sub rax,rax", "48 29 c0");
     do_test("sub rax,r9", "4c 29 c8");
@@ -129,9 +129,9 @@ fn imul() {
 
 #[test]
 fn xor() {
-    do_test("xor eax,1", "83 f0 01");
-    do_test("xor rax,1", "48 83 f0 01");
-    do_test("xor r9,1", "49 83 f1 01");
+    do_test("xor eax,1", "81 f0 01 00 00 00");
+    do_test("xor rax,1", "48 81 f0 01 00 00 00");
+    do_test("xor r9,1", "49 81 f1 01 00 00 00");
     do_test("xor eax,eax", "31 c0");
     do_test("xor rax,rax", "48 31 c0");
     do_test("xor rax,r9", "4c 31 c8");
@@ -149,14 +149,14 @@ fn xor() {
 
 #[test]
 fn mov() {
-    do_test("mov eax,1", "c7 c0 01");
-    do_test("mov rax,1", "48 c7 c0 01");
-    do_test("mov r9,1", "49 c7 c1 01");
-    do_test("mov eax,eax", "8b c0");
-    do_test("mov rax,rax", "48 8b c0");
-    do_test("mov rax,r9", "4c 8b c8");
-    do_test("mov r9,rax", "49 8b c1");
-    do_test("mov r9,r9", "4d 8b c9");
+    do_test("mov eax,1", "c7 c0 01 00 00 00");
+    do_test("mov rax,1", "48 c7 c0 01 00 00 00");
+    do_test("mov r9,1", "49 c7 c1 01 00 00 00");
+    do_test("mov eax,eax", "89 c0");
+    do_test("mov rax,rax", "48 89 c0");
+    do_test("mov rax,r9", "4c 89 c8");
+    do_test("mov r9,rax", "49 89 c1");
+    do_test("mov r9,r9", "4d 89 c9");
     do_test("mov rax,[rax]", "48 8b 00");
     do_test("mov rax,[r9]", "49 8b 01");
     do_test("mov [rax],rax", "48 89 00");
@@ -169,9 +169,9 @@ fn mov() {
 
 #[test]
 fn and() {
-    do_test("and eax,1", "83 e0 01");
-    do_test("and rax,1", "48 83 e0 01");
-    do_test("and r9,1", "49 83 e1 01");
+    do_test("and eax,1", "81 e0 01 00 00 00");
+    do_test("and rax,1", "48 81 e0 01 00 00 00");
+    do_test("and r9,1", "49 81 e1 01 00 00 00");
     do_test("and eax,eax", "21 c0");
     do_test("and rax,rax", "48 21 c0");
     do_test("and rax,r9", "4c 21 c8");
@@ -189,9 +189,9 @@ fn and() {
 
 #[test]
 fn or() {
-    do_test("or eax,1", "83 c8 01");
-    do_test("or rax,1", "48 83 c8 01");
-    do_test("or r9,1", "49 83 c9 01");
+    do_test("or eax,1", "81 c8 01 00 00 00");
+    do_test("or rax,1", "48 81 c8 01 00 00 00");
+    do_test("or r9,1", "49 81 c9 01 00 00 00");
     do_test("or eax,eax", "09 c0");
     do_test("or rax,rax", "48 09 c0");
     do_test("or rax,r9", "4c 09 c8");
@@ -209,9 +209,9 @@ fn or() {
 
 #[test]
 fn cmp() {
-    do_test("cmp eax,1", "83 f8 01");
-    do_test("cmp rax,1", "48 83 f8 01");
-    do_test("cmp r9,1", "49 83 f9 01");
+    do_test("cmp eax,1", "81 f8 01 00 00 00");
+    do_test("cmp rax,1", "48 81 f8 01 00 00 00");
+    do_test("cmp r9,1", "49 81 f9 01 00 00 00");
     do_test("cmp eax,eax", "39 c0");
     do_test("cmp rax,rax", "48 39 c0");
     do_test("cmp rax,r9", "4c 39 c8");
