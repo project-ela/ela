@@ -87,12 +87,25 @@ impl Parser {
     }
 
     fn parse_operand_address(&mut self) -> Result<Operand, String> {
-        let operand = match self.consume() {
-            Token::Register(reg) => Ok(Operand::Address(Address { base: reg.clone() })),
+        let base = match self.consume() {
+            Token::Register(reg) => reg.clone(),
             x => return Err(format!("unexpected token: {:?}", x)),
         };
+
+        let disp = match self.peek() {
+            Token::Symbol(Symbol::Plus) => {
+                self.consume();
+                Some(self.consume_integer()? as i32)
+            }
+            Token::Symbol(Symbol::Minus) => {
+                self.consume();
+                Some(-(self.consume_integer()? as i32))
+            }
+            _ => None,
+        };
+
         self.expect(&Token::Symbol(Symbol::RBracket))?;
-        operand
+        Ok(Operand::Address(Address { base, disp }))
     }
 
     fn expect(&mut self, token: &Token) -> Result<&Token, String> {
@@ -106,6 +119,15 @@ impl Parser {
 
     fn peek(&self) -> &Token {
         self.tokens.get(self.pos).unwrap_or(&Token::EOF)
+    }
+
+    fn consume_integer(&mut self) -> Result<u32, String> {
+        let next_token = self.consume();
+        if let Token::Integer(value) = next_token {
+            Ok(*value)
+        } else {
+            Err(format!("expected integer, but got {:?}", next_token))
+        }
     }
 
     fn consume_ident(&mut self) -> Result<String, String> {

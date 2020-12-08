@@ -17,4 +17,6 @@ pub enum Symbol {
     Colon,
     LBracket,
     RBracket,
+    Plus,
+    Minus,
 }

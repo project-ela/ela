@@ -165,4 +165,5 @@ impl Register {
 #[derive(Debug, Clone)]
 pub struct Address {
     pub base: Register,
+    pub disp: Option<i32>,
 }

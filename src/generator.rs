@@ -256,22 +256,33 @@ impl Generator {
     }
 
     fn gen_modrm(&mut self, opr1: Operand, opr2: Operand) -> Result<(), String> {
-        let modrm = match opr1 {
+        match opr1 {
             Operand::Register { reg: reg1 } => match opr2 {
-                Operand::Register { reg: reg2 } => calc_modrm(0b11, reg1.number(), reg2.number()),
-                Operand::Address(addr2) => calc_modrm(0b00, reg1.number(), addr2.base.number()),
+                Operand::Register { reg: reg2 } => {
+                    self.gen(calc_modrm(0b11, reg1.number(), reg2.number()))
+                }
+                Operand::Address(addr2) => match addr2.disp {
+                    Some(disp) => {
+                        self.gen(calc_modrm(0b01, reg1.number(), addr2.base.number()));
+                        self.gen(disp as u8)
+                    }
+                    None => self.gen(calc_modrm(0b00, reg1.number(), addr2.base.number())),
+                },
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             Operand::Address(addr1) => match opr2 {
-                Operand::Register { reg: reg2 } => {
-                    calc_modrm(0b00, reg2.number(), addr1.base.number())
-                }
+                Operand::Register { reg: reg2 } => match addr1.disp {
+                    Some(disp) => {
+                        self.gen(calc_modrm(0b01, reg2.number(), addr1.base.number()));
+                        self.gen(disp as u8)
+                    }
+                    None => self.gen(calc_modrm(0b00, reg2.number(), addr1.base.number())),
+                },
                 x => return Err(format!("unexpected operand: {:?}", x)),
             },
             x => return Err(format!("unexpected operand: {:?}", x)),
-        };
+        }
 
-        self.gen(modrm);
         Ok(())
     }
 
