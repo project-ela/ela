@@ -74,7 +74,7 @@ impl Elf {
     }
 
     fn add_symtab(&mut self) {
-        let mut symtab_hdr = ElfSectionHeader::new();
+        let mut symtab_hdr = ElfSectionHeader::default();
         symtab_hdr.set_type(section_header::Type::Symtab);
         symtab_hdr.set_link(self.sections.len() as u32 + 1);
         symtab_hdr.set_info(self.symbols.len() as u32 - 1);
@@ -86,14 +86,14 @@ impl Elf {
         }
         self.add_section(".symtab".to_string(), symtab_hdr, symbol_data);
 
-        let mut strtab_hdr = ElfSectionHeader::new();
+        let mut strtab_hdr = ElfSectionHeader::default();
         strtab_hdr.set_type(section_header::Type::Strtab);
         strtab_hdr.set_align(1);
         self.add_section(".strtab".to_string(), strtab_hdr, self.symbol_names.clone());
     }
 
     fn add_shstrtab(&mut self) {
-        let mut shstrtab_hdr = section_header::ElfSectionHeader::new();
+        let mut shstrtab_hdr = section_header::ElfSectionHeader::default();
         shstrtab_hdr.name = self.section_names.len() as ElfWord;
         shstrtab_hdr.set_type(section_header::Type::Strtab);
         shstrtab_hdr.set_align(1);

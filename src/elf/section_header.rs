@@ -50,10 +50,6 @@ pub enum Flags {
 }
 
 impl ElfSectionHeader {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     pub fn set_name(&mut self, name: ElfWord) {
         self.name = name;
     }

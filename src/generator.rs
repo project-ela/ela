@@ -1,6 +1,7 @@
 use crate::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
 use std::collections::{HashMap, HashSet};
 
+#[derive(Default)]
 struct Generator {
     output: Vec<u8>,
     labels: HashMap<String, u32>,
@@ -23,7 +24,7 @@ pub struct GeneratedData {
 }
 
 pub fn generate(insts: Vec<Instruction>) -> Result<GeneratedData, String> {
-    let mut generator = Generator::new();
+    let mut generator = Generator::default();
 
     Ok(GeneratedData {
         program: generator.generate(insts)?,
@@ -33,16 +34,6 @@ pub fn generate(insts: Vec<Instruction>) -> Result<GeneratedData, String> {
 }
 
 impl Generator {
-    fn new() -> Self {
-        Self {
-            output: Vec::new(),
-            labels: HashMap::new(),
-            global_symbols: HashSet::new(),
-            unknown_symbols: HashSet::new(),
-            unresolved_jumps: Vec::new(),
-        }
-    }
-
     fn generate(&mut self, insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
         for inst in insts {
             self.gen_inst(inst)?;

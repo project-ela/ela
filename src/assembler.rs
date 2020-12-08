@@ -40,25 +40,25 @@ fn gen_elf(data: GeneratedData) -> Result<Vec<u8>, String> {
 
     elf.add_section(
         "".to_string(),
-        section_header::ElfSectionHeader::new(),
+        section_header::ElfSectionHeader::default(),
         Vec::new(),
     );
 
-    let mut header = section_header::ElfSectionHeader::new();
+    let mut header = section_header::ElfSectionHeader::default();
     header.set_type(section_header::Type::Progbits);
     header.set_flags(section_header::Flags::Alloc);
     header.set_flags(section_header::Flags::Execinstr);
     header.set_align(1);
     elf.add_section(".text".to_string(), header, data.program);
 
-    elf.add_symbol("".to_string(), symbol::ElfSymbol::new());
-    let mut symbol = symbol::ElfSymbol::new();
+    elf.add_symbol("".to_string(), symbol::ElfSymbol::default());
+    let mut symbol = symbol::ElfSymbol::default();
     symbol.set_type(symbol::Type::Section);
     symbol.set_index_type(symbol::IndexType::Index(1));
     elf.add_symbol("".to_string(), symbol);
 
     for sym in data.symbols {
-        let mut symbol = symbol::ElfSymbol::new();
+        let mut symbol = symbol::ElfSymbol::default();
         symbol.set_binding(symbol::Binding::Global);
         symbol.set_index_type(symbol::IndexType::Index(1));
         symbol.set_value(sym.addr as u64);
@@ -66,7 +66,7 @@ fn gen_elf(data: GeneratedData) -> Result<Vec<u8>, String> {
     }
 
     for usym_name in data.unknown_symbols {
-        let mut symbol = symbol::ElfSymbol::new();
+        let mut symbol = symbol::ElfSymbol::default();
         symbol.set_binding(symbol::Binding::Global);
         symbol.set_index_type(symbol::IndexType::Index(0));
         elf.add_symbol(usym_name, symbol);
