@@ -4,14 +4,29 @@ use std::collections::HashMap;
 struct Generator {
     output: Vec<u8>,
     labels: HashMap<String, u32>,
+    global_symbols: Vec<String>,
     unresolved_jumps: Vec<UnresolvedJump>,
 }
 
 type UnresolvedJump = (String, u32);
 
-pub fn generate(insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
+pub struct GlobalSymbol {
+    pub name: String,
+    pub addr: u32,
+}
+
+pub struct GeneratedData {
+    pub program: Vec<u8>,
+    pub symbols: Vec<GlobalSymbol>,
+}
+
+pub fn generate(insts: Vec<Instruction>) -> Result<GeneratedData, String> {
     let mut generator = Generator::new();
-    generator.generate(insts)
+
+    Ok(GeneratedData {
+        program: generator.generate(insts)?,
+        symbols: generator.global_symbols(),
+    })
 }
 
 impl Generator {
@@ -19,6 +34,7 @@ impl Generator {
         Self {
             output: Vec::new(),
             labels: HashMap::new(),
+            global_symbols: Vec::new(),
             unresolved_jumps: Vec::new(),
         }
     }
@@ -31,9 +47,28 @@ impl Generator {
         Ok(self.output.clone())
     }
 
+    fn global_symbols(&self) -> Vec<GlobalSymbol> {
+        let mut syms = Vec::new();
+
+        for sym_name in &self.global_symbols {
+            match self.labels.get(sym_name) {
+                Some(addr) => syms.push(GlobalSymbol {
+                    name: sym_name.clone(),
+                    addr: *addr,
+                }),
+                None => {}
+            }
+        }
+
+        syms
+    }
+
     fn gen_inst(&mut self, inst: Instruction) -> Result<(), String> {
         match inst {
-            Instruction::PseudoOp { .. } => {}
+            Instruction::PseudoOp { name, arg } => match name.as_str() {
+                ".global" => self.global_symbols.push(arg),
+                _ => {}
+            },
             Instruction::Label { name } => {
                 let addr = self.output.len();
                 self.labels.insert(name, addr as u32);

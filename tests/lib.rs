@@ -232,7 +232,7 @@ fn do_test(source: &str, expected_output: &str) {
         .and_then(|tokens| parser::parse(tokens))
         .and_then(|insts| generator::generate(insts))
         .unwrap();
-    let actual_output = bytes_to_str(&output);
+    let actual_output = bytes_to_str(&output.program);
     assert_eq!(expected_output, actual_output, "failed with '{}'", source);
 }
 

@@ -57,6 +57,10 @@ impl ElfSymbol {
         self.other |= visibility as u8;
     }
 
+    pub fn set_value(&mut self, value: ElfAddr) {
+        self.value = value;
+    }
+
     pub fn set_index_type(&mut self, typ: IndexType) {
         self.section_index = match typ {
             IndexType::Undef => 0x0,
