@@ -1,6 +1,7 @@
 use crate::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
 use std::collections::{HashMap, HashSet};
 
+#[derive(Default)]
 struct Generator {
     output: Vec<u8>,
     labels: HashMap<String, u32>,
@@ -23,7 +24,7 @@ pub struct GeneratedData {
 }
 
 pub fn generate(insts: Vec<Instruction>) -> Result<GeneratedData, String> {
-    let mut generator = Generator::new();
+    let mut generator = Generator::default();
 
     Ok(GeneratedData {
         program: generator.generate(insts)?,
@@ -33,16 +34,6 @@ pub fn generate(insts: Vec<Instruction>) -> Result<GeneratedData, String> {
 }
 
 impl Generator {
-    fn new() -> Self {
-        Self {
-            output: Vec::new(),
-            labels: HashMap::new(),
-            global_symbols: HashSet::new(),
-            unknown_symbols: HashSet::new(),
-            unresolved_jumps: Vec::new(),
-        }
-    }
-
     fn generate(&mut self, insts: Vec<Instruction>) -> Result<Vec<u8>, String> {
         for inst in insts {
             self.gen_inst(inst)?;
@@ -55,12 +46,11 @@ impl Generator {
         let mut syms = Vec::new();
 
         for sym_name in &self.global_symbols {
-            match self.labels.get(sym_name) {
-                Some(addr) => syms.push(GlobalSymbol {
+            if let Some(addr) = self.labels.get(sym_name) {
+                syms.push(GlobalSymbol {
                     name: sym_name.clone(),
                     addr: *addr,
-                }),
-                None => {}
+                });
             }
         }
 
@@ -214,7 +204,7 @@ impl Generator {
     fn gen_set(&mut self, opcode: u8, operand: Operand) -> Result<(), String> {
         let reg1 = expect_register(operand)?;
         if reg1.size() != RegSize::Byte {
-            return Err(format!("expected r8"));
+            return Err("expected r8".to_string());
         }
         self.gen_m(&[0x0F, opcode], 0, reg1);
         Ok(())

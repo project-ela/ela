@@ -41,7 +41,7 @@ impl Parser {
                 continue;
             }
 
-            if ident.chars().next().unwrap() == '.' {
+            if ident.starts_with('.') {
                 let arg = self.consume_ident()?;
                 insts.push(Instruction::PseudoOp { name: ident, arg });
                 continue;

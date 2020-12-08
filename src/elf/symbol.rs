@@ -41,10 +41,6 @@ pub enum IndexType {
 }
 
 impl ElfSymbol {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     pub fn set_binding(&mut self, binding: Binding) {
         self.info |= (binding as u8) << 4;
     }

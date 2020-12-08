@@ -33,6 +33,7 @@ pub enum Type {
     SymtabShndx = 18,
 }
 
+#[repr(u64)]
 pub enum Flags {
     Write = 1 << 0,
     Alloc = 1 << 1,
@@ -49,10 +50,6 @@ pub enum Flags {
 }
 
 impl ElfSectionHeader {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     pub fn set_name(&mut self, name: ElfWord) {
         self.name = name;
     }
