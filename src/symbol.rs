@@ -1,5 +1,6 @@
 use crate::*;
 
+#[repr(C)]
 #[derive(Default, Copy, Clone)]
 pub struct ElfSymbol {
     pub name: ElfWord,
