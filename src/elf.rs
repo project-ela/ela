@@ -1,20 +1,9 @@
-pub mod elf_header;
-pub mod section_header;
-pub mod symbol;
-
 use std::mem::size_of;
 
-use crate::elf::elf_header::ElfHeader;
-use crate::elf::section_header::ElfSectionHeader;
-use crate::elf::symbol::ElfSymbol;
-
-type ElfHalf = u16;
-type ElfWord = u32;
-type ElfXword = u64;
-type ElfAddr = u64;
-type ElfOff = u64;
-type ElfSection = u16;
-type ElfIdent = u128;
+use crate::header::ElfHeader;
+use crate::section::{ElfSectionHeader, Section};
+use crate::symbol::ElfSymbol;
+use crate::*;
 
 #[allow(dead_code)]
 const SYM_ENTRY_SIZE_32: ElfXword = 0x10;
@@ -28,11 +17,6 @@ pub struct Elf {
     pub section_names: Vec<u8>,
     pub symbols: Vec<ElfSymbol>,
     pub symbol_names: Vec<u8>,
-}
-
-pub struct Section {
-    pub header: ElfSectionHeader,
-    pub data: Vec<u8>,
 }
 
 impl Elf {
@@ -75,7 +59,7 @@ impl Elf {
 
     fn add_symtab(&mut self) {
         let mut symtab_hdr = ElfSectionHeader::default();
-        symtab_hdr.set_type(section_header::Type::Symtab);
+        symtab_hdr.set_type(section::Type::Symtab);
         symtab_hdr.set_link(self.sections.len() as u32 + 1);
         symtab_hdr.set_info(self.symbols.len() as u32 - 1);
         symtab_hdr.set_entry_size(SYM_ENTRY_SIZE_64);
@@ -87,15 +71,15 @@ impl Elf {
         self.add_section(".symtab".to_string(), symtab_hdr, symbol_data);
 
         let mut strtab_hdr = ElfSectionHeader::default();
-        strtab_hdr.set_type(section_header::Type::Strtab);
+        strtab_hdr.set_type(section::Type::Strtab);
         strtab_hdr.set_align(1);
         self.add_section(".strtab".to_string(), strtab_hdr, self.symbol_names.clone());
     }
 
     fn add_shstrtab(&mut self) {
-        let mut shstrtab_hdr = section_header::ElfSectionHeader::default();
+        let mut shstrtab_hdr = section::ElfSectionHeader::default();
         shstrtab_hdr.name = self.section_names.len() as ElfWord;
-        shstrtab_hdr.set_type(section_header::Type::Strtab);
+        shstrtab_hdr.set_type(section::Type::Strtab);
         shstrtab_hdr.set_align(1);
         self.section_names.extend(b".shstrtab");
         self.section_names.push(0x0);

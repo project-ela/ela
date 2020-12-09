@@ -1,4 +1,4 @@
-use crate::elf::*;
+use crate::*;
 
 #[derive(Default, Copy, Clone)]
 pub struct ElfSymbol {

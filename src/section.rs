@@ -1,4 +1,9 @@
-use crate::elf::*;
+use crate::*;
+
+pub struct Section {
+    pub header: ElfSectionHeader,
+    pub data: Vec<u8>,
+}
 
 #[derive(Default, Copy, Clone)]
 pub struct ElfSectionHeader {
