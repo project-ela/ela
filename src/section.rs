@@ -6,6 +6,7 @@ pub struct Section {
     pub data: Vec<u8>,
 }
 
+#[repr(C)]
 #[derive(Default, Copy, Clone)]
 pub struct ElfSectionHeader {
     pub name: ElfWord,
