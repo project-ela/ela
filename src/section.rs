@@ -1,6 +1,7 @@
 use crate::*;
 
 pub struct Section {
+    pub name: String,
     pub header: ElfSectionHeader,
     pub data: Vec<u8>,
 }
