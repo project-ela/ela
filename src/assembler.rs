@@ -31,7 +31,7 @@ pub fn assemble(source: String) -> Result<Vec<u8>, String> {
 }
 
 fn gen_elf(data: GeneratedData) -> Result<Vec<u8>, String> {
-    let mut elf = Elf::default();
+    let mut elf = Elf::new();
     elf.elf_header.set_class(elf_header::Class::Class64);
     elf.elf_header.set_data(elf_header::Data::Data2LSB);
     elf.elf_header.set_osabi(elf_header::OSABI::OSABISysV);
