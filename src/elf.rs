@@ -69,7 +69,8 @@ impl Elf {
     pub fn update_elf_header(&mut self) {
         let mut data_length = 0;
         data_length += size_of::<ElfHeader>();
-        for section in self.sections.as_mut_slice() {
+        // skip null section
+        for section in self.sections.as_mut_slice().into_iter().skip(1) {
             section.header.offset = data_length as ElfOff;
             section.header.size = section.data.len() as ElfXword;
             data_length += section.data.len();
