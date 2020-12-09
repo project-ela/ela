@@ -5,11 +5,6 @@ use crate::section::{ElfSectionHeader, Section};
 use crate::symbol::ElfSymbol;
 use crate::*;
 
-#[allow(dead_code)]
-const SYM_ENTRY_SIZE_32: ElfXword = 0x10;
-#[allow(dead_code)]
-const SYM_ENTRY_SIZE_64: ElfXword = 0x18;
-
 pub struct Elf {
     pub header: ElfHeader,
     pub sections: Vec<Section>,
@@ -86,7 +81,7 @@ impl Elf {
         let mut symtab_hdr = ElfSectionHeader::default();
         symtab_hdr.set_type(section::Type::Symtab);
         symtab_hdr.set_link(self.sections.len() as u32 + 1);
-        symtab_hdr.set_entry_size(SYM_ENTRY_SIZE_64);
+        symtab_hdr.set_entry_size(symbol::SYM_ENTRY_SIZE_64);
         symtab_hdr.set_align(8);
         self.add_section(".symtab", symtab_hdr, Vec::new());
 
