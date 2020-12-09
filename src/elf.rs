@@ -20,6 +20,12 @@ pub struct Elf {
 }
 
 impl Elf {
+    pub fn new() -> Self {
+        let mut elf = Self::default();
+        elf.elf_header = ElfHeader::new();
+        elf
+    }
+
     pub fn add_section(&mut self, name: String, header: ElfSectionHeader, data: Vec<u8>) {
         let name_index = self.section_names.len();
         self.section_names.extend(name.as_bytes());
