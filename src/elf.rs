@@ -44,6 +44,9 @@ impl Elf {
             data,
         });
         self.header.section_header_num += 1;
+
+        let symtab = self.find_section_mut(".symtab").unwrap();
+        symtab.header.set_info(symtab.header.info + 1);
     }
 
     pub fn find_section_mut(&mut self, name: &str) -> Option<&mut Section> {
@@ -63,7 +66,6 @@ impl Elf {
 
         let symtab = self.find_section_mut(".symtab").unwrap();
         symbol.write_to(&mut symtab.data);
-        symtab.header.set_info(symtab.header.info + 1);
     }
 
     pub fn update_elf_header(&mut self) {
