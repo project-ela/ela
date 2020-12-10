@@ -1,5 +1,7 @@
 use std::mem::size_of;
 
+use symbol::Binding;
+
 use crate::header::ElfHeader;
 use crate::section::{ElfSectionHeader, Section};
 use crate::symbol::ElfSymbol;
@@ -45,9 +47,6 @@ impl Elf {
             data,
         });
         self.header.section_header_num += 1;
-
-        let symtab = self.find_section_mut(".symtab").unwrap();
-        symtab.header.set_info(symtab.header.info + 1);
     }
 
     pub fn find_section_mut(&mut self, name: &str) -> Option<&mut Section> {
@@ -76,6 +75,9 @@ impl Elf {
 
         let symtab = self.find_section_mut(".symtab").unwrap();
         symbol.write_to(&mut symtab.data);
+        if symbol.get_binding() == Some(Binding::Local) {
+            symtab.header.set_info(symtab.header.info + 1);
+        }
     }
 
     pub fn update_elf_header(&mut self) {

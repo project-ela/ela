@@ -11,6 +11,7 @@ pub struct ElfSymbol {
     pub size: ElfXword,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Binding {
     Local = 0,
     Global = 1,
@@ -49,6 +50,16 @@ pub const SYM_ENTRY_SIZE_64: ElfXword = 0x18;
 impl ElfSymbol {
     pub fn set_binding(&mut self, binding: Binding) {
         self.info |= (binding as u8) << 4;
+    }
+
+    pub fn get_binding(&self) -> Option<Binding> {
+        let binding = self.info & (1 << 4);
+        match binding {
+            0 => Some(Binding::Local),
+            1 => Some(Binding::Global),
+            2 => Some(Binding::Weak),
+            _ => None,
+        }
     }
 
     pub fn set_type(&mut self, typ: Type) {
