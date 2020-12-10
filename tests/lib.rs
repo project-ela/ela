@@ -1,6 +1,6 @@
 extern crate skuld;
 
-use skuld::{generator, parser, tokenizer};
+use skuld::{generator, parser, lexer};
 
 #[test]
 fn ret() {
@@ -228,7 +228,7 @@ fn cmp() {
 }
 
 fn do_test(source: &str, expected_output: &str) {
-    let output = tokenizer::tokenize(source.to_string())
+    let output = lexer::tokenize(source.to_string())
         .and_then(|tokens| parser::parse(tokens))
         .and_then(|insts| generator::generate(insts))
         .unwrap();

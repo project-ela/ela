@@ -1,7 +1,7 @@
 use crate::generator::generate;
 use crate::generator::GeneratedData;
 use crate::parser::parse;
-use crate::tokenizer::tokenize;
+use crate::lexer::tokenize;
 use std::fs;
 
 use elfen::elf::Elf;

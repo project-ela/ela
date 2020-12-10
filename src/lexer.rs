@@ -1,17 +1,17 @@
 use crate::instruction::{Mnemonic, Register};
 use crate::token::{Symbol, Token};
 
-struct Tokenizer {
+struct Lexer {
     pos: usize,
     source: String,
 }
 
 pub fn tokenize(source: String) -> Result<Vec<Token>, String> {
-    let mut tokenizer = Tokenizer::new(source);
-    tokenizer.tokenize()
+    let mut lexer = Lexer ::new(source);
+    lexer.tokenize()
 }
 
-impl Tokenizer {
+impl Lexer {
     fn new(source: String) -> Self {
         Self { pos: 0, source }
     }
