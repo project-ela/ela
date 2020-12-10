@@ -26,6 +26,7 @@ impl Elf {
         elf.add_null_section();
         elf.add_shstrtab();
         elf.add_symtab();
+        elf.add_null_symbol();
 
         elf
     }
@@ -112,6 +113,10 @@ impl Elf {
 
         self.header.section_header_num += 1;
         self.header.string_table_index = self.sections.len() as ElfHalf - 1;
+    }
+
+    fn add_null_symbol(&mut self) {
+        self.add_symbol("", ElfSymbol::default());
     }
 
     fn add_null_section(&mut self) {
