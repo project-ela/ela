@@ -1,5 +1,7 @@
-use crate::instruction::{Mnemonic, Register};
-use crate::token::{Symbol, Token};
+pub mod token;
+
+use crate::common::instruction::{Mnemonic, Register};
+use crate::frontend::lexer::token::{Symbol, Token};
 
 struct Lexer {
     pos: usize,
@@ -7,7 +9,7 @@ struct Lexer {
 }
 
 pub fn tokenize(source: String) -> Result<Vec<Token>, String> {
-    let mut lexer = Lexer ::new(source);
+    let mut lexer = Lexer::new(source);
     lexer.tokenize()
 }
 

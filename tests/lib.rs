@@ -1,6 +1,6 @@
 extern crate skuld;
 
-use skuld::{generator, parser, lexer};
+use skuld::{generator, lexer, parser};
 
 #[test]
 fn ret() {

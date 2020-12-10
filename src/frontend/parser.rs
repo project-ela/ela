@@ -1,5 +1,5 @@
-use crate::instruction::{Address, Instruction, MnemonicType, Operand};
-use crate::token::{Symbol, Token};
+use crate::common::instruction::{Address, Instruction, MnemonicType, Operand};
+use crate::frontend::lexer::token::{Symbol, Token};
 
 struct Parser {
     pos: usize,

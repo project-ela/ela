@@ -1,7 +1,7 @@
-use crate::generator::generate;
-use crate::generator::GeneratedData;
-use crate::parser::parse;
-use crate::lexer::tokenize;
+use crate::backend::generator::generate;
+use crate::backend::generator::GeneratedData;
+use crate::frontend::lexer::tokenize;
+use crate::frontend::parser::parse;
 use std::fs;
 
 use elfen::elf::Elf;
