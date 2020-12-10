@@ -57,7 +57,16 @@ impl Elf {
             .next()
     }
 
-    pub fn add_symbol(&mut self, name: String, symbol: ElfSymbol) {
+    pub fn find_section_index(&self, name: &str) -> Option<usize> {
+        self.sections
+            .iter()
+            .enumerate()
+            .filter(|(_, section)| section.name == name)
+            .next()
+            .map(|(i, _)| i)
+    }
+
+    pub fn add_symbol(&mut self, name: &str, symbol: ElfSymbol) {
         let mut symbol = symbol;
 
         let strtab = self.find_section_mut(".strtab").unwrap();
