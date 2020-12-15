@@ -37,6 +37,11 @@ impl Emulator {
 
     pub fn calc_rm(&self, modrm: &ModRM) -> RM {
         match modrm.modval {
+            0b00 => {
+                let reg = Register::from(modrm.rm);
+                let reg_value = self.get_register(reg);
+                RM::Memory(reg_value as usize)
+            }
             0b01 => {
                 let reg = Register::from(modrm.rm);
                 let reg_value = self.get_register(reg);

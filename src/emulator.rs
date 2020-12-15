@@ -1,10 +1,9 @@
 pub mod cpu;
 
-use crate::emulator::cpu::{
-    Register::{self, *},
-    CPU, EFLAGS,
+use crate::{
+    emulator::cpu::{Register, Register::*, CPU, EFLAGS},
+    instruction::modrm::RM,
 };
-use crate::instruction::modrm::RM;
 use std::fs::File;
 use std::io::Read;
 
@@ -45,9 +44,17 @@ impl Emulator {
     pub fn run(&mut self) {
         self.dump();
         while self.get_register(EIP) < self.initial_eip + self.len {
-            let opcode = self.decode();
-            self.exec(opcode);
-            self.dump();
+            match self.decode() {
+                Ok(opcode) => {
+                    println!("{:?}", opcode);
+                    self.exec(opcode);
+                }
+                Err(err) => {
+                    self.dump();
+                    println!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            }
         }
     }
 
@@ -135,6 +142,14 @@ impl Emulator {
 
     pub fn update_eflags_add(&mut self, lhs: u32, rhs: u32, result: u64) {
         self.update_eflags_sub(lhs, rhs, result);
+    }
+
+    pub fn get_eflag(&self, flag: EFLAGS) -> bool {
+        self.cpu.get_eflag(flag)
+    }
+
+    pub fn set_eflag(&mut self, flag: EFLAGS, value: bool) {
+        self.cpu.set_eflag(flag, value);
     }
 
     pub fn update_eflags_sub(&mut self, lhs: u32, rhs: u32, result: u64) {
