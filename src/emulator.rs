@@ -1,6 +1,10 @@
-use crate::cpu::Register::*;
-use crate::cpu::{Register, CPU, EFLAGS};
-use crate::instruction::RM;
+pub mod cpu;
+
+use crate::emulator::cpu::{
+    Register::{self, *},
+    CPU, EFLAGS,
+};
+use crate::instruction::modrm::RM;
 use std::fs::File;
 use std::io::Read;
 
