@@ -1,5 +1,9 @@
-use crate::common::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
 use std::collections::{HashMap, HashSet};
+
+use register::Register;
+use x86asm::instruction::{mnemonic::Mnemonic, operand::register};
+
+use crate::common::instruction::{Instruction, Operand};
 
 #[derive(Default)]
 struct Generator {
@@ -91,7 +95,7 @@ impl Generator {
             Mnemonic::Push => match operand {
                 Operand::Immidiate { value } => self.gen_i(0x6A, value),
                 Operand::Register { reg } => {
-                    if reg.size() != RegSize::QWord {
+                    if reg.size() != register::Size::QWord {
                         return Err(format!("unexpected operand: {:?}", reg));
                     }
                     self.gen_o(0x50, reg)
@@ -100,7 +104,7 @@ impl Generator {
             },
             Mnemonic::Pop => match operand {
                 Operand::Register { reg } => {
-                    if reg.size() != RegSize::QWord {
+                    if reg.size() != register::Size::QWord {
                         return Err(format!("unexpected operand: {:?}", reg));
                     }
                     self.gen_o(0x58, reg)
@@ -203,7 +207,7 @@ impl Generator {
 
     fn gen_set(&mut self, opcode: u8, operand: Operand) -> Result<(), String> {
         let reg1 = expect_register(operand)?;
-        if reg1.size() != RegSize::Byte {
+        if reg1.size() != register::Size::Byte {
             return Err("expected r8".to_string());
         }
         self.gen_m(&[0x0F, opcode], 0, reg1);
@@ -223,9 +227,9 @@ impl Generator {
     }
 
     fn gen_m(&mut self, opcodes: &[u8], reg: u8, r: Register) {
-        if r.size() == RegSize::QWord || r.only_in_64bit() {
+        if r.size() == register::Size::QWord || r.only_in_64bit() {
             self.gen(calc_rex(
-                r.size() == RegSize::QWord,
+                r.size() == register::Size::QWord,
                 false,
                 false,
                 r.only_in_64bit(),
@@ -247,7 +251,7 @@ impl Generator {
     }
 
     fn gen_mi(&mut self, opcode: u8, reg: u8, opr1: Register, opr2: u32) {
-        if opr1.size() == RegSize::QWord {
+        if opr1.size() == register::Size::QWord {
             self.gen(calc_rex(true, false, false, opr1.only_in_64bit()));
         }
         self.gen(opcode);
@@ -274,7 +278,7 @@ impl Generator {
             _ => return,
         };
 
-        if reg1.size() != RegSize::QWord {
+        if reg1.size() != register::Size::QWord {
             return;
         }
 

@@ -1,5 +1,9 @@
-use crate::common::instruction::{Address, Instruction, MnemonicType, Operand};
-use crate::frontend::lexer::token::{Symbol, Token};
+use x86asm::instruction::mnemonic;
+
+use crate::{
+    common::instruction::{Address, Instruction, Operand},
+    frontend::lexer::token::{Symbol, Token},
+};
 
 struct Parser {
     pos: usize,
@@ -56,12 +60,12 @@ impl Parser {
         let token = self.consume().clone();
         match token {
             Token::Mnemonic(mnemonic) => match mnemonic.typ() {
-                MnemonicType::Nullary => Ok(Instruction::NullaryOp(mnemonic)),
-                MnemonicType::Unary => {
+                mnemonic::Type::Nullary => Ok(Instruction::NullaryOp(mnemonic)),
+                mnemonic::Type::Unary => {
                     let operand1 = self.parse_operand()?;
                     Ok(Instruction::UnaryOp(mnemonic, operand1))
                 }
-                MnemonicType::Binary => {
+                mnemonic::Type::Binary => {
                     let operand1 = self.parse_operand()?;
                     self.expect(&Token::Symbol(Symbol::Comma))?;
                     let operand2 = self.parse_operand()?;
