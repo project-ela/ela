@@ -1,3 +1,4 @@
+pub mod encode;
 pub mod instruction;
 
 #[cfg(test)]
