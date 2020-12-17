@@ -10,4 +10,10 @@ name = "skuld"
 version = "0.1.0"
 dependencies = [
  "elfen",
+ "x86asm",
 ]
+
+[[package]]
+name = "x86asm"
+version = "0.1.0"
+source = "git+https://github.com/Project-Norn/x86asm#416e26bcf8ca0585d7519a8b016c640ca8cb8326"
