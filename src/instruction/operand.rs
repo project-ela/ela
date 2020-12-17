@@ -8,7 +8,7 @@ use memory::Memory;
 use offset::Offset;
 use register::Register;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Operand {
     Immediate(Immediate),
     Register(Register),
