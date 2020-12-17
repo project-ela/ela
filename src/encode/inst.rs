@@ -1,6 +1,7 @@
-use crate::instruction::operand::{immediate::Immediate, memory::Displacement};
-
-use super::{modrm::ModRM, rex::Rex};
+use crate::{
+    common::{modrm::ModRM, rex::Rex},
+    instruction::operand::{immediate::Immediate, memory::Displacement},
+};
 
 #[derive(Default)]
 pub struct EncodedInst {

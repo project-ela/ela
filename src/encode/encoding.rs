@@ -1,11 +1,14 @@
-use crate::instruction::operand::{
-    immediate::Immediate,
-    memory::{Displacement, Memory},
-    offset::Offset,
-    register::{self, Register},
+use crate::{
+    common::{modrm::ModRM, rex::Rex},
+    instruction::operand::{
+        immediate::Immediate,
+        memory::{Displacement, Memory},
+        offset::Offset,
+        register::{self, Register},
+    },
 };
 
-use super::{modrm::ModRM, rex::Rex, EncodedInst};
+use super::inst::EncodedInst;
 
 pub enum RM<'a> {
     Register(&'a Register),

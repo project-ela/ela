@@ -1,7 +1,5 @@
 pub mod encoding;
 pub mod inst;
-pub mod modrm;
-pub mod rex;
 
 use encoding::RM;
 use inst::EncodedInst;
