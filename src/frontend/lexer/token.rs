@@ -1,4 +1,4 @@
-use crate::instruction::{Mnemonic, Register};
+use crate::common::instruction::{Mnemonic, Register};
 
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum Token {

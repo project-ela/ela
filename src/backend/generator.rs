@@ -1,4 +1,4 @@
-use crate::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
+use crate::common::instruction::{Instruction, Mnemonic, Operand, RegSize, Register};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
