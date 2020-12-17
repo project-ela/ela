@@ -1,12 +1,12 @@
 use super::register::Register;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Memory {
     pub base: Register,
     pub disp: Option<Displacement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Displacement {
     Disp8(i8),
     Disp32(i32),

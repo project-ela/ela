@@ -4,7 +4,7 @@ use operand::Operand;
 pub mod mnemonic;
 pub mod operand;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Instruction {
     pub mnenomic: Mnemonic,
     pub operand1: Option<Operand>,
