@@ -43,83 +43,87 @@ fn encode_unary_op(inst: &Instruction) -> EncodedInst {
         Mnemonic::Call => match opr1 {
             Operand::Offset(off) => match off {
                 Offset::Off8(_) => panic!(),
-                Offset::Off32(_) => encoding::gen_d(&[0xe8], off),
+                Offset::Off32(_) => encoding::encode_d(&[0xe8], off),
             },
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0xff], opr1.to_rm()).set_reg(2)
+                encoding::encode_m(&[0xff], opr1.to_rm()).set_reg(2)
             }
             _ => panic!(),
         },
         Mnemonic::IDiv => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0xf7], opr1.to_rm()).set_reg(7)
+                encoding::encode_m(&[0xf7], opr1.to_rm()).set_reg(7)
             }
             _ => panic!(),
         },
         Mnemonic::Pop => match opr1 {
-            Operand::Register(reg) => encoding::gen_o(0x58, reg.expect_size(register::Size::QWord)),
-            Operand::Memory(mem) => encoding::gen_m(&[0x8f], RM::Memory(mem)),
+            Operand::Register(reg) => {
+                encoding::encode_o(0x58, reg.expect_size(register::Size::QWord))
+            }
+            Operand::Memory(mem) => encoding::encode_m(&[0x8f], RM::Memory(mem)),
             _ => panic!(),
         },
         Mnemonic::Push => match opr1 {
             Operand::Immediate(imm) => match imm {
-                Immediate::Imm8(_) => encoding::gen_i(&[0x6a], imm),
-                Immediate::Imm32(_) => encoding::gen_i(&[0x68], imm),
+                Immediate::Imm8(_) => encoding::encode_i(&[0x6a], imm),
+                Immediate::Imm32(_) => encoding::encode_i(&[0x68], imm),
             },
-            Operand::Register(reg) => encoding::gen_o(0x50, reg.expect_size(register::Size::QWord)),
-            Operand::Memory(mem) => encoding::gen_m(&[0xff], RM::Memory(mem)).set_reg(6),
+            Operand::Register(reg) => {
+                encoding::encode_o(0x50, reg.expect_size(register::Size::QWord))
+            }
+            Operand::Memory(mem) => encoding::encode_m(&[0xff], RM::Memory(mem)).set_reg(6),
             _ => panic!(),
         },
         Mnemonic::Je => match opr1 {
             Operand::Offset(off) => match off {
-                Offset::Off8(_) => encoding::gen_d(&[0x74], off),
-                Offset::Off32(_) => encoding::gen_d(&[0x0f, 0x84], off),
+                Offset::Off8(_) => encoding::encode_d(&[0x74], off),
+                Offset::Off32(_) => encoding::encode_d(&[0x0f, 0x84], off),
             },
             _ => panic!(),
         },
         Mnemonic::Jmp => match opr1 {
             Operand::Offset(off) => match off {
-                Offset::Off8(_) => encoding::gen_d(&[0xeb], off),
-                Offset::Off32(_) => encoding::gen_d(&[0xe9], off),
+                Offset::Off8(_) => encoding::encode_d(&[0xeb], off),
+                Offset::Off32(_) => encoding::encode_d(&[0xe9], off),
             },
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0xff], opr1.to_rm()).set_reg(4)
+                encoding::encode_m(&[0xff], opr1.to_rm()).set_reg(4)
             }
             _ => panic!(),
         },
         Mnemonic::Sete => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0x0f, 0x94], opr1.to_rm())
+                encoding::encode_m(&[0x0f, 0x94], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setg => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0x0f, 0x9f], opr1.to_rm())
+                encoding::encode_m(&[0x0f, 0x9f], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setge => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0x0f, 0x9d], opr1.to_rm())
+                encoding::encode_m(&[0x0f, 0x9d], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setl => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0x0f, 0x9c], opr1.to_rm())
+                encoding::encode_m(&[0x0f, 0x9c], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setle => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0x0f, 0x9e], opr1.to_rm())
+                encoding::encode_m(&[0x0f, 0x9e], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setne => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::gen_m(&[0x0f, 0x95], opr1.to_rm())
+                encoding::encode_m(&[0x0f, 0x95], opr1.to_rm())
             }
             _ => panic!(),
         },
@@ -136,52 +140,52 @@ fn encode_binary_op(inst: &Instruction) -> EncodedInst {
         Mnemonic::Add => match (opr1, opr2) {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
-                Immediate::Imm8(_) => encoding::gen_mi(&[0x83], opr1.to_rm(), imm).set_reg(0),
-                Immediate::Imm32(_) => encoding::gen_mi(&[0x81], opr1.to_rm(), imm).set_reg(0),
+                Immediate::Imm8(_) => encoding::encode_mi(&[0x83], opr1.to_rm(), imm).set_reg(0),
+                Immediate::Imm32(_) => encoding::encode_mi(&[0x81], opr1.to_rm(), imm).set_reg(0),
             },
             (Operand::Register(_), Operand::Register(reg))
             | (Operand::Memory(_), Operand::Register(reg)) => {
-                encoding::gen_mr(&[0x01], opr1.to_rm(), reg)
+                encoding::encode_mr(&[0x01], opr1.to_rm(), reg)
             }
             (Operand::Register(reg), Operand::Memory(_)) => {
-                encoding::gen_rm(&[0x03], reg, opr2.to_rm())
+                encoding::encode_rm(&[0x03], reg, opr2.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::And => match (opr1, opr2) {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
-                Immediate::Imm8(_) => encoding::gen_mi(&[0x83], opr1.to_rm(), imm).set_reg(4),
-                Immediate::Imm32(_) => encoding::gen_mi(&[0x81], opr1.to_rm(), imm).set_reg(4),
+                Immediate::Imm8(_) => encoding::encode_mi(&[0x83], opr1.to_rm(), imm).set_reg(4),
+                Immediate::Imm32(_) => encoding::encode_mi(&[0x81], opr1.to_rm(), imm).set_reg(4),
             },
             (Operand::Register(_), Operand::Register(reg))
             | (Operand::Memory(_), Operand::Register(reg)) => {
-                encoding::gen_mr(&[0x21], opr1.to_rm(), reg)
+                encoding::encode_mr(&[0x21], opr1.to_rm(), reg)
             }
             (Operand::Register(reg), Operand::Memory(_)) => {
-                encoding::gen_rm(&[0x23], reg, opr2.to_rm())
+                encoding::encode_rm(&[0x23], reg, opr2.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Cmp => match (opr1, opr2) {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
-                Immediate::Imm8(_) => encoding::gen_mi(&[0x83], opr1.to_rm(), imm).set_reg(7),
-                Immediate::Imm32(_) => encoding::gen_mi(&[0x81], opr1.to_rm(), imm).set_reg(7),
+                Immediate::Imm8(_) => encoding::encode_mi(&[0x83], opr1.to_rm(), imm).set_reg(7),
+                Immediate::Imm32(_) => encoding::encode_mi(&[0x81], opr1.to_rm(), imm).set_reg(7),
             },
             (Operand::Register(_), Operand::Register(reg))
             | (Operand::Memory(_), Operand::Register(reg)) => {
-                encoding::gen_mr(&[0x39], opr1.to_rm(), reg)
+                encoding::encode_mr(&[0x39], opr1.to_rm(), reg)
             }
             (Operand::Register(reg), Operand::Memory(_)) => {
-                encoding::gen_rm(&[0x3b], reg, opr2.to_rm())
+                encoding::encode_rm(&[0x3b], reg, opr2.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::IMul => match (opr1, opr2) {
             (Operand::Register(_), Operand::Register(reg))
             | (Operand::Register(reg), Operand::Memory(_)) => {
-                encoding::gen_rm(&[0x0f, 0xaf], reg, opr2.to_rm())
+                encoding::encode_rm(&[0x0f, 0xaf], reg, opr2.to_rm())
             }
             _ => panic!(),
         },
@@ -189,59 +193,59 @@ fn encode_binary_op(inst: &Instruction) -> EncodedInst {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
                 Immediate::Imm8(_) => panic!(),
-                Immediate::Imm32(_) => encoding::gen_mi(&[0xc7], opr1.to_rm(), imm).set_reg(0),
+                Immediate::Imm32(_) => encoding::encode_mi(&[0xc7], opr1.to_rm(), imm).set_reg(0),
             },
             (Operand::Register(_), Operand::Register(reg))
             | (Operand::Memory(_), Operand::Register(reg)) => {
-                encoding::gen_mr(&[0x89], opr1.to_rm(), reg)
+                encoding::encode_mr(&[0x89], opr1.to_rm(), reg)
             }
             (Operand::Register(reg), Operand::Memory(_)) => {
-                encoding::gen_rm(&[0x8b], reg, opr2.to_rm())
+                encoding::encode_rm(&[0x8b], reg, opr2.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Or => match (opr1, opr2) {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
-                Immediate::Imm8(_) => encoding::gen_mi(&[0x83], opr1.to_rm(), imm).set_reg(1),
-                Immediate::Imm32(_) => encoding::gen_mi(&[0x81], opr1.to_rm(), imm).set_reg(1),
+                Immediate::Imm8(_) => encoding::encode_mi(&[0x83], opr1.to_rm(), imm).set_reg(1),
+                Immediate::Imm32(_) => encoding::encode_mi(&[0x81], opr1.to_rm(), imm).set_reg(1),
             },
             (Operand::Register(_), Operand::Register(reg))
             | (Operand::Memory(_), Operand::Register(reg)) => {
-                encoding::gen_mr(&[0x09], opr1.to_rm(), reg)
+                encoding::encode_mr(&[0x09], opr1.to_rm(), reg)
             }
             (Operand::Register(reg), Operand::Memory(_)) => {
-                encoding::gen_rm(&[0x0b], reg, opr2.to_rm())
+                encoding::encode_rm(&[0x0b], reg, opr2.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Sub => match (opr1, opr2) {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
-                Immediate::Imm8(_) => encoding::gen_mi(&[0x83], opr1.to_rm(), imm).set_reg(5),
-                Immediate::Imm32(_) => encoding::gen_mi(&[0x81], opr1.to_rm(), imm).set_reg(5),
+                Immediate::Imm8(_) => encoding::encode_mi(&[0x83], opr1.to_rm(), imm).set_reg(5),
+                Immediate::Imm32(_) => encoding::encode_mi(&[0x81], opr1.to_rm(), imm).set_reg(5),
             },
             (Operand::Register(_), Operand::Register(reg))
             | (Operand::Memory(_), Operand::Register(reg)) => {
-                encoding::gen_mr(&[0x29], opr1.to_rm(), reg)
+                encoding::encode_mr(&[0x29], opr1.to_rm(), reg)
             }
             (Operand::Register(reg), Operand::Memory(_)) => {
-                encoding::gen_rm(&[0x2b], reg, opr2.to_rm())
+                encoding::encode_rm(&[0x2b], reg, opr2.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Xor => match (opr1, opr2) {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
-                Immediate::Imm8(_) => encoding::gen_mi(&[0x83], opr1.to_rm(), imm).set_reg(6),
-                Immediate::Imm32(_) => encoding::gen_mi(&[0x81], opr1.to_rm(), imm).set_reg(6),
+                Immediate::Imm8(_) => encoding::encode_mi(&[0x83], opr1.to_rm(), imm).set_reg(6),
+                Immediate::Imm32(_) => encoding::encode_mi(&[0x81], opr1.to_rm(), imm).set_reg(6),
             },
             (Operand::Register(_), Operand::Register(reg))
             | (Operand::Memory(_), Operand::Register(reg)) => {
-                encoding::gen_mr(&[0x31], opr1.to_rm(), reg)
+                encoding::encode_mr(&[0x31], opr1.to_rm(), reg)
             }
             (Operand::Register(reg), Operand::Memory(_)) => {
-                encoding::gen_rm(&[0x33], reg, opr2.to_rm())
+                encoding::encode_rm(&[0x33], reg, opr2.to_rm())
             }
             _ => panic!(),
         },
