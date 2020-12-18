@@ -38,6 +38,15 @@ fn unary_m() {
         Mnemonic::Push,
         Operand::Memory(Memory::new(Register::R8, Some(Displacement::Disp8(2)))),
     ));
+
+    do_test(Instruction::new_unary(
+        Mnemonic::Sete,
+        Operand::Register(Register::Al),
+    ));
+    do_test(Instruction::new_unary(
+        Mnemonic::Sete,
+        Operand::Register(Register::R8b),
+    ));
 }
 
 #[test]

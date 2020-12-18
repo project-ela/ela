@@ -63,12 +63,12 @@ impl Decoder {
                 let op = self.consume_u8();
                 match op {
                     0x84 => self.decode_d32(Mnemonic::Je),
-                    0x94 => self.decode_m(Mnemonic::Sete),
-                    0x95 => self.decode_m(Mnemonic::Setne),
-                    0x9c => self.decode_m(Mnemonic::Setl),
-                    0x9d => self.decode_m(Mnemonic::Setge),
-                    0x9e => self.decode_m(Mnemonic::Setle),
-                    0x9f => self.decode_m(Mnemonic::Setg),
+                    0x94 => self.decode_set(Mnemonic::Sete),
+                    0x95 => self.decode_set(Mnemonic::Setne),
+                    0x9c => self.decode_set(Mnemonic::Setl),
+                    0x9d => self.decode_set(Mnemonic::Setge),
+                    0x9e => self.decode_set(Mnemonic::Setle),
+                    0x9f => self.decode_set(Mnemonic::Setg),
                     0xaf => self.decode_rm(Mnemonic::IMul),
                     _ => panic!(),
                 }
@@ -147,22 +147,26 @@ impl Decoder {
     }
 
     fn decode_register_reg(&mut self, num: u8) -> Register {
-        let extend = self.rex.as_ref().map_or(false, |rex| rex.r);
-        self.decode_register(num, extend)
-    }
-
-    fn decode_register_rm(&mut self, num: u8) -> Register {
-        let extend = self.rex.as_ref().map_or(false, |rex| rex.b);
-        self.decode_register(num, extend)
-    }
-
-    fn decode_register(&mut self, num: u8, extend: bool) -> Register {
         let size = if self.rex.as_ref().map_or(false, |rex| rex.w) {
             register::Size::QWord
         } else {
             register::Size::DWord
         };
+        let extend = self.rex.as_ref().map_or(false, |rex| rex.r);
+        self.decode_register(num, size, extend)
+    }
 
+    fn decode_register_rm(&mut self, num: u8) -> Register {
+        let size = if self.rex.as_ref().map_or(false, |rex| rex.w) {
+            register::Size::QWord
+        } else {
+            register::Size::DWord
+        };
+        let extend = self.rex.as_ref().map_or(false, |rex| rex.b);
+        self.decode_register(num, size, extend)
+    }
+
+    fn decode_register(&mut self, num: u8, size: register::Size, extend: bool) -> Register {
         match size {
             register::Size::QWord => {
                 if !extend {
