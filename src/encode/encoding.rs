@@ -25,7 +25,9 @@ pub fn encode_m(opcode: &[u8], opr1: RM) -> EncodedInst {
 
 pub fn encode_o(opcode: u8, opr1: &Register) -> EncodedInst {
     let mut enc = EncodedInst::new(&[opcode + opr1.number()]);
-    enc.rex = encode_rex(Some(&RM::Register(opr1)), None);
+    if opr1.only_in_64bit() {
+        enc.rex = Some(Rex::new(false, false, false, opr1.only_in_64bit()));
+    }
     enc
 }
 
@@ -80,7 +82,13 @@ pub fn encode_rm(opcode: &[u8], opr1: &Register, opr2: RM) -> EncodedInst {
 pub fn encode_set(opcode: &[u8], opr1: RM) -> EncodedInst {
     let mut enc = EncodedInst::new(opcode);
     enc.rex = match opr1 {
-        RM::Register(reg) => encode_rex(None, Some(reg)),
+        RM::Register(reg) => {
+            if reg.only_in_64bit() {
+                Some(Rex::new(false, false, false, reg.only_in_64bit()))
+            } else {
+                None
+            }
+        }
         RM::Memory(_) => encode_rex(Some(&opr1), None),
     };
     enc.modrm = Some(encode_modrm(&opr1));
