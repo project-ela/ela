@@ -77,6 +77,17 @@ pub fn encode_rm(opcode: &[u8], opr1: &Register, opr2: RM) -> EncodedInst {
     enc
 }
 
+pub fn encode_set(opcode: &[u8], opr1: RM) -> EncodedInst {
+    let mut enc = EncodedInst::new(opcode);
+    enc.rex = match opr1 {
+        RM::Register(reg) => encode_rex_reg(&RM::Register(&Register::Al), reg),
+        RM::Memory(_) => encode_rex(&opr1),
+    };
+    enc.modrm = Some(encode_modrm(&opr1));
+    enc.disp = encode_disp(&opr1);
+    enc
+}
+
 // TODO
 fn encode_rex(rm: &RM) -> Option<Rex> {
     // size of al isn't qword so REX.R is always false
@@ -91,7 +102,11 @@ fn encode_rex_reg(rm: &RM, reg_reg: &Register) -> Option<Rex> {
         RM::Register(reg) => reg,
     };
 
-    if reg_rm.size() != register::Size::QWord && reg_reg.size() != register::Size::QWord {
+    if reg_rm.size() != register::Size::QWord
+        && reg_reg.size() != register::Size::QWord
+        && !reg_rm.only_in_64bit()
+        && !reg_reg.only_in_64bit()
+    {
         return None;
     }
 

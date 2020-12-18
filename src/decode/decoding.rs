@@ -2,7 +2,7 @@ use crate::{
     common::modrm::ModRM,
     instruction::{
         mnemonic::Mnemonic,
-        operand::{immediate::Immediate, offset::Offset, Operand},
+        operand::{immediate::Immediate, offset::Offset, register, Operand},
         Instruction,
     },
 };
@@ -65,5 +65,12 @@ impl Decoder {
         let opr1 = self.decode_register_reg(modrm.reg);
         let opr2 = self.decode_modrm(&modrm);
         Instruction::new_binary(mnemonic, Operand::Register(opr1), opr2)
+    }
+
+    pub fn decode_set(&mut self, mnemonic: Mnemonic) -> Instruction {
+        let modrm = ModRM::from_byte(self.consume_u8());
+        let extend = self.rex.as_ref().map_or(false, |rex| rex.b);
+        let opr = self.decode_register(modrm.rm, register::Size::Byte, extend);
+        Instruction::new_unary(mnemonic, Operand::Register(opr))
     }
 }
