@@ -103,12 +103,17 @@ impl Generator {
         if let OperandNode::Label { name } = opr1 {
             let cur = self.output.len();
             let label = self.lookup_label(name, cur);
-            let jmp_code_len = encode::encode(&Instruction::new_unary(
-                op.clone(),
-                Operand::Offset(Offset::Off32(0)),
-            ))
-            .len();
-            let offset = self.calc_offset(cur, label as usize) - jmp_code_len as i32;
+            let offset = match label {
+                Some(label) => {
+                    let jmp_code_len = encode::encode(&Instruction::new_unary(
+                        op.clone(),
+                        Operand::Offset(Offset::Off32(0)),
+                    ))
+                    .len();
+                    self.calc_offset(cur, label as usize) - jmp_code_len as i32
+                }
+                None => 0,
+            };
 
             self.output.push(Instruction::new_unary(
                 op,
@@ -163,12 +168,12 @@ impl Generator {
         }
     }
 
-    fn lookup_label(&mut self, name: String, code_addr: usize) -> usize {
+    fn lookup_label(&mut self, name: String, code_addr: usize) -> Option<usize> {
         match self.labels.get(&name) {
-            Some(idx) => *idx,
+            Some(idx) => Some(*idx),
             None => {
                 self.unresolved_jumps.push((name, code_addr));
-                0
+                None
             }
         }
     }
