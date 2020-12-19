@@ -1,6 +1,7 @@
 pub mod token;
 
-use crate::common::instruction::{Mnemonic, Register};
+use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
+
 use crate::frontend::lexer::token::{Symbol, Token};
 
 struct Lexer {

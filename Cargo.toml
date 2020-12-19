@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 elfen = { git = "https://github.com/Project-Norn/elfen" }
+x86asm = { git = "https://github.com/Project-Norn/x86asm" }
