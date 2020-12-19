@@ -93,37 +93,37 @@ fn encode_unary_op(inst: &Instruction) -> EncodedInst {
         },
         Mnemonic::Sete => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::encode_m(&[0x0f, 0x94], opr1.to_rm())
+                encoding::encode_set(&[0x0f, 0x94], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setg => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::encode_m(&[0x0f, 0x9f], opr1.to_rm())
+                encoding::encode_set(&[0x0f, 0x9f], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setge => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::encode_m(&[0x0f, 0x9d], opr1.to_rm())
+                encoding::encode_set(&[0x0f, 0x9d], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setl => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::encode_m(&[0x0f, 0x9c], opr1.to_rm())
+                encoding::encode_set(&[0x0f, 0x9c], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setle => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::encode_m(&[0x0f, 0x9e], opr1.to_rm())
+                encoding::encode_set(&[0x0f, 0x9e], opr1.to_rm())
             }
             _ => panic!(),
         },
         Mnemonic::Setne => match opr1 {
             Operand::Register(_) | Operand::Memory(_) => {
-                encoding::encode_m(&[0x0f, 0x95], opr1.to_rm())
+                encoding::encode_set(&[0x0f, 0x95], opr1.to_rm())
             }
             _ => panic!(),
         },

@@ -17,7 +17,8 @@ impl Decoder {
     }
 
     pub fn decode_o(&mut self, mnemonic: Mnemonic, reg: u8) -> Instruction {
-        let reg = self.decode_register_rm(reg);
+        let extend = self.rex.as_ref().map_or(false, |rex| rex.b);
+        let reg = self.decode_register(reg, register::Size::QWord, extend);
         Instruction::new_unary(mnemonic, Operand::Register(reg))
     }
 
