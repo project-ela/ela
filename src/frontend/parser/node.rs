@@ -1,23 +1,23 @@
 use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
 
 #[derive(Debug)]
-pub enum Instruction {
+pub enum InstructionNode {
     PseudoOp { name: String, arg: String },
     Label { name: String },
     NullaryOp(Mnemonic),
-    UnaryOp(Mnemonic, Operand),
-    BinaryOp(Mnemonic, Operand, Operand),
+    UnaryOp(Mnemonic, OperandNode),
+    BinaryOp(Mnemonic, OperandNode, OperandNode),
 }
 
 #[derive(Debug, Clone)]
-pub enum Operand {
+pub enum OperandNode {
     Immidiate { value: u32 },
     Register { reg: Register },
     Label { name: String },
-    Address(Address),
+    Memory(MemoryNode),
 }
 #[derive(Debug, Clone)]
-pub struct Address {
+pub struct MemoryNode {
     pub base: Register,
     pub disp: Option<i32>,
 }

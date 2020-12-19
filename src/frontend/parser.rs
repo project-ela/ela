@@ -1,16 +1,16 @@
+pub mod node;
+
+use node::{InstructionNode, MemoryNode, OperandNode};
 use x86asm::instruction::mnemonic;
 
-use crate::{
-    common::instruction::{Address, Instruction, Operand},
-    frontend::lexer::token::{Symbol, Token},
-};
+use crate::frontend::lexer::token::{Symbol, Token};
 
 struct Parser {
     pos: usize,
     tokens: Vec<Token>,
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<Vec<Instruction>, String> {
+pub fn parse(tokens: Vec<Token>) -> Result<Vec<InstructionNode>, String> {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -20,7 +20,7 @@ impl Parser {
         Self { pos: 0, tokens }
     }
 
-    fn parse(&mut self) -> Result<Vec<Instruction>, String> {
+    fn parse(&mut self) -> Result<Vec<InstructionNode>, String> {
         let mut insts = Vec::new();
         loop {
             if self.is_eof() {
@@ -41,13 +41,13 @@ impl Parser {
 
             if self.peek() == &Token::Symbol(Symbol::Colon) {
                 self.consume();
-                insts.push(Instruction::Label { name: ident });
+                insts.push(InstructionNode::Label { name: ident });
                 continue;
             }
 
             if ident.starts_with('.') {
                 let arg = self.consume_ident()?;
-                insts.push(Instruction::PseudoOp { name: ident, arg });
+                insts.push(InstructionNode::PseudoOp { name: ident, arg });
                 continue;
             }
 
@@ -56,33 +56,33 @@ impl Parser {
         Ok(insts)
     }
 
-    fn parse_inst(&mut self) -> Result<Instruction, String> {
+    fn parse_inst(&mut self) -> Result<InstructionNode, String> {
         let token = self.consume().clone();
         match token {
             Token::Mnemonic(mnemonic) => match mnemonic.typ() {
-                mnemonic::Type::Nullary => Ok(Instruction::NullaryOp(mnemonic)),
+                mnemonic::Type::Nullary => Ok(InstructionNode::NullaryOp(mnemonic)),
                 mnemonic::Type::Unary => {
                     let operand1 = self.parse_operand()?;
-                    Ok(Instruction::UnaryOp(mnemonic, operand1))
+                    Ok(InstructionNode::UnaryOp(mnemonic, operand1))
                 }
                 mnemonic::Type::Binary => {
                     let operand1 = self.parse_operand()?;
                     self.expect(&Token::Symbol(Symbol::Comma))?;
                     let operand2 = self.parse_operand()?;
-                    Ok(Instruction::BinaryOp(mnemonic, operand1, operand2))
+                    Ok(InstructionNode::BinaryOp(mnemonic, operand1, operand2))
                 }
             },
             x => Err(format!("unexpected token: {:?}", x)),
         }
     }
 
-    fn parse_operand(&mut self) -> Result<Operand, String> {
+    fn parse_operand(&mut self) -> Result<OperandNode, String> {
         match self.consume() {
-            Token::Integer(value) => Ok(Operand::Immidiate { value: *value }),
-            Token::Ident(name) => Ok(Operand::Label {
+            Token::Integer(value) => Ok(OperandNode::Immidiate { value: *value }),
+            Token::Ident(name) => Ok(OperandNode::Label {
                 name: name.to_owned(),
             }),
-            Token::Register(reg) => Ok(Operand::Register {
+            Token::Register(reg) => Ok(OperandNode::Register {
                 reg: reg.to_owned(),
             }),
             Token::Symbol(Symbol::LBracket) => self.parse_operand_address(),
@@ -90,7 +90,7 @@ impl Parser {
         }
     }
 
-    fn parse_operand_address(&mut self) -> Result<Operand, String> {
+    fn parse_operand_address(&mut self) -> Result<OperandNode, String> {
         let base = match self.consume() {
             Token::Register(reg) => reg.clone(),
             x => return Err(format!("unexpected token: {:?}", x)),
@@ -109,7 +109,7 @@ impl Parser {
         };
 
         self.expect(&Token::Symbol(Symbol::RBracket))?;
-        Ok(Operand::Address(Address { base, disp }))
+        Ok(OperandNode::Memory(MemoryNode { base, disp }))
     }
 
     fn expect(&mut self, token: &Token) -> Result<&Token, String> {
