@@ -1,7 +1,7 @@
 pub mod cpu;
 
 use crate::{
-    emulator::cpu::{Register, Register::*, CPU, EFLAGS},
+    emulator::cpu::{Cpu, Register, Register::*, EFLAGS},
     instruction::modrm::RM,
 };
 use std::fs::File;
@@ -10,7 +10,7 @@ use std::io::Read;
 const MEMORY_SIZE: usize = 1024 * 1024;
 
 pub struct Emulator {
-    cpu: CPU,
+    cpu: Cpu,
     memory: Vec<u8>,
 
     // Size of binary
@@ -21,7 +21,7 @@ pub struct Emulator {
 impl Emulator {
     pub fn new(eip: u32, esp: u32) -> Self {
         let mut emu = Self {
-            cpu: CPU::new(),
+            cpu: Cpu::new(),
             memory: vec![0; MEMORY_SIZE],
             len: 0,
             initial_eip: eip,

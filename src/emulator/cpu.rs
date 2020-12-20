@@ -1,5 +1,5 @@
 #[derive(Debug, Default)]
-pub struct CPU {
+pub struct Cpu {
     // Accumulator
     eax: u32,
     // Counter
@@ -59,7 +59,7 @@ impl From<u8> for Register {
     }
 }
 
-impl CPU {
+impl Cpu {
     pub fn new() -> Self {
         Default::default()
     }
@@ -112,7 +112,7 @@ impl CPU {
 mod tests {
     use super::*;
 
-    fn test_register(cpu: &CPU, expected: [u32; 8]) {
+    fn test_register(cpu: &Cpu, expected: [u32; 8]) {
         assert_eq!(cpu.get_register(Register::EAX), expected[0]);
         assert_eq!(cpu.get_register(Register::ECX), expected[1]);
         assert_eq!(cpu.get_register(Register::EDX), expected[2]);
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn registers() {
-        let mut cpu = CPU::new();
+        let mut cpu = Cpu::new();
         test_register(&cpu, [0, 0, 0, 0, 0, 0, 0, 0]);
 
         cpu.set_register(Register::EAX, 0x42);
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn eflags() {
-        let mut cpu = CPU::new();
+        let mut cpu = Cpu::new();
         assert_eq!(cpu.eflags, 0b00000000000000000000000000000000);
 
         cpu.set_eflag(EFLAGS::SF, true);
