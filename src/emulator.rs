@@ -157,30 +157,3 @@ impl Emulator {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn update_eflags_sub() {
-        let mut emu = Emulator::new(0x7c00, 0x7c00);
-        emu.update_eflags_sub(10, 5, 5);
-        assert_eq!(emu.cpu.get_flag(Flags::CF), false);
-        assert_eq!(emu.cpu.get_flag(Flags::ZF), false);
-        assert_eq!(emu.cpu.get_flag(Flags::SF), false);
-        assert_eq!(emu.cpu.get_flag(Flags::OF), false);
-
-        emu.update_eflags_sub(5, 10, (-5 as i64) as u64);
-        assert_eq!(emu.cpu.get_flag(Flags::CF), true);
-        assert_eq!(emu.cpu.get_flag(Flags::ZF), false);
-        assert_eq!(emu.cpu.get_flag(Flags::SF), true);
-        assert_eq!(emu.cpu.get_flag(Flags::OF), false);
-
-        emu.update_eflags_sub(10, 10, 0);
-        assert_eq!(emu.cpu.get_flag(Flags::CF), false);
-        assert_eq!(emu.cpu.get_flag(Flags::ZF), true);
-        assert_eq!(emu.cpu.get_flag(Flags::SF), false);
-        assert_eq!(emu.cpu.get_flag(Flags::OF), false);
-    }
-}
