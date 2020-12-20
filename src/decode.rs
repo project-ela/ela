@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-struct Decoder {
+pub struct Decoder {
     code: Vec<u8>,
     pos: usize,
 
@@ -26,7 +26,7 @@ pub fn decode(code: &[u8]) -> Vec<Instruction> {
 }
 
 impl Decoder {
-    fn new(code: &[u8]) -> Self {
+    pub fn new(code: &[u8]) -> Self {
         Self {
             code: code.to_vec(),
             pos: 0,
@@ -34,7 +34,7 @@ impl Decoder {
         }
     }
 
-    fn decode(&mut self) -> Vec<Instruction> {
+    pub fn decode(&mut self) -> Vec<Instruction> {
         let mut inst = Vec::new();
 
         while self.pos < self.code.len() {
@@ -44,7 +44,7 @@ impl Decoder {
         inst
     }
 
-    fn decode_inst(&mut self) -> Instruction {
+    pub fn decode_inst(&mut self) -> Instruction {
         let mut opcode = self.consume_u8();
 
         if opcode & 0xf0 == 0x40 {
@@ -144,6 +144,10 @@ impl Decoder {
             }
             _ => panic!(),
         }
+    }
+
+    pub fn pos(&self) -> &usize {
+        &self.pos
     }
 
     fn decode_register_reg(&mut self, num: u8) -> Register {
