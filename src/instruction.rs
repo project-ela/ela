@@ -91,7 +91,7 @@ mod tests {
     fn new_emu(bin: &[u8]) -> Emulator {
         let mut emu = Emulator::new(0x7C00, 0x7C00);
         for (i, v) in bin.iter().enumerate() {
-            emu.set_memory8(0x7C00 + i, *v);
+            emu.mmu.set_memory8(0x7C00 + i, *v);
         }
         return emu;
     }
@@ -99,14 +99,14 @@ mod tests {
     #[test]
     fn push_r32() {
         let mut emu = new_emu(&[0x50]);
-        emu.set_register(EAX, 0x20);
+        emu.cpu.set_register(EAX, 0x20);
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x1);
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x1);
         assert_eq!(opcode, Opcode::PushR32(EAX));
         emu.exec(opcode);
         assert_eq!(
-            emu.get_memory32(emu.get_register(ESP) as usize),
-            emu.get_register(EAX)
+            emu.mmu.get_memory32(emu.cpu.get_register(ESP) as usize),
+            emu.cpu.get_register(EAX)
         );
     }
 
@@ -115,20 +115,23 @@ mod tests {
         let mut emu = new_emu(&[0x58]);
         emu.push32(0xB);
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x1);
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x1);
         assert_eq!(opcode, Opcode::PopR32(EAX));
         emu.exec(opcode);
-        assert_eq!(emu.get_register(EAX), 0xB);
+        assert_eq!(emu.cpu.get_register(EAX), 0xB);
     }
 
     #[test]
     fn push_imm8() {
         let mut emu = new_emu(&[0x6A, 0x0A]);
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x2);
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x2);
         assert_eq!(opcode, Opcode::PushImm8(0xA));
         emu.exec(opcode);
-        assert_eq!(emu.get_memory32(emu.get_register(ESP) as usize), 0xA);
+        assert_eq!(
+            emu.mmu.get_memory32(emu.cpu.get_register(ESP) as usize),
+            0xA
+        );
     }
 
     #[test]
@@ -136,29 +139,29 @@ mod tests {
         let mut emu = new_emu(&[0x89, 0xE5, 0x89, 0x45, 0xFC]);
 
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x2);
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x2);
         assert_eq!(opcode, Opcode::MovRm32R32(RM::Register(EBP), ESP));
         emu.exec(opcode);
-        assert_eq!(emu.get_register(EBP), emu.get_register(ESP));
+        assert_eq!(emu.cpu.get_register(EBP), emu.cpu.get_register(ESP));
 
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x5);
-        let addr = (emu.get_register(EBP) as i32 - 4 as i32) as usize;
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x5);
+        let addr = (emu.cpu.get_register(EBP) as i32 - 4 as i32) as usize;
         assert_eq!(opcode, Opcode::MovRm32R32(RM::Memory(addr), EAX));
         emu.exec(opcode);
-        assert_eq!(emu.get_memory32(addr), emu.get_register(EAX));
+        assert_eq!(emu.mmu.get_memory32(addr), emu.cpu.get_register(EAX));
     }
 
     #[test]
     fn mov_r32_rm32() {
         let mut emu = new_emu(&[0x8B, 0x45, 0xFC]);
-        emu.set_register(EBP, 0x7C00);
+        emu.cpu.set_register(EBP, 0x7C00);
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x3);
-        let addr = (emu.get_register(EBP) as i32 - 4 as i32) as usize;
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x3);
+        let addr = (emu.cpu.get_register(EBP) as i32 - 4 as i32) as usize;
         assert_eq!(opcode, Opcode::MovR32Rm32(EAX, RM::Memory(addr)));
         emu.exec(opcode);
-        assert_eq!(emu.get_register(EAX), emu.get_memory32(addr));
+        assert_eq!(emu.cpu.get_register(EAX), emu.mmu.get_memory32(addr));
     }
 
     #[test]
@@ -166,18 +169,18 @@ mod tests {
         let mut emu = new_emu(&[0x8F, 0x45, 0x04]);
         emu.push32(0xB);
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x3);
-        let addr = (emu.get_register(EBP) as i32 + 4 as i32) as usize;
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x3);
+        let addr = (emu.cpu.get_register(EBP) as i32 + 4 as i32) as usize;
         assert_eq!(opcode, Opcode::PopRm32(RM::Memory(addr)));
         emu.exec(opcode);
-        assert_eq!(emu.get_memory32(addr), 0xB);
+        assert_eq!(emu.mmu.get_memory32(addr), 0xB);
     }
 
     #[test]
     fn nop() {
         let mut emu = new_emu(&[0x90]);
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x1);
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x1);
         assert_eq!(opcode, Opcode::Nop);
         emu.exec(opcode);
     }
@@ -188,19 +191,19 @@ mod tests {
         let opcode = emu.decode().unwrap();
         assert_eq!(opcode, Opcode::MovR32Imm32(EAX, 0x41));
         emu.exec(opcode);
-        assert_eq!(emu.get_register(EAX), 0x41);
+        assert_eq!(emu.cpu.get_register(EAX), 0x41);
     }
 
     #[test]
     fn mov_rm32_imm32() {
         let mut emu = new_emu(&[0xC7, 0x45, 0xFC, 0x0A, 0x00, 0x00, 0x00]);
-        emu.set_register(EBP, 0x7C00);
+        emu.cpu.set_register(EBP, 0x7C00);
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x7);
-        let addr = (emu.get_register(EBP) as i32 - 4 as i32) as usize;
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x7);
+        let addr = (emu.cpu.get_register(EBP) as i32 - 4 as i32) as usize;
         assert_eq!(opcode, Opcode::MovRm32Imm32(RM::Memory(addr), 0xA));
         emu.exec(opcode);
-        assert_eq!(emu.get_memory32(addr), 0xA);
+        assert_eq!(emu.mmu.get_memory32(addr), 0xA);
     }
 
     #[test]
@@ -209,19 +212,22 @@ mod tests {
         let opcode = emu.decode().unwrap();
         assert_eq!(opcode, Opcode::ShortJump(0x76 + 0x2));
         emu.exec(opcode);
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x76 + 0x2);
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x76 + 0x2);
     }
 
     #[test]
     fn push_rm32() {
         let mut emu = new_emu(&[0xFF, 0x75, 0x04]);
-        emu.set_register(EBP, 0x7C00);
-        let addr = (emu.get_register(EBP) as i32 + 4 as i32) as usize;
-        emu.set_memory32(addr, 0xA);
+        emu.cpu.set_register(EBP, 0x7C00);
+        let addr = (emu.cpu.get_register(EBP) as i32 + 4 as i32) as usize;
+        emu.mmu.set_memory32(addr, 0xA);
         let opcode = emu.decode().unwrap();
-        assert_eq!(emu.get_register(EIP), 0x7C00 + 0x3);
+        assert_eq!(emu.cpu.get_register(EIP), 0x7C00 + 0x3);
         assert_eq!(opcode, Opcode::PushRm32(RM::Memory(addr)));
         emu.exec(opcode);
-        assert_eq!(emu.get_memory32(emu.get_register(ESP) as usize), 0xA);
+        assert_eq!(
+            emu.mmu.get_memory32(emu.cpu.get_register(ESP) as usize),
+            0xA
+        );
     }
 }

@@ -39,12 +39,12 @@ impl Emulator {
         match modrm.modval {
             0b00 => {
                 let reg = Register::from(modrm.rm);
-                let reg_value = self.get_register(reg);
+                let reg_value = self.cpu.get_register(reg);
                 RM::Memory(reg_value as usize)
             }
             0b01 => {
                 let reg = Register::from(modrm.rm);
-                let reg_value = self.get_register(reg);
+                let reg_value = self.cpu.get_register(reg);
                 RM::Memory((reg_value as i32 + modrm.disp8 as i32) as usize)
             }
             0b11 => RM::Register(Register::from(modrm.rm)),
