@@ -1,62 +1,20 @@
+use x86asm::instruction::operand::register::{self, Register};
+
 #[derive(Debug, Default)]
 pub struct Cpu {
-    // Accumulator
-    eax: u32,
-    // Counter
-    ecx: u32,
-    // Data
-    edx: u32,
-    // Base
-    ebx: u32,
-    // Stack Pointer
-    esp: u32,
-    // Stack Base Pointer
-    ebp: u32,
-    // Source Index
-    esi: u32,
-    // Destination Index
-    edi: u32,
+    regs: [u64; 16],
 
-    flags: u32,
+    flags: u64,
 
-    // Instruction Pointer
-    eip: u32,
-}
-
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub enum Register {
-    EAX,
-    ECX,
-    EDX,
-    EBX,
-    ESP,
-    EBP,
-    ESI,
-    EDI,
-    EIP,
+    rip: u64,
 }
 
 pub enum Flags {
     CF = 0,
+    PF = 2,
     ZF = 6,
     SF = 7,
     OF = 11,
-}
-
-impl From<u8> for Register {
-    fn from(index: u8) -> Self {
-        match index {
-            0 => Self::EAX,
-            1 => Self::ECX,
-            2 => Self::EDX,
-            3 => Self::EBX,
-            4 => Self::ESP,
-            5 => Self::EBP,
-            6 => Self::ESI,
-            7 => Self::EDI,
-            _ => panic!("index must be in range from 0 to 7"),
-        }
-    }
 }
 
 impl Cpu {
@@ -64,38 +22,50 @@ impl Cpu {
         Default::default()
     }
 
-    pub fn get_register(&self, reg: Register) -> u32 {
-        match reg {
-            Register::EAX => self.eax,
-            Register::ECX => self.ecx,
-            Register::EDX => self.edx,
-            Register::EBX => self.ebx,
-            Register::ESP => self.esp,
-            Register::EBP => self.ebp,
-            Register::ESI => self.esi,
-            Register::EDI => self.edi,
-            Register::EIP => self.eip,
+    pub fn get_register(&self, reg: &Register) -> u64 {
+        match reg.size() {
+            register::Size::QWord | register::Size::DWord => self.get_register64(reg),
+            register::Size::Byte => self.get_register8(reg) as u64,
+            _ => unimplemented!(),
         }
     }
 
-    pub fn set_register(&mut self, reg: Register, value: u32) {
-        match reg {
-            Register::EAX => self.eax = value,
-            Register::ECX => self.ecx = value,
-            Register::EDX => self.edx = value,
-            Register::EBX => self.ebx = value,
-            Register::ESP => self.esp = value,
-            Register::EBP => self.ebp = value,
-            Register::ESI => self.esi = value,
-            Register::EDI => self.edi = value,
-            Register::EIP => self.eip = value,
+    pub fn set_register(&mut self, reg: &Register, value: u64) {
+        match reg.size() {
+            register::Size::QWord | register::Size::DWord => self.set_register64(reg, value),
+            register::Size::Byte => self.set_register8(reg, value as u8),
+            _ => unimplemented!(),
         }
+    }
+
+    pub fn get_register8(&self, reg: &Register) -> u8 {
+        self.regs[reg_num(reg)] as u8
+    }
+
+    pub fn set_register8(&mut self, reg: &Register, value: u8) {
+        self.regs[reg_num(reg)] = (self.regs[reg_num(reg)] & 0xffffff00) | value as u64;
+    }
+
+    pub fn get_register64(&self, reg: &Register) -> u64 {
+        self.regs[reg_num(reg)]
+    }
+
+    pub fn set_register64(&mut self, reg: &Register, value: u64) {
+        self.regs[reg_num(reg)] = value;
+    }
+
+    pub fn get_rip(&self) -> u64 {
+        self.rip
+    }
+
+    pub fn set_rip(&mut self, value: u64) {
+        self.rip = value;
     }
 
     pub fn get_flag(&self, flag: Flags) -> bool {
         let bit = flag as u32;
         let value = self.flags & (1 << bit);
-        return value != 0;
+        value != 0
     }
 
     pub fn set_flag(&mut self, flag: Flags, value: bool) {
@@ -106,4 +76,9 @@ impl Cpu {
             self.flags &= !(1 << bit);
         }
     }
+}
+
+fn reg_num(reg: &Register) -> usize {
+    let extend = reg.only_in_64bit();
+    reg.number() as usize + if extend { 8 } else { 0 }
 }

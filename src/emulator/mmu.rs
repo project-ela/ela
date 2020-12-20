@@ -21,12 +21,26 @@ impl Mmu {
         return ret;
     }
 
+    pub fn get_memory64(&self, address: usize) -> u64 {
+        let mut ret = 0;
+        for i in 0..8 {
+            ret |= (self.get_memory8(address + i) as u64) << (8 * i);
+        }
+        return ret;
+    }
+
     pub fn set_memory8(&mut self, address: usize, value: u8) {
         self.ram[address] = value;
     }
 
     pub fn set_memory32(&mut self, address: usize, value: u32) {
         for i in 0..4 {
+            self.set_memory8(address + i, (value >> (8 * i)) as u8);
+        }
+    }
+
+    pub fn set_memory64(&mut self, address: usize, value: u64) {
+        for i in 0..8 {
             self.set_memory8(address + i, (value >> (8 * i)) as u8);
         }
     }
