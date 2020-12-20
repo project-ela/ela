@@ -17,7 +17,7 @@ pub struct Cpu {
     // Destination Index
     edi: u32,
 
-    eflags: u32,
+    flags: u32,
 
     // Instruction Pointer
     eip: u32,
@@ -36,7 +36,7 @@ pub enum Register {
     EIP,
 }
 
-pub enum EFLAGS {
+pub enum Flags {
     CF = 0,
     ZF = 6,
     SF = 7,
@@ -92,18 +92,18 @@ impl Cpu {
         }
     }
 
-    pub fn get_eflag(&self, flag: EFLAGS) -> bool {
+    pub fn get_flag(&self, flag: Flags) -> bool {
         let bit = flag as u32;
-        let value = self.eflags & (1 << bit);
+        let value = self.flags & (1 << bit);
         return value != 0;
     }
 
-    pub fn set_eflag(&mut self, flag: EFLAGS, value: bool) {
+    pub fn set_flag(&mut self, flag: Flags, value: bool) {
         let bit = flag as u32;
         if value {
-            self.eflags |= 1 << bit;
+            self.flags |= 1 << bit;
         } else {
-            self.eflags &= !(1 << bit);
+            self.flags &= !(1 << bit);
         }
     }
 }
@@ -138,18 +138,18 @@ mod tests {
     #[test]
     fn eflags() {
         let mut cpu = Cpu::new();
-        assert_eq!(cpu.eflags, 0b00000000000000000000000000000000);
+        assert_eq!(cpu.flags, 0b00000000000000000000000000000000);
 
-        cpu.set_eflag(EFLAGS::SF, true);
-        assert_eq!(cpu.eflags, 0b00000000000000000000000010000000);
-        assert_eq!(cpu.get_eflag(EFLAGS::SF), true);
+        cpu.set_flag(Flags::SF, true);
+        assert_eq!(cpu.flags, 0b00000000000000000000000010000000);
+        assert_eq!(cpu.get_flag(Flags::SF), true);
 
-        cpu.set_eflag(EFLAGS::CF, true);
-        assert_eq!(cpu.eflags, 0b00000000000000000000000010000001);
-        assert_eq!(cpu.get_eflag(EFLAGS::CF), true);
+        cpu.set_flag(Flags::CF, true);
+        assert_eq!(cpu.flags, 0b00000000000000000000000010000001);
+        assert_eq!(cpu.get_flag(Flags::CF), true);
 
-        cpu.set_eflag(EFLAGS::SF, false);
-        assert_eq!(cpu.eflags, 0b00000000000000000000000000000001);
-        assert_eq!(cpu.get_eflag(EFLAGS::SF), false);
+        cpu.set_flag(Flags::SF, false);
+        assert_eq!(cpu.flags, 0b00000000000000000000000000000001);
+        assert_eq!(cpu.get_flag(Flags::SF), false);
     }
 }

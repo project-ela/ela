@@ -1,10 +1,11 @@
 pub mod cpu;
+pub mod flags;
 pub mod mmu;
 
 use mmu::Mmu;
 
 use crate::{
-    emulator::cpu::{Cpu, Register, Register::*, EFLAGS},
+    emulator::cpu::{Cpu, Flags, Register, Register::*},
     instruction::modrm::RM,
 };
 use std::fs::File;
@@ -113,39 +114,6 @@ impl Emulator {
         self.mmu.get_memory32(esp as usize)
     }
 
-    pub fn update_eflags_add(&mut self, lhs: u32, rhs: u32, result: u64) {
-        self.update_eflags_sub(lhs, rhs, result);
-    }
-
-    pub fn get_eflag(&self, flag: EFLAGS) -> bool {
-        self.cpu.get_eflag(flag)
-    }
-
-    pub fn set_eflag(&mut self, flag: EFLAGS, value: bool) {
-        self.cpu.set_eflag(flag, value);
-    }
-
-    pub fn update_eflags_sub(&mut self, lhs: u32, rhs: u32, result: u64) {
-        let lhs_sign = lhs >> 31;
-        let rhs_sign = rhs >> 31;
-        let result_sign = (result >> 31) as u32;
-        self.cpu.set_eflag(EFLAGS::CF, (result >> 32) != 0);
-        self.cpu.set_eflag(EFLAGS::ZF, result == 0);
-        self.cpu.set_eflag(EFLAGS::SF, result_sign != 0);
-        self.cpu.set_eflag(
-            EFLAGS::OF,
-            (lhs_sign != rhs_sign) && (lhs_sign != result_sign),
-        );
-    }
-
-    pub fn update_eflags_xor(&mut self, result: u64) {
-        let result_sign = (result >> 31) as u32;
-        self.cpu.set_eflag(EFLAGS::CF, false);
-        self.cpu.set_eflag(EFLAGS::ZF, result != 0);
-        self.cpu.set_eflag(EFLAGS::SF, result_sign != 0);
-        self.cpu.set_eflag(EFLAGS::OF, false);
-    }
-
     pub fn dump(&self) {
         println!("----------------------------------------");
         println!("EIP: {:4X}", self.cpu.get_register(EIP));
@@ -159,10 +127,10 @@ impl Emulator {
     pub fn dump_eflags(&self) {
         println!(
             "flag: [Carry: {}, Zero: {}, Sign: {}, Overflow: {}]",
-            self.cpu.get_eflag(EFLAGS::CF),
-            self.cpu.get_eflag(EFLAGS::ZF),
-            self.cpu.get_eflag(EFLAGS::SF),
-            self.cpu.get_eflag(EFLAGS::OF),
+            self.cpu.get_flag(Flags::CF),
+            self.cpu.get_flag(Flags::ZF),
+            self.cpu.get_flag(Flags::SF),
+            self.cpu.get_flag(Flags::OF),
         );
     }
 
@@ -198,21 +166,21 @@ mod tests {
     fn update_eflags_sub() {
         let mut emu = Emulator::new(0x7c00, 0x7c00);
         emu.update_eflags_sub(10, 5, 5);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::CF), false);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::ZF), false);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::SF), false);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::OF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::CF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::ZF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::SF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::OF), false);
 
         emu.update_eflags_sub(5, 10, (-5 as i64) as u64);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::CF), true);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::ZF), false);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::SF), true);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::OF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::CF), true);
+        assert_eq!(emu.cpu.get_flag(Flags::ZF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::SF), true);
+        assert_eq!(emu.cpu.get_flag(Flags::OF), false);
 
         emu.update_eflags_sub(10, 10, 0);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::CF), false);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::ZF), true);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::SF), false);
-        assert_eq!(emu.cpu.get_eflag(EFLAGS::OF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::CF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::ZF), true);
+        assert_eq!(emu.cpu.get_flag(Flags::SF), false);
+        assert_eq!(emu.cpu.get_flag(Flags::OF), false);
     }
 }

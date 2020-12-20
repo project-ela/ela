@@ -1,6 +1,6 @@
 use crate::{
     emulator::{
-        cpu::{Register, EFLAGS},
+        cpu::{Flags, Register},
         Emulator,
     },
     instruction::Opcode,
@@ -20,30 +20,30 @@ impl Emulator {
                 self.set_rm(rm, result as u32);
             }
             Opcode::Jz32(diff) => {
-                if self.get_eflag(EFLAGS::ZF) {
+                if self.cpu.get_flag(Flags::ZF) {
                     self.inc_eip(diff);
                 }
             }
-            Opcode::SetE(rm) => self.set_rm(rm, self.get_eflag(EFLAGS::ZF) as u32),
-            Opcode::SetNE(rm) => self.set_rm(rm, !self.get_eflag(EFLAGS::ZF) as u32),
+            Opcode::SetE(rm) => self.set_rm(rm, self.cpu.get_flag(Flags::ZF) as u32),
+            Opcode::SetNE(rm) => self.set_rm(rm, !self.cpu.get_flag(Flags::ZF) as u32),
             Opcode::SetL(rm) => self.set_rm(
                 rm,
-                (self.get_eflag(EFLAGS::SF) != self.get_eflag(EFLAGS::OF)) as u32,
+                (self.cpu.get_flag(Flags::SF) != self.cpu.get_flag(Flags::OF)) as u32,
             ),
             Opcode::SetGE(rm) => self.set_rm(
                 rm,
-                (self.get_eflag(EFLAGS::SF) == self.get_eflag(EFLAGS::OF)) as u32,
+                (self.cpu.get_flag(Flags::SF) == self.cpu.get_flag(Flags::OF)) as u32,
             ),
             Opcode::SetLE(rm) => self.set_rm(
                 rm,
-                (self.get_eflag(EFLAGS::ZF)
-                    || self.get_eflag(EFLAGS::SF) != self.get_eflag(EFLAGS::OF))
+                (self.cpu.get_flag(Flags::ZF)
+                    || self.cpu.get_flag(Flags::SF) != self.cpu.get_flag(Flags::OF))
                     as u32,
             ),
             Opcode::SetG(rm) => self.set_rm(
                 rm,
-                (!self.get_eflag(EFLAGS::ZF)
-                    && self.get_eflag(EFLAGS::SF) == self.get_eflag(EFLAGS::OF))
+                (!self.cpu.get_flag(Flags::ZF)
+                    && self.cpu.get_flag(Flags::SF) == self.cpu.get_flag(Flags::OF))
                     as u32,
             ),
             Opcode::MovzxR32Rm8(reg, rm) => self.cpu.set_register(reg, self.get_rm(rm)),
@@ -86,7 +86,7 @@ impl Emulator {
                 self.cpu.set_register(Register::from(reg), result);
             }
             Opcode::Jz8(addr) => {
-                if self.get_eflag(EFLAGS::ZF) {
+                if self.cpu.get_flag(Flags::ZF) {
                     self.cpu.set_register(Register::EIP, addr as u32);
                 }
             }
