@@ -124,6 +124,7 @@ impl Decoder {
             0xe8 => self.decode_d32(Mnemonic::Call),
             0xe9 => self.decode_d32(Mnemonic::Jmp),
             0xeb => self.decode_d8(Mnemonic::Jmp),
+            0xf4 => Instruction::new_nullary(Mnemonic::Hlt),
             0xf7 => {
                 let modrm = ModRM::from_byte(self.consume_u8());
                 let opr = self.decode_modrm(&modrm);
