@@ -1,5 +1,6 @@
 use header::ElfHeader;
 use section::{ElfSectionHeader, Section};
+use segment::ElfProgramHeader;
 
 use crate::elf::*;
 use crate::*;
@@ -10,8 +11,13 @@ impl Elf {
         let bytes = fs::read(path).unwrap();
         let header = Self::read_header(&bytes);
         let sections = Self::read_section_headers(&header, &bytes);
+        let segments = Self::read_program_headers(&header, &bytes);
 
-        Elf { header, sections }
+        Elf {
+            header,
+            sections,
+            segments,
+        }
     }
 
     fn read_header(bytes: &[u8]) -> ElfHeader {
@@ -51,6 +57,23 @@ impl Elf {
         }
 
         sections
+    }
+
+    fn read_program_headers(header: &ElfHeader, bytes: &[u8]) -> Vec<ElfProgramHeader> {
+        let mut headers = Vec::new();
+        let hdr_off = header.program_header_offset as usize;
+        let hdr_size = header.program_header_size as usize;
+        for i in 0..header.program_header_num {
+            let start_addr = hdr_off + hdr_size * i as usize;
+            let end_addr = start_addr + hdr_size;
+            let header_bytes = bytes[start_addr..end_addr].to_vec();
+            let (_, body, _) = unsafe { header_bytes.align_to::<ElfProgramHeader>() };
+            let program_header = *&body[0];
+
+            headers.push(program_header);
+        }
+
+        headers
     }
 
     fn get_name_from_strtab(data: &[u8], index: usize) -> String {

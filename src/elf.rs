@@ -1,5 +1,6 @@
 use std::mem::size_of;
 
+use segment::ElfProgramHeader;
 use symbol::Binding;
 
 use crate::header::ElfHeader;
@@ -10,6 +11,7 @@ use crate::*;
 pub struct Elf {
     pub header: ElfHeader,
     pub sections: Vec<Section>,
+    pub segments: Vec<ElfProgramHeader>,
 }
 
 impl Default for Elf {
@@ -17,6 +19,7 @@ impl Default for Elf {
         Self {
             header: ElfHeader::new(),
             sections: Vec::new(),
+            segments: Vec::new(),
         }
     }
 }
