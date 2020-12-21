@@ -1,5 +1,6 @@
 use std::mem::size_of;
 
+use segment::ElfProgramHeader;
 use symbol::Binding;
 
 use crate::header::ElfHeader;
@@ -10,6 +11,7 @@ use crate::*;
 pub struct Elf {
     pub header: ElfHeader,
     pub sections: Vec<Section>,
+    pub segments: Vec<ElfProgramHeader>,
 }
 
 impl Default for Elf {
@@ -17,6 +19,7 @@ impl Default for Elf {
         Self {
             header: ElfHeader::new(),
             sections: Vec::new(),
+            segments: Vec::new(),
         }
     }
 }
@@ -65,6 +68,11 @@ impl Elf {
             .map(|(i, _)| i)
     }
 
+    pub fn add_segment(&mut self, header: ElfProgramHeader) {
+        self.segments.push(header);
+        self.header.program_header_num += 1;
+    }
+
     pub fn add_symbol(&mut self, name: &str, symbol: ElfSymbol) {
         let mut symbol = symbol;
 
@@ -83,6 +91,10 @@ impl Elf {
     pub fn update_elf_header(&mut self) {
         let mut data_length = 0;
         data_length += size_of::<ElfHeader>();
+
+        self.header.program_header_offset = data_length as ElfOff;
+        data_length += self.header.program_header_size as usize * self.segments.len();
+
         // skip null section
         for section in self.sections.as_mut_slice().into_iter().skip(1) {
             section.header.offset = data_length as ElfOff;
@@ -143,6 +155,9 @@ impl Elf {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
         self.header.write_to(&mut result);
+        for segment in &self.segments {
+            segment.write_to(&mut result);
+        }
         for section in &self.sections {
             result.extend(&section.data);
         }

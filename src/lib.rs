@@ -1,6 +1,8 @@
 pub mod elf;
 pub mod header;
+pub mod reader;
 pub mod section;
+pub mod segment;
 pub mod symbol;
 
 type ElfHalf = u16;
