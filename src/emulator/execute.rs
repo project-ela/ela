@@ -159,7 +159,7 @@ impl Emulator {
                 Immediate::Imm32(value) => *value as u64,
             },
             Operand::Register(reg) => self.cpu.get_register(reg),
-            Operand::Memory(mem) => self.mmu.get_memory32(self.calc_address(mem)) as u64,
+            Operand::Memory(mem) => self.mmu.get_memory64(self.calc_address(mem)),
             Operand::Offset(off) => match off {
                 Offset::Off8(value) => (self.cpu.get_rip() as i64 + *value as i64) as u64,
                 Offset::Off32(value) => (self.cpu.get_rip() as i64 + *value as i64) as u64,
@@ -170,7 +170,7 @@ impl Emulator {
     fn set_operand(&mut self, opr: &Operand, value: u64) {
         match opr {
             Operand::Register(reg) => self.cpu.set_register(reg, value),
-            Operand::Memory(mem) => self.mmu.set_memory32(self.calc_address(mem), value as u32),
+            Operand::Memory(mem) => self.mmu.set_memory64(self.calc_address(mem), value),
             _ => panic!(),
         }
     }
