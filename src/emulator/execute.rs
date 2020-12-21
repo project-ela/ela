@@ -31,6 +31,11 @@ impl Emulator {
 
     fn exec_nullary(&mut self, mnemonic: Mnemonic) {
         match mnemonic {
+            Mnemonic::Hlt => {
+                let exit_code = self.cpu.get_register(&Register::Rax) as u8;
+                println!("Exited with code {}", exit_code);
+                std::process::exit(0);
+            }
             Mnemonic::Ret => {
                 let new_rip = self.pop64();
                 self.cpu.set_rip(new_rip);
