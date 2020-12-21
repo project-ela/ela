@@ -21,11 +21,32 @@ pub fn assemble_to_file(input_file: String, output_file: String) -> Result<(), S
     }
 }
 
+pub fn assemble_raw_to_file(input_file: String, output_file: String) -> Result<(), String> {
+    match fs::read_to_string(input_file) {
+        Ok(source) => {
+            let output = assemble_raw(source)?;
+            if let Err(err) = fs::write(output_file, output) {
+                Err(format!("{}", err))
+            } else {
+                Ok(())
+            }
+        }
+        Err(err) => Err(format!("{}", err)),
+    }
+}
+
 pub fn assemble(source: String) -> Result<Vec<u8>, String> {
     tokenize(source)
         .and_then(parse)
         .and_then(generate)
         .and_then(gen_elf)
+}
+
+pub fn assemble_raw(source: String) -> Result<Vec<u8>, String> {
+    tokenize(source)
+        .and_then(parse)
+        .and_then(generate)
+        .map(|data| data.program)
 }
 
 fn gen_elf(data: GeneratedData) -> Result<Vec<u8>, String> {
