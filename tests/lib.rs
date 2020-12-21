@@ -11,6 +11,11 @@ fn ret() {
 }
 
 #[test]
+fn hlt() {
+    do_test("hlt", "f4");
+}
+
+#[test]
 fn push() {
     do_test("push 1", "6a 01");
     do_test("push rax", "50");

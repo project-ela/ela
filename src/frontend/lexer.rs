@@ -146,6 +146,7 @@ fn find_keyword(ident: &str) -> Option<Token> {
         "setg" => Some(Token::Mnemonic(Mnemonic::Setg)),
         "setge" => Some(Token::Mnemonic(Mnemonic::Setge)),
         "call" => Some(Token::Mnemonic(Mnemonic::Call)),
+        "hlt" => Some(Token::Mnemonic(Mnemonic::Hlt)),
 
         "rax" => Some(Token::Register(Register::Rax)),
         "rcx" => Some(Token::Register(Register::Rcx)),
