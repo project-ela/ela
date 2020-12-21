@@ -35,7 +35,7 @@ impl Elf {
         for i in 0..hdr_num {
             // read section header
             let start_addr = hdr_off + hdr_size * i;
-            let end_addr = start_addr + hdr_off;
+            let end_addr = start_addr + hdr_size;
             // スライスだと失敗する
             let header_bytes = bytes[start_addr..end_addr].to_vec();
             let (_, body, _) = unsafe { header_bytes.align_to::<ElfSectionHeader>() };
