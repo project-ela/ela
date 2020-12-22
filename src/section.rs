@@ -3,6 +3,7 @@ use symbol::ElfSymbol;
 
 use crate::*;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Section {
     pub name: String,
     pub header: ElfSectionHeader,
@@ -54,7 +55,7 @@ impl SectionData {
 }
 
 #[repr(C)]
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ElfSectionHeader {
     pub name: ElfWord,
     pub section_type: ElfWord,

@@ -13,11 +13,3 @@ type ElfAddr = u64;
 type ElfOff = u64;
 type ElfSection = u16;
 type ElfIdent = u128;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}

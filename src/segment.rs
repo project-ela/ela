@@ -1,7 +1,7 @@
 use crate::{ElfAddr, ElfOff, ElfWord, ElfXword};
 
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct ElfProgramHeader {
     pub typ: ElfWord,
     pub flags: ElfWord,

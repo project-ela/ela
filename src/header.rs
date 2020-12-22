@@ -1,7 +1,7 @@
 use crate::*;
 
 #[repr(C)]
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
 pub struct ElfHeader {
     pub ident: ElfIdent,
     pub filetype: ElfHalf,
