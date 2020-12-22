@@ -1,9 +1,56 @@
+use strtab::Strtab;
+use symbol::ElfSymbol;
+
 use crate::*;
 
 pub struct Section {
     pub name: String,
     pub header: ElfSectionHeader,
-    pub data: Vec<u8>,
+    pub data: SectionData,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SectionData {
+    None,
+    Raw(Vec<u8>),
+    Strtab(Strtab),
+    Symbols(Vec<ElfSymbol>),
+}
+
+impl SectionData {
+    pub fn write_to(&self, buf: &mut Vec<u8>) {
+        match self {
+            SectionData::None => {}
+            SectionData::Raw(data) => buf.extend(data),
+            SectionData::Strtab(strtab) => buf.extend(&strtab.data),
+            SectionData::Symbols(symbols) => {
+                for sym in symbols {
+                    sym.write_to(buf);
+                }
+            }
+        }
+    }
+
+    pub fn as_raw(&self) -> Option<&Vec<u8>> {
+        if let SectionData::Raw(data) = self {
+            return Some(data);
+        }
+        None
+    }
+
+    pub fn as_strtab(&self) -> Option<&Strtab> {
+        if let SectionData::Strtab(strtab) = self {
+            return Some(strtab);
+        }
+        None
+    }
+
+    pub fn as_symbols(&self) -> Option<&Vec<ElfSymbol>> {
+        if let SectionData::Symbols(symbols) = self {
+            return Some(symbols);
+        }
+        None
+    }
 }
 
 #[repr(C)]

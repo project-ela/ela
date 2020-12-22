@@ -1,3 +1,4 @@
+use section::SectionData;
 use segment::ElfProgramHeader;
 
 use crate::header::ElfHeader;
@@ -21,7 +22,7 @@ impl Default for Elf {
 }
 
 impl Elf {
-    pub fn add_section(&mut self, name: &str, header: ElfSectionHeader, data: Vec<u8>) {
+    pub fn add_section(&mut self, name: &str, header: ElfSectionHeader, data: SectionData) {
         self.sections.push(Section {
             name: name.to_string(),
             header,
@@ -40,7 +41,7 @@ impl Elf {
             segment.write_to(&mut result);
         }
         for section in &self.sections {
-            result.extend(&section.data);
+            section.data.write_to(&mut result);
         }
         for section in &self.sections {
             section.header.write_to(&mut result);

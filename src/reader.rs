@@ -1,6 +1,8 @@
 use header::ElfHeader;
-use section::{ElfSectionHeader, Section};
+use section::{ElfSectionHeader, Section, SectionData};
 use segment::ElfProgramHeader;
+use strtab::Strtab;
+use symbol::ElfSymbol;
 
 use crate::elf::*;
 use crate::*;
@@ -50,17 +52,52 @@ impl Elf {
             sections.push(Section {
                 name: "".into(),
                 header: section_header,
-                data,
+                data: Self::read_section_data(&section_header, data),
             });
         }
 
         // read section name
-        let shstrtab_data = sections[header.string_table_index as usize].data.clone();
+        let shstrtab_data = sections[header.string_table_index as usize]
+            .data
+            .as_strtab()
+            .unwrap()
+            .clone();
+
         for section in sections.iter_mut() {
-            section.name = Self::get_name_from_strtab(&shstrtab_data, section.header.name as usize);
+            section.name = shstrtab_data.get(section.header.name as usize);
         }
 
         sections
+    }
+
+    fn read_section_data(header: &ElfSectionHeader, data: Vec<u8>) -> SectionData {
+        if header.section_type == section::Type::Symtab as u32 {
+            let symbols = Self::read_symbols(header, data);
+            SectionData::Symbols(symbols)
+        } else if header.section_type == section::Type::Strtab as u32 {
+            let strtab = Strtab::new(data);
+            SectionData::Strtab(strtab)
+        } else if header.section_type == section::Type::Null as u32 {
+            SectionData::None
+        } else {
+            SectionData::Raw(data)
+        }
+    }
+
+    fn read_symbols(header: &ElfSectionHeader, data: Vec<u8>) -> Vec<ElfSymbol> {
+        let mut symbols = Vec::new();
+        let symbol_size = header.entry_size as usize;
+        let symbol_num = data.len() / symbol_size;
+
+        for i in 0..symbol_num {
+            let start_addr = symbol_size * i;
+            let end_addr = start_addr + symbol_size;
+            let symol_bytes = data[start_addr..end_addr].to_vec();
+            let (_, body, _) = unsafe { symol_bytes.align_to::<ElfSymbol>() };
+            let symbol = *&body[0];
+            symbols.push(symbol);
+        }
+        symbols
     }
 
     fn read_program_headers(header: &ElfHeader, bytes: &[u8]) -> Vec<ElfProgramHeader> {
@@ -81,13 +118,5 @@ impl Elf {
         }
 
         headers
-    }
-
-    fn get_name_from_strtab(data: &[u8], index: usize) -> String {
-        data[index..]
-            .iter()
-            .take_while(|&&v| v != 0)
-            .map(|&v| v as char)
-            .collect()
     }
 }
