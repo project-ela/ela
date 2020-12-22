@@ -2,7 +2,7 @@ use crate::*;
 
 #[repr(C)]
 #[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
-pub struct ElfHeader {
+pub struct Header {
     pub ident: ElfIdent,
     pub filetype: ElfHalf,
     pub machine: ElfHalf,
@@ -59,7 +59,7 @@ const ELF_HDR_SIZE_64: ElfHalf = 64;
 #[allow(dead_code)]
 const SECTION_HDR_SIZE_64: ElfHalf = 64;
 
-impl ElfHeader {
+impl Header {
     pub fn new() -> Self {
         let mut hdr: Self = Default::default();
         hdr.ident = 0x7f454c46 << (12 * 8);
@@ -118,7 +118,7 @@ impl ElfHeader {
         self.section_header_num = num;
     }
 
-    pub fn set_string_header_num(&mut self, index: ElfHalf) {
+    pub fn set_string_table_index(&mut self, index: ElfHalf) {
         self.string_table_index = index;
     }
 

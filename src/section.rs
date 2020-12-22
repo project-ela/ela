@@ -1,12 +1,12 @@
 use strtab::Strtab;
-use symbol::ElfSymbol;
+use symbol::Symbol;
 
 use crate::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Section {
     pub name: String,
-    pub header: ElfSectionHeader,
+    pub header: SectionHeader,
     pub data: SectionData,
 }
 
@@ -15,7 +15,7 @@ pub enum SectionData {
     None,
     Raw(Vec<u8>),
     Strtab(Strtab),
-    Symbols(Vec<ElfSymbol>),
+    Symbols(Vec<Symbol>),
 }
 
 impl SectionData {
@@ -46,7 +46,7 @@ impl SectionData {
         None
     }
 
-    pub fn as_symbols(&self) -> Option<&Vec<ElfSymbol>> {
+    pub fn as_symbols(&self) -> Option<&Vec<Symbol>> {
         if let SectionData::Symbols(symbols) = self {
             return Some(symbols);
         }
@@ -56,7 +56,7 @@ impl SectionData {
 
 #[repr(C)]
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ElfSectionHeader {
+pub struct SectionHeader {
     pub name: ElfWord,
     pub section_type: ElfWord,
     pub flags: ElfXword,
@@ -104,7 +104,7 @@ pub enum Flags {
     Execlude = 1 << 31,
 }
 
-impl ElfSectionHeader {
+impl SectionHeader {
     pub fn set_name(&mut self, name: ElfWord) {
         self.name = name;
     }

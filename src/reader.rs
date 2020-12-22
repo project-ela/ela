@@ -1,8 +1,8 @@
-use header::ElfHeader;
-use section::{ElfSectionHeader, Section, SectionData};
-use segment::ElfProgramHeader;
+use header::Header;
+use section::{Section, SectionData, SectionHeader};
+use segment::ProgramHeader;
 use strtab::Strtab;
-use symbol::ElfSymbol;
+use symbol::Symbol;
 
 use crate::elf::*;
 use crate::*;
@@ -22,14 +22,14 @@ impl Elf {
         }
     }
 
-    fn read_header(bytes: &[u8]) -> ElfHeader {
-        let (_, body, _) = unsafe { bytes.align_to::<ElfHeader>() };
+    fn read_header(bytes: &[u8]) -> Header {
+        let (_, body, _) = unsafe { bytes.align_to::<Header>() };
         let mut header = body[0];
         header.ident = header.ident.to_be();
         header
     }
 
-    fn read_section_headers(header: &ElfHeader, bytes: &[u8]) -> Vec<Section> {
+    fn read_section_headers(header: &Header, bytes: &[u8]) -> Vec<Section> {
         let mut sections = Vec::new();
 
         let hdr_num = header.section_header_num as usize;
@@ -41,7 +41,7 @@ impl Elf {
             let start_addr = hdr_off + hdr_size * i;
             let end_addr = start_addr + hdr_size;
             let header_bytes = bytes[start_addr..end_addr].to_vec();
-            let (_, body, _) = unsafe { header_bytes.align_to::<ElfSectionHeader>() };
+            let (_, body, _) = unsafe { header_bytes.align_to::<SectionHeader>() };
             let section_header = body[0];
 
             // read section data
@@ -71,7 +71,7 @@ impl Elf {
         sections
     }
 
-    fn read_section_data(header: &ElfSectionHeader, data: Vec<u8>) -> SectionData {
+    fn read_section_data(header: &SectionHeader, data: Vec<u8>) -> SectionData {
         match header.section_type {
             x if x == section::Type::Null as u32 => SectionData::None,
             x if x == section::Type::Strtab as u32 => SectionData::Strtab(Strtab::new(data)),
@@ -83,7 +83,7 @@ impl Elf {
         }
     }
 
-    fn read_symbols(header: &ElfSectionHeader, data: Vec<u8>) -> Vec<ElfSymbol> {
+    fn read_symbols(header: &SectionHeader, data: Vec<u8>) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         let symbol_size = header.entry_size as usize;
         let symbol_num = data.len() / symbol_size;
@@ -92,14 +92,14 @@ impl Elf {
             let start_addr = symbol_size * i;
             let end_addr = start_addr + symbol_size;
             let symol_bytes = data[start_addr..end_addr].to_vec();
-            let (_, body, _) = unsafe { symol_bytes.align_to::<ElfSymbol>() };
+            let (_, body, _) = unsafe { symol_bytes.align_to::<Symbol>() };
             let symbol = body[0];
             symbols.push(symbol);
         }
         symbols
     }
 
-    fn read_program_headers(header: &ElfHeader, bytes: &[u8]) -> Vec<ElfProgramHeader> {
+    fn read_program_headers(header: &Header, bytes: &[u8]) -> Vec<ProgramHeader> {
         let mut headers = Vec::new();
 
         let hdr_num = header.program_header_num as usize;
@@ -110,7 +110,7 @@ impl Elf {
             let start_addr = hdr_off + hdr_size * i;
             let end_addr = start_addr + hdr_size;
             let header_bytes = bytes[start_addr..end_addr].to_vec();
-            let (_, body, _) = unsafe { header_bytes.align_to::<ElfProgramHeader>() };
+            let (_, body, _) = unsafe { header_bytes.align_to::<ProgramHeader>() };
             let program_header = body[0];
 
             headers.push(program_header);

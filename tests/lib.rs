@@ -1,15 +1,15 @@
 use elfen::{
     elf::Elf,
-    header::{self, ElfHeader},
-    section::{self, ElfSectionHeader, Section, SectionData},
-    segment::{self, ElfProgramHeader},
+    header::{self, Header},
+    section::{self, Section, SectionData, SectionHeader},
+    segment::{self, ProgramHeader},
     strtab::Strtab,
-    symbol::ElfSymbol,
+    symbol::Symbol,
 };
 use std::fs;
 
-fn ret_o_header() -> ElfHeader {
-    ElfHeader {
+fn ret_o_header() -> Header {
+    Header {
         ident: 0x7f454c46020101000000000000000000,
         filetype: header::Type::Rel as u16,
         machine: header::Machine::X86_64 as u16,
@@ -31,7 +31,7 @@ fn ret_o_sections() -> Vec<Section> {
     vec![
         Section {
             name: "".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 0,
                 section_type: 0,
                 flags: 0,
@@ -47,7 +47,7 @@ fn ret_o_sections() -> Vec<Section> {
         },
         Section {
             name: ".text".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 27,
                 section_type: section::Type::Progbits as u32,
                 flags: (section::Flags::Alloc as u64 | section::Flags::Execinstr as u64),
@@ -63,7 +63,7 @@ fn ret_o_sections() -> Vec<Section> {
         },
         Section {
             name: ".data".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 33,
                 section_type: section::Type::Progbits as u32,
                 flags: (section::Flags::Write as u64 | section::Flags::Alloc as u64),
@@ -79,7 +79,7 @@ fn ret_o_sections() -> Vec<Section> {
         },
         Section {
             name: ".bss".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 39,
                 section_type: section::Type::Nobits as u32,
                 flags: (section::Flags::Write as u64 | section::Flags::Alloc as u64),
@@ -95,7 +95,7 @@ fn ret_o_sections() -> Vec<Section> {
         },
         Section {
             name: ".symtab".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 1,
                 section_type: section::Type::Symtab as u32,
                 flags: 0,
@@ -108,7 +108,7 @@ fn ret_o_sections() -> Vec<Section> {
                 entry_size: 0x18,
             },
             data: SectionData::Symbols(vec![
-                ElfSymbol {
+                Symbol {
                     name: 0,
                     info: 0,
                     other: 0,
@@ -116,7 +116,7 @@ fn ret_o_sections() -> Vec<Section> {
                     value: 0,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 0,
                     info: 3,
                     other: 0,
@@ -124,7 +124,7 @@ fn ret_o_sections() -> Vec<Section> {
                     value: 0,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 0,
                     info: 3,
                     other: 0,
@@ -132,7 +132,7 @@ fn ret_o_sections() -> Vec<Section> {
                     value: 0,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 0,
                     info: 3,
                     other: 0,
@@ -140,7 +140,7 @@ fn ret_o_sections() -> Vec<Section> {
                     value: 0,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 1,
                     info: 16,
                     other: 0,
@@ -152,7 +152,7 @@ fn ret_o_sections() -> Vec<Section> {
         },
         Section {
             name: ".strtab".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 9,
                 section_type: section::Type::Strtab as u32,
                 flags: 0,
@@ -168,7 +168,7 @@ fn ret_o_sections() -> Vec<Section> {
         },
         Section {
             name: ".shstrtab".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 17,
                 section_type: section::Type::Strtab as u32,
                 flags: 0,
@@ -187,8 +187,8 @@ fn ret_o_sections() -> Vec<Section> {
     ]
 }
 
-fn ret_header() -> ElfHeader {
-    ElfHeader {
+fn ret_header() -> Header {
+    Header {
         ident: 0x7f454c46020101000000000000000000,
         filetype: header::Type::Exec as u16,
         machine: header::Machine::X86_64 as u16,
@@ -210,7 +210,7 @@ fn ret_sections() -> Vec<Section> {
     vec![
         Section {
             name: "".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 0,
                 section_type: 0,
                 flags: 0,
@@ -226,7 +226,7 @@ fn ret_sections() -> Vec<Section> {
         },
         Section {
             name: ".text".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 27,
                 section_type: section::Type::Progbits as u32,
                 flags: (section::Flags::Alloc as u64 | section::Flags::Execinstr as u64),
@@ -242,7 +242,7 @@ fn ret_sections() -> Vec<Section> {
         },
         Section {
             name: ".symtab".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 1,
                 section_type: section::Type::Symtab as u32,
                 flags: 0,
@@ -255,7 +255,7 @@ fn ret_sections() -> Vec<Section> {
                 entry_size: 0x18,
             },
             data: SectionData::Symbols(vec![
-                ElfSymbol {
+                Symbol {
                     name: 0,
                     info: 0,
                     other: 0,
@@ -263,7 +263,7 @@ fn ret_sections() -> Vec<Section> {
                     value: 0,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 0,
                     info: 3,
                     other: 0,
@@ -271,7 +271,7 @@ fn ret_sections() -> Vec<Section> {
                     value: 0x401000,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 6,
                     info: 16,
                     other: 0,
@@ -279,7 +279,7 @@ fn ret_sections() -> Vec<Section> {
                     value: 0x401000,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 1,
                     info: 16,
                     other: 0,
@@ -287,7 +287,7 @@ fn ret_sections() -> Vec<Section> {
                     value: 0x402000,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 13,
                     info: 16,
                     other: 0,
@@ -295,7 +295,7 @@ fn ret_sections() -> Vec<Section> {
                     value: 0x402000,
                     size: 0,
                 },
-                ElfSymbol {
+                Symbol {
                     name: 20,
                     info: 16,
                     other: 0,
@@ -307,7 +307,7 @@ fn ret_sections() -> Vec<Section> {
         },
         Section {
             name: ".strtab".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 9,
                 section_type: section::Type::Strtab as u32,
                 flags: 0,
@@ -325,7 +325,7 @@ fn ret_sections() -> Vec<Section> {
         },
         Section {
             name: ".shstrtab".to_string(),
-            header: ElfSectionHeader {
+            header: SectionHeader {
                 name: 17,
                 section_type: section::Type::Strtab as u32,
                 flags: 0,
@@ -344,9 +344,9 @@ fn ret_sections() -> Vec<Section> {
     ]
 }
 
-fn ret_segments() -> Vec<ElfProgramHeader> {
+fn ret_segments() -> Vec<ProgramHeader> {
     vec![
-        ElfProgramHeader {
+        ProgramHeader {
             typ: segment::Type::Load as u32,
             flags: segment::Flags::R as u32,
             offset: 0,
@@ -356,7 +356,7 @@ fn ret_segments() -> Vec<ElfProgramHeader> {
             memory_size: 0xb0,
             alignment: 4096,
         },
-        ElfProgramHeader {
+        ProgramHeader {
             typ: segment::Type::Load as u32,
             flags: (segment::Flags::R as u32 | segment::Flags::X as u32),
             offset: 0x1000,

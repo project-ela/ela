@@ -2,7 +2,7 @@ use crate::*;
 
 #[repr(C)]
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ElfSymbol {
+pub struct Symbol {
     pub name: ElfWord,
     pub info: u8,
     pub other: u8,
@@ -47,7 +47,7 @@ pub const SYM_ENTRY_SIZE_32: ElfXword = 0x10;
 #[allow(dead_code)]
 pub const SYM_ENTRY_SIZE_64: ElfXword = 0x18;
 
-impl ElfSymbol {
+impl Symbol {
     pub fn set_binding(&mut self, binding: Binding) {
         self.info |= (binding as u8) << 4;
     }

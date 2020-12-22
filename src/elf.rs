@@ -1,20 +1,20 @@
 use section::SectionData;
-use segment::ElfProgramHeader;
+use segment::ProgramHeader;
 
-use crate::header::ElfHeader;
-use crate::section::{ElfSectionHeader, Section};
+use crate::header::Header;
+use crate::section::{Section, SectionHeader};
 use crate::*;
 
 pub struct Elf {
-    pub header: ElfHeader,
+    pub header: Header,
     pub sections: Vec<Section>,
-    pub segments: Vec<ElfProgramHeader>,
+    pub segments: Vec<ProgramHeader>,
 }
 
 impl Default for Elf {
     fn default() -> Self {
         Self {
-            header: ElfHeader::new(),
+            header: Header::new(),
             sections: Vec::new(),
             segments: Vec::new(),
         }
@@ -22,7 +22,7 @@ impl Default for Elf {
 }
 
 impl Elf {
-    pub fn add_section(&mut self, name: &str, header: ElfSectionHeader, data: SectionData) {
+    pub fn add_section(&mut self, name: &str, header: SectionHeader, data: SectionData) {
         self.sections.push(Section {
             name: name.to_string(),
             header,
@@ -30,7 +30,7 @@ impl Elf {
         });
     }
 
-    pub fn add_segment(&mut self, header: ElfProgramHeader) {
+    pub fn add_segment(&mut self, header: ProgramHeader) {
         self.segments.push(header);
     }
 

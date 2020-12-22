@@ -2,7 +2,7 @@ use crate::{ElfAddr, ElfOff, ElfWord, ElfXword};
 
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct ElfProgramHeader {
+pub struct ProgramHeader {
     pub typ: ElfWord,
     pub flags: ElfWord,
     pub offset: ElfOff,
@@ -30,7 +30,7 @@ pub enum Flags {
     R = 1 << 2,
 }
 
-impl ElfProgramHeader {
+impl ProgramHeader {
     pub fn set_type(&mut self, typ: Type) {
         self.typ = typ as ElfWord;
     }
