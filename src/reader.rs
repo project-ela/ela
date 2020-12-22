@@ -24,7 +24,9 @@ impl Elf {
 
     fn read_header(bytes: &[u8]) -> ElfHeader {
         let (_, body, _) = unsafe { bytes.align_to::<ElfHeader>() };
-        *&body[0]
+        let mut header = *&body[0];
+        header.ident = header.ident.to_be();
+        header
     }
 
     fn read_section_headers(header: &ElfHeader, bytes: &[u8]) -> Vec<Section> {
@@ -38,13 +40,12 @@ impl Elf {
             // read section header
             let start_addr = hdr_off + hdr_size * i;
             let end_addr = start_addr + hdr_size;
-            // スライスだと失敗する
             let header_bytes = bytes[start_addr..end_addr].to_vec();
             let (_, body, _) = unsafe { header_bytes.align_to::<ElfSectionHeader>() };
             let section_header = *&body[0];
 
             // read section data
-            let start_addr = hdr_off as usize;
+            let start_addr = section_header.offset as usize;
             let end_addr = start_addr + section_header.size as usize;
             let data = bytes[start_addr..end_addr].to_vec();
 
