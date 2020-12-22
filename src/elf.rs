@@ -41,11 +41,22 @@ impl Elf {
             segment.write_to(&mut result);
         }
         for section in &self.sections {
+            add_padding(&mut result, section.header.offset as usize);
             section.data.write_to(&mut result);
         }
+
+        add_padding(&mut result, self.header.section_header_offset as usize);
         for section in &self.sections {
             section.header.write_to(&mut result);
         }
         result
     }
+}
+
+fn add_padding(v: &mut Vec<u8>, offset: usize) {
+    if offset < v.len() {
+        return;
+    }
+    let padding_len = offset - v.len();
+    v.extend(&vec![0; padding_len as usize]);
 }
