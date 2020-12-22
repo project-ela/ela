@@ -6,6 +6,7 @@ use elfen::{
     strtab::Strtab,
     symbol::ElfSymbol,
 };
+use std::fs;
 
 fn ret_o_header() -> ElfHeader {
     ElfHeader {
@@ -369,7 +370,7 @@ fn ret_segments() -> Vec<ElfProgramHeader> {
 }
 
 #[test]
-fn ret_o() {
+fn ret_o_read() {
     let elf = Elf::read_from_file("tests/testcases/ret.o");
 
     assert_eq!(elf.header, ret_o_header());
@@ -378,10 +379,36 @@ fn ret_o() {
 }
 
 #[test]
-fn ret() {
+fn ret_o_write() {
+    let elf = Elf {
+        header: ret_o_header(),
+        sections: ret_o_sections(),
+        segments: Vec::new(),
+    };
+
+    let expected = fs::read("tests/testcases/ret.o").unwrap();
+    let actual = elf.to_bytes();
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn ret_read() {
     let elf = Elf::read_from_file("tests/testcases/ret");
 
     assert_eq!(elf.header, ret_header());
     assert_eq!(elf.sections, ret_sections());
     assert_eq!(elf.segments, ret_segments());
+}
+
+#[test]
+fn ret_write() {
+    let elf = Elf {
+        header: ret_header(),
+        sections: ret_sections(),
+        segments: ret_segments(),
+    };
+
+    let expected = fs::read("tests/testcases/ret").unwrap();
+    let actual = elf.to_bytes();
+    assert_eq!(expected, actual);
 }
