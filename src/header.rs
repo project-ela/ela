@@ -118,7 +118,7 @@ impl ElfHeader {
         self.section_header_num = num;
     }
 
-    pub fn string_header_num(&mut self, index: ElfHalf) {
+    pub fn set_string_header_num(&mut self, index: ElfHalf) {
         self.string_table_index = index;
     }
 
