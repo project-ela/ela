@@ -72,16 +72,14 @@ impl Elf {
     }
 
     fn read_section_data(header: &ElfSectionHeader, data: Vec<u8>) -> SectionData {
-        if header.section_type == section::Type::Symtab as u32 {
-            let symbols = Self::read_symbols(header, data);
-            SectionData::Symbols(symbols)
-        } else if header.section_type == section::Type::Strtab as u32 {
-            let strtab = Strtab::new(data);
-            SectionData::Strtab(strtab)
-        } else if header.section_type == section::Type::Null as u32 {
-            SectionData::None
-        } else {
-            SectionData::Raw(data)
+        match header.section_type {
+            x if x == section::Type::Null as u32 => SectionData::None,
+            x if x == section::Type::Strtab as u32 => SectionData::Strtab(Strtab::new(data)),
+            x if x == section::Type::Symtab as u32 => {
+                let symbols = Self::read_symbols(header, data);
+                SectionData::Symbols(symbols)
+            }
+            _ => SectionData::Raw(data),
         }
     }
 
