@@ -24,7 +24,7 @@ impl Elf {
 
     fn read_header(bytes: &[u8]) -> ElfHeader {
         let (_, body, _) = unsafe { bytes.align_to::<ElfHeader>() };
-        let mut header = *&body[0];
+        let mut header = body[0];
         header.ident = header.ident.to_be();
         header
     }
@@ -42,7 +42,7 @@ impl Elf {
             let end_addr = start_addr + hdr_size;
             let header_bytes = bytes[start_addr..end_addr].to_vec();
             let (_, body, _) = unsafe { header_bytes.align_to::<ElfSectionHeader>() };
-            let section_header = *&body[0];
+            let section_header = body[0];
 
             // read section data
             let start_addr = section_header.offset as usize;
@@ -95,7 +95,7 @@ impl Elf {
             let end_addr = start_addr + symbol_size;
             let symol_bytes = data[start_addr..end_addr].to_vec();
             let (_, body, _) = unsafe { symol_bytes.align_to::<ElfSymbol>() };
-            let symbol = *&body[0];
+            let symbol = body[0];
             symbols.push(symbol);
         }
         symbols
@@ -113,7 +113,7 @@ impl Elf {
             let end_addr = start_addr + hdr_size;
             let header_bytes = bytes[start_addr..end_addr].to_vec();
             let (_, body, _) = unsafe { header_bytes.align_to::<ElfProgramHeader>() };
-            let program_header = *&body[0];
+            let program_header = body[0];
 
             headers.push(program_header);
         }
