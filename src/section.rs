@@ -1,3 +1,4 @@
+use rel::Rela;
 use strtab::Strtab;
 use symbol::Symbol;
 
@@ -14,6 +15,7 @@ pub struct Section {
 pub enum SectionData {
     None,
     Raw(Vec<u8>),
+    Rela(Vec<Rela>),
     Strtab(Strtab),
     Symbols(Vec<Symbol>),
 }
@@ -23,6 +25,11 @@ impl SectionData {
         match self {
             SectionData::None => {}
             SectionData::Raw(data) => buf.extend(data),
+            SectionData::Rela(relas) => {
+                for rela in relas {
+                    rela.write_to(buf);
+                }
+            }
             SectionData::Strtab(strtab) => buf.extend(&strtab.data),
             SectionData::Symbols(symbols) => {
                 for sym in symbols {
