@@ -1,6 +1,8 @@
-use header::ElfHeader;
-use section::{ElfSectionHeader, Section};
-use segment::ElfProgramHeader;
+use header::Header;
+use section::{Section, SectionData, SectionHeader};
+use segment::ProgramHeader;
+use strtab::Strtab;
+use symbol::Symbol;
 
 use crate::elf::*;
 use crate::*;
@@ -20,12 +22,14 @@ impl Elf {
         }
     }
 
-    fn read_header(bytes: &[u8]) -> ElfHeader {
-        let (_, body, _) = unsafe { bytes.align_to::<ElfHeader>() };
-        *&body[0]
+    fn read_header(bytes: &[u8]) -> Header {
+        let (_, body, _) = unsafe { bytes.align_to::<Header>() };
+        let mut header = body[0];
+        header.ident = header.ident.to_be();
+        header
     }
 
-    fn read_section_headers(header: &ElfHeader, bytes: &[u8]) -> Vec<Section> {
+    fn read_section_headers(header: &Header, bytes: &[u8]) -> Vec<Section> {
         let mut sections = Vec::new();
 
         let hdr_num = header.section_header_num as usize;
@@ -36,13 +40,12 @@ impl Elf {
             // read section header
             let start_addr = hdr_off + hdr_size * i;
             let end_addr = start_addr + hdr_size;
-            // スライスだと失敗する
             let header_bytes = bytes[start_addr..end_addr].to_vec();
-            let (_, body, _) = unsafe { header_bytes.align_to::<ElfSectionHeader>() };
-            let section_header = *&body[0];
+            let (_, body, _) = unsafe { header_bytes.align_to::<SectionHeader>() };
+            let section_header = body[0];
 
             // read section data
-            let start_addr = hdr_off as usize;
+            let start_addr = section_header.offset as usize;
             let end_addr = start_addr + section_header.size as usize;
             let data = bytes[start_addr..end_addr].to_vec();
 
@@ -50,20 +53,53 @@ impl Elf {
             sections.push(Section {
                 name: "".into(),
                 header: section_header,
-                data,
+                data: Self::read_section_data(&section_header, data),
             });
         }
 
         // read section name
-        let shstrtab_data = sections[header.string_table_index as usize].data.clone();
+        let shstrtab_data = sections[header.string_table_index as usize]
+            .data
+            .as_strtab()
+            .unwrap()
+            .clone();
+
         for section in sections.iter_mut() {
-            section.name = Self::get_name_from_strtab(&shstrtab_data, section.header.name as usize);
+            section.name = shstrtab_data.get(section.header.name as usize);
         }
 
         sections
     }
 
-    fn read_program_headers(header: &ElfHeader, bytes: &[u8]) -> Vec<ElfProgramHeader> {
+    fn read_section_data(header: &SectionHeader, data: Vec<u8>) -> SectionData {
+        match header.section_type {
+            x if x == section::Type::Null as u32 => SectionData::None,
+            x if x == section::Type::Strtab as u32 => SectionData::Strtab(Strtab::new(data)),
+            x if x == section::Type::Symtab as u32 => {
+                let symbols = Self::read_symbols(header, data);
+                SectionData::Symbols(symbols)
+            }
+            _ => SectionData::Raw(data),
+        }
+    }
+
+    fn read_symbols(header: &SectionHeader, data: Vec<u8>) -> Vec<Symbol> {
+        let mut symbols = Vec::new();
+        let symbol_size = header.entry_size as usize;
+        let symbol_num = data.len() / symbol_size;
+
+        for i in 0..symbol_num {
+            let start_addr = symbol_size * i;
+            let end_addr = start_addr + symbol_size;
+            let symol_bytes = data[start_addr..end_addr].to_vec();
+            let (_, body, _) = unsafe { symol_bytes.align_to::<Symbol>() };
+            let symbol = body[0];
+            symbols.push(symbol);
+        }
+        symbols
+    }
+
+    fn read_program_headers(header: &Header, bytes: &[u8]) -> Vec<ProgramHeader> {
         let mut headers = Vec::new();
 
         let hdr_num = header.program_header_num as usize;
@@ -74,20 +110,12 @@ impl Elf {
             let start_addr = hdr_off + hdr_size * i;
             let end_addr = start_addr + hdr_size;
             let header_bytes = bytes[start_addr..end_addr].to_vec();
-            let (_, body, _) = unsafe { header_bytes.align_to::<ElfProgramHeader>() };
-            let program_header = *&body[0];
+            let (_, body, _) = unsafe { header_bytes.align_to::<ProgramHeader>() };
+            let program_header = body[0];
 
             headers.push(program_header);
         }
 
         headers
-    }
-
-    fn get_name_from_strtab(data: &[u8], index: usize) -> String {
-        data[index..]
-            .iter()
-            .take_while(|&&v| v != 0)
-            .map(|&v| v as char)
-            .collect()
     }
 }

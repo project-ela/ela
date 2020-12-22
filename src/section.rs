@@ -1,14 +1,62 @@
+use strtab::Strtab;
+use symbol::Symbol;
+
 use crate::*;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Section {
     pub name: String,
-    pub header: ElfSectionHeader,
-    pub data: Vec<u8>,
+    pub header: SectionHeader,
+    pub data: SectionData,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SectionData {
+    None,
+    Raw(Vec<u8>),
+    Strtab(Strtab),
+    Symbols(Vec<Symbol>),
+}
+
+impl SectionData {
+    pub fn write_to(&self, buf: &mut Vec<u8>) {
+        match self {
+            SectionData::None => {}
+            SectionData::Raw(data) => buf.extend(data),
+            SectionData::Strtab(strtab) => buf.extend(&strtab.data),
+            SectionData::Symbols(symbols) => {
+                for sym in symbols {
+                    sym.write_to(buf);
+                }
+            }
+        }
+    }
+
+    pub fn as_raw(&self) -> Option<&Vec<u8>> {
+        if let SectionData::Raw(data) = self {
+            return Some(data);
+        }
+        None
+    }
+
+    pub fn as_strtab(&self) -> Option<&Strtab> {
+        if let SectionData::Strtab(strtab) = self {
+            return Some(strtab);
+        }
+        None
+    }
+
+    pub fn as_symbols(&self) -> Option<&Vec<Symbol>> {
+        if let SectionData::Symbols(symbols) = self {
+            return Some(symbols);
+        }
+        None
+    }
 }
 
 #[repr(C)]
-#[derive(Default, Copy, Clone)]
-pub struct ElfSectionHeader {
+#[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
+pub struct SectionHeader {
     pub name: ElfWord,
     pub section_type: ElfWord,
     pub flags: ElfXword,
@@ -56,7 +104,7 @@ pub enum Flags {
     Execlude = 1 << 31,
 }
 
-impl ElfSectionHeader {
+impl SectionHeader {
     pub fn set_name(&mut self, name: ElfWord) {
         self.name = name;
     }
