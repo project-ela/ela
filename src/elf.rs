@@ -36,11 +36,23 @@ impl Elf {
 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
+
         self.header.write_to(&mut result);
+
         for segment in &self.segments {
             segment.write_to(&mut result);
         }
-        for section in &self.sections {
+
+        let mut section_indices = self
+            .sections
+            .iter()
+            .enumerate()
+            .map(|(i, v)| (i, v.header.offset))
+            .collect::<Vec<(usize, u64)>>();
+        section_indices.sort_by_key(|(_, offset)| *offset);
+
+        for (index, _) in section_indices {
+            let section = self.sections.get(index).unwrap();
             add_padding(&mut result, section.header.offset as usize);
             section.data.write_to(&mut result);
         }

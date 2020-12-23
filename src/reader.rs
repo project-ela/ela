@@ -1,4 +1,5 @@
 use header::Header;
+use rel::Rela;
 use section::{Section, SectionData, SectionHeader};
 use segment::ProgramHeader;
 use strtab::Strtab;
@@ -74,6 +75,10 @@ impl Elf {
     fn read_section_data(header: &SectionHeader, data: Vec<u8>) -> SectionData {
         match header.section_type {
             x if x == section::Type::Null as u32 => SectionData::None,
+            x if x == section::Type::Rela as u32 => {
+                let relas = Self::read_relas(header, data);
+                SectionData::Rela(relas)
+            }
             x if x == section::Type::Strtab as u32 => SectionData::Strtab(Strtab::new(data)),
             x if x == section::Type::Symtab as u32 => {
                 let symbols = Self::read_symbols(header, data);
@@ -97,6 +102,22 @@ impl Elf {
             symbols.push(symbol);
         }
         symbols
+    }
+
+    fn read_relas(header: &SectionHeader, data: Vec<u8>) -> Vec<Rela> {
+        let mut relas = Vec::new();
+        let rela_size = header.entry_size as usize;
+        let rela_num = data.len() / rela_size;
+
+        for i in 0..rela_num {
+            let start_addr = rela_size * i;
+            let end_addr = start_addr + rela_size;
+            let symol_bytes = data[start_addr..end_addr].to_vec();
+            let (_, body, _) = unsafe { symol_bytes.align_to::<Rela>() };
+            let rela = body[0];
+            relas.push(rela);
+        }
+        relas
     }
 
     fn read_program_headers(header: &Header, bytes: &[u8]) -> Vec<ProgramHeader> {
