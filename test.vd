@@ -20,7 +20,7 @@ func fuga(): int {
   return 3 * 4 + 1 * hoge()
 }
 
-func add(a: int, b: int): int {
+func addf(a: int, b: int): int {
   return a + b
 }
 
@@ -192,7 +192,7 @@ func main(): int {
 
   asserti(test3(), 1)
 
-  asserti(add(1, 2), 3)
+  asserti(addf(1, 2), 3)
 
   asserti(fib(5), 5)
 
