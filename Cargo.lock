@@ -3,7 +3,7 @@
 [[package]]
 name = "elfen"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/elfen#c628d5f2c7c9f1621eb16c7df3e699c36ea304f1"
+source = "git+https://github.com/Project-Norn/elfen#40a285eccd47c44c0c1f6738c76e0b50ff69fc79"
 
 [[package]]
 name = "skuld"
