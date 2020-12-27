@@ -258,7 +258,9 @@ impl Generator {
 
     fn global_symbols(&mut self) -> Vec<Symbol> {
         let symbols = std::mem::replace(&mut self.symbols, HashMap::new());
-        symbols
+
+        // collect global symbols and convert
+        let mut global_symbols: Vec<Symbol> = symbols
             .into_iter()
             .map(|(_, v)| v)
             .filter(|symbol| symbol.is_global || symbol.addr.is_none())
@@ -266,6 +268,11 @@ impl Generator {
                 symbol.addr = symbol.addr.map(|addr| self.calc_offset(0, addr) as usize);
                 symbol
             })
-            .collect()
+            .collect();
+
+        // sort symbols by offset
+        global_symbols.sort_by_key(|symbol| symbol.addr);
+
+        global_symbols
     }
 }
