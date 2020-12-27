@@ -1,3 +1,5 @@
+use std::mem::size_of;
+
 use rel::Rela;
 use strtab::Strtab;
 use symbol::Symbol;
@@ -21,6 +23,16 @@ pub enum SectionData {
 }
 
 impl SectionData {
+    pub fn len(&self) -> usize {
+        match self {
+            SectionData::None => 0,
+            SectionData::Raw(data) => data.len(),
+            SectionData::Rela(relas) => size_of::<Rela>() * relas.len(),
+            SectionData::Strtab(strtab) => strtab.data.len(),
+            SectionData::Symbols(symbols) => size_of::<Symbol>() * symbols.len(),
+        }
+    }
+
     pub fn write_to(&self, buf: &mut Vec<u8>) {
         match self {
             SectionData::None => {}

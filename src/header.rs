@@ -1,3 +1,7 @@
+use std::mem::size_of;
+
+use section::SectionHeader;
+
 use crate::*;
 
 #[repr(C)]
@@ -49,24 +53,14 @@ pub enum Machine {
     X86_64 = 62,
 }
 
-#[allow(dead_code)]
-const ELF_HDR_SIZE_32: ElfHalf = 52;
-#[allow(dead_code)]
-const SECTION_HDR_SIZE_32: ElfHalf = 40;
-
-#[allow(dead_code)]
-const ELF_HDR_SIZE_64: ElfHalf = 64;
-#[allow(dead_code)]
-const SECTION_HDR_SIZE_64: ElfHalf = 64;
-
 impl Header {
     pub fn new() -> Self {
         let mut hdr: Self = Default::default();
         hdr.ident = 0x7f454c46 << (12 * 8);
         hdr.ident |= 0x1 << (9 * 8); // version
         hdr.version = 0x1;
-        hdr.elf_header_size = ELF_HDR_SIZE_64;
-        hdr.section_header_size = SECTION_HDR_SIZE_64;
+        hdr.elf_header_size = size_of::<Header>() as u16;
+        hdr.section_header_size = size_of::<SectionHeader>() as u16;
         hdr
     }
 

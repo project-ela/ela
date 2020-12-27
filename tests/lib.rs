@@ -442,7 +442,7 @@ fn ret_read() {
     assert_eq!(elf.segments, ret_segments());
 }
 
-// #[test]
+#[test]
 fn ret_write() {
     let elf = Elf {
         header: ret_header(),
