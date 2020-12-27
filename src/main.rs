@@ -1,12 +1,12 @@
+use eir::emulator::Emulator;
 use std::env;
-use urd::emulator::Emulator;
 
-extern crate urd;
+extern crate eir;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        println!("Usage: urd <file>");
+        println!("Usage: eir <file>");
         return;
     }
     let file = args[1].as_str();
