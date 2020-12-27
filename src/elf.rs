@@ -1,3 +1,5 @@
+use std::mem::size_of;
+
 use section::SectionData;
 use segment::ProgramHeader;
 
@@ -32,6 +34,29 @@ impl Elf {
 
     pub fn add_segment(&mut self, header: ProgramHeader) {
         self.segments.push(header);
+    }
+
+    pub fn find_section(&self, name: &str) -> Option<usize> {
+        self.sections
+            .iter()
+            .enumerate()
+            .filter(|(_, section)| section.name == name)
+            .next()
+            .map(|(i, _)| i)
+    }
+
+    pub fn finalize(&mut self) {
+        self.header.section_header_num = self.sections.len() as u16;
+        self.header.string_table_index = self.find_section(".shstrtab").unwrap() as u16;
+
+        let mut offset = size_of::<Header>() as u64;
+        for section in self.sections.iter_mut() {
+            let section_size = section.data.len() as u64;
+            section.header.offset = offset;
+            section.header.size = section_size;
+            offset += section_size;
+        }
+        self.header.section_header_offset = offset;
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
