@@ -1,7 +1,7 @@
-use skuld::assembler;
+use rota::assembler;
 use std::env;
 
-extern crate skuld;
+extern crate rota;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -26,6 +26,6 @@ fn main() {
 }
 
 fn show_usage() {
-    println!("usage: skuld <input_file> <output_file> [--raw]");
+    println!("usage: rota <input_file> <output_file> [--raw]");
     std::process::exit(0);
 }
