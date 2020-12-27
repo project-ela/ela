@@ -1,6 +1,6 @@
-use verdandi::{common::cli, compiler::compile_to_file};
+use sigrun::{common::cli, compiler::compile_to_file};
 
-extern crate verdandi;
+extern crate sigrun;
 
 fn main() {
     match cli::parse_arguments() {
@@ -10,6 +10,6 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        Err(_) => println!("Usage: verdandi <input_file> <output_file>"),
+        Err(_) => println!("Usage: sigrun <input_file> <output_file>"),
     }
 }
