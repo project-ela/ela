@@ -2,11 +2,16 @@ use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
 
 #[derive(Debug)]
 pub enum InstructionNode {
-    PseudoOp { name: String, arg: String },
+    PseudoOp(PseudoOp, String),
     Label { name: String },
     NullaryOp(Mnemonic),
     UnaryOp(Mnemonic, OperandNode),
     BinaryOp(Mnemonic, OperandNode, OperandNode),
+}
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum PseudoOp {
+    Global,
+    IntelSyntax,
 }
 
 #[derive(Debug, Clone)]

@@ -7,7 +7,7 @@ use x86asm::{
     instruction::operand::{immediate::Immediate, memory::Displacement, offset::Offset, Operand},
 };
 
-use crate::frontend::parser::node::{InstructionNode, OperandNode};
+use crate::frontend::parser::node::{InstructionNode, OperandNode, PseudoOp};
 
 #[derive(Default)]
 struct Generator {
@@ -63,21 +63,25 @@ impl Generator {
         let mut cur_addr = 0;
         for inst in insts {
             match inst {
-                InstructionNode::PseudoOp { name, arg } => {
-                    if name == ".global" {
-                        self.process_symbol_global(arg);
-                    }
+                InstructionNode::PseudoOp(PseudoOp::Global, arg) => {
+                    self.process_symbol_global(arg);
                 }
                 InstructionNode::Label { name } => self.process_symbol_label(name, cur_addr),
-                InstructionNode::UnaryOp(op, opr1) => {
-                    if matches!(op, Mnemonic::Je | Mnemonic::Jmp | Mnemonic::Call) {
-                        if let OperandNode::Label { name } = opr1 {
-                            self.process_symbol_jmp(name);
-                        }
+                InstructionNode::UnaryOp(op, opr1)
+                    if matches!(op, Mnemonic::Je | Mnemonic::Jmp | Mnemonic::Call) =>
+                {
+                    if let OperandNode::Label { name } = opr1 {
+                        self.process_symbol_jmp(name);
                     }
-                    cur_addr += 1;
                 }
-                _ => cur_addr += 1,
+                _ => {}
+            }
+
+            if matches!(inst, InstructionNode::NullaryOp(_)
+                 | InstructionNode::UnaryOp(_, _)
+                 | InstructionNode::BinaryOp(_, _, _))
+            {
+                cur_addr += 1;
             }
         }
     }

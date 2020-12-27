@@ -1,6 +1,6 @@
 pub mod node;
 
-use node::{InstructionNode, MemoryNode, OperandNode};
+use node::{InstructionNode, MemoryNode, OperandNode, PseudoOp};
 use x86asm::instruction::mnemonic;
 
 use crate::frontend::lexer::token::{Symbol, Token};
@@ -46,8 +46,9 @@ impl Parser {
             }
 
             if ident.starts_with('.') {
+                let op = find_pseudoop(&ident).ok_or(format!("unknown pseudo-op: {}", ident))?;
                 let arg = self.consume_ident()?;
-                insts.push(InstructionNode::PseudoOp { name: ident, arg });
+                insts.push(InstructionNode::PseudoOp(op, arg));
                 continue;
             }
 
@@ -151,5 +152,13 @@ impl Parser {
 
     fn is_eof(&mut self) -> bool {
         self.peek() == &Token::EOF
+    }
+}
+
+fn find_pseudoop(ident: &str) -> Option<PseudoOp> {
+    match ident {
+        ".global" => Some(PseudoOp::Global),
+        ".intel_syntax" => Some(PseudoOp::IntelSyntax),
+        _ => None,
     }
 }
