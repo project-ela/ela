@@ -42,11 +42,6 @@ pub enum IndexType {
     Index(u16),
 }
 
-#[allow(dead_code)]
-pub const SYM_ENTRY_SIZE_32: ElfXword = 0x10;
-#[allow(dead_code)]
-pub const SYM_ENTRY_SIZE_64: ElfXword = 0x18;
-
 impl Symbol {
     pub fn set_binding(&mut self, binding: Binding) {
         self.info |= (binding as u8) << 4;
