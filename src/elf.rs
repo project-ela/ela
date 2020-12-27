@@ -68,6 +68,7 @@ impl Elf {
             segment.write_to(&mut result);
         }
 
+        // セクションのオフセットが小さいものから書き込む
         let mut section_indices = self
             .sections
             .iter()
