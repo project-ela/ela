@@ -1,9 +1,7 @@
 extern crate skuld;
 
-use skuld::{
-    backend::generator,
-    frontend::{lexer, parser},
-};
+use skuld::backend::gen_code;
+use skuld::frontend::{lexer, parser};
 
 #[test]
 fn ret() {
@@ -242,9 +240,10 @@ fn cmp() {
 fn do_test(source: &str, expected_output: &str) {
     let output = lexer::tokenize(source.to_string())
         .and_then(|tokens| parser::parse(tokens))
-        .and_then(|insts| generator::generate(insts))
+        .and_then(|insts| gen_code::generate(insts))
         .unwrap();
     let actual_output = bytes_to_str(&output.program);
+
     assert_eq!(expected_output, actual_output, "failed with '{}'", source);
 }
 
