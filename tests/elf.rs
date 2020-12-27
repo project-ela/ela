@@ -1,8 +1,8 @@
-extern crate skuld;
+extern crate rota;
 
 use std::fs;
 
-use skuld::assembler;
+use rota::assembler;
 
 #[test]
 fn simple() {

@@ -6,7 +6,7 @@ version = "0.1.0"
 source = "git+https://github.com/Project-Norn/elfen#40a285eccd47c44c0c1f6738c76e0b50ff69fc79"
 
 [[package]]
-name = "skuld"
+name = "rota"
 version = "0.1.0"
 dependencies = [
  "elfen",

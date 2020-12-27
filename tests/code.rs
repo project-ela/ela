@@ -1,7 +1,7 @@
-extern crate skuld;
+extern crate rota;
 
-use skuld::backend::gen_code;
-use skuld::frontend::{lexer, parser};
+use rota::backend::gen_code;
+use rota::frontend::{lexer, parser};
 
 #[test]
 fn ret() {
