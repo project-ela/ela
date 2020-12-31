@@ -58,6 +58,13 @@ impl SectionData {
         None
     }
 
+    pub fn as_raw_mut(&mut self) -> Option<&mut Vec<u8>> {
+        if let SectionData::Raw(data) = self {
+            return Some(data);
+        }
+        None
+    }
+
     pub fn as_rela(&self) -> Option<&Vec<Rela>> {
         if let SectionData::Rela(rela) = self {
             return Some(rela);
@@ -79,7 +86,21 @@ impl SectionData {
         None
     }
 
+    pub fn as_strtab_mut(&mut self) -> Option<&mut Strtab> {
+        if let SectionData::Strtab(strtab) = self {
+            return Some(strtab);
+        }
+        None
+    }
+
     pub fn as_symbols(&self) -> Option<&Vec<Symbol>> {
+        if let SectionData::Symbols(symbols) = self {
+            return Some(symbols);
+        }
+        None
+    }
+
+    pub fn as_symbols_mut(&mut self) -> Option<&mut Vec<Symbol>> {
         if let SectionData::Symbols(symbols) = self {
             return Some(symbols);
         }
