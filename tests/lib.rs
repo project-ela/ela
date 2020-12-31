@@ -19,6 +19,7 @@ use x86asm::{
 fn nullary() {
     do_test(Instruction::new_nullary(Mnemonic::Hlt));
     do_test(Instruction::new_nullary(Mnemonic::Ret));
+    do_test(Instruction::new_nullary(Mnemonic::Syscall));
 }
 
 #[test]

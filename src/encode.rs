@@ -30,6 +30,7 @@ fn encode_nullary_op(inst: &Instruction) -> EncodedInst {
     match inst.mnenomic {
         Mnemonic::Hlt => EncodedInst::new(&[0xf4]),
         Mnemonic::Ret => EncodedInst::new(&[0xc3]),
+        Mnemonic::Syscall => EncodedInst::new(&[0x0f, 0x05]),
         _ => panic!(),
     }
 }
