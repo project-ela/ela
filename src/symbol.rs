@@ -48,7 +48,7 @@ impl Symbol {
     }
 
     pub fn get_binding(&self) -> Option<Binding> {
-        let binding = self.info & (1 << 4);
+        let binding = self.info >> 4;
         match binding {
             0 => Some(Binding::Local),
             1 => Some(Binding::Global),
