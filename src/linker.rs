@@ -92,6 +92,9 @@ impl Linker {
         self.gen_symtab_strtab();
         self.gen_shstrtab();
 
+        self.layout();
+        self.finalize_elf();
+
         self.dump();
 
         Ok(self.output_elf)
@@ -269,6 +272,8 @@ impl Linker {
     }
 
     fn layout(&mut self) {
+        self.output_elf.segments.clear();
+
         let mut cur_offset = size_of::<Header>() as u64;
         for (section_index, section) in self.output_elf.sections.iter_mut().enumerate() {
             // skip null section
@@ -394,6 +399,44 @@ impl Linker {
         let data = SectionData::Strtab(strtab);
 
         self.output_elf.add_section(".shstrtab", header, data);
+    }
+
+    fn finalize_elf(&mut self) {
+        self.output_elf.header.section_header_num = self.output_elf.sections.len() as u16;
+        self.output_elf.header.program_header_num = self.output_elf.segments.len() as u16;
+
+        self.output_elf.header.elf_header_size = size_of::<Header>() as u16;
+        self.output_elf.header.section_header_size = size_of::<SectionHeader>() as u16;
+        self.output_elf.header.program_header_size = size_of::<ProgramHeader>() as u16;
+
+        let mut offset = size_of::<Header>() as u64;
+        offset += (size_of::<ProgramHeader>() * self.output_elf.segments.len()) as u64;
+        offset += self
+            .output_elf
+            .sections
+            .iter()
+            .map(|section| section.header.offset + section.header.size)
+            .max()
+            .unwrap();
+        self.output_elf.header.section_header_offset = offset;
+        self.output_elf.header.program_header_offset = size_of::<Header>() as u64;
+
+        self.output_elf.header.string_table_index =
+            self.output_elf.find_section(".shstrtab").unwrap() as u16;
+
+        let addr_of_text = self.output_elf.get_section(".text").unwrap().header.addr;
+        let entrypoint = self.find_symbol("_start").unwrap_or(addr_of_text);
+        self.output_elf.header.entrypoint = entrypoint;
+    }
+
+    fn find_symbol(&self, name: &str) -> Option<u64> {
+        let symbol_sig = self.global_symbols.get(name)?;
+        let symbol = symbol_sig.symbol;
+
+        let symbol_section_index = symbol.section_index as usize;
+        let symbol_offset = self.section_offsets.get(&symbol_section_index).unwrap();
+
+        Some(symbol.value + symbol_offset)
     }
 
     fn dump(&self) {
