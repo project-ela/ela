@@ -16,4 +16,4 @@ dependencies = [
 [[package]]
 name = "x86asm"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/x86asm#085908661261737f808dd02fcfdd727b14f25c72"
+source = "git+https://github.com/Project-Norn/x86asm#58ebb4e842710d4b38fa9e1abdcbdaa7ac8e765d"

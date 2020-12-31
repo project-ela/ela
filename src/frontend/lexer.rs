@@ -146,6 +146,7 @@ fn find_keyword(ident: &str) -> Option<Token> {
         "setle" => Some(Token::Mnemonic(Mnemonic::Setle)),
         "setne" => Some(Token::Mnemonic(Mnemonic::Setne)),
         "sub" => Some(Token::Mnemonic(Mnemonic::Sub)),
+        "syscall" => Some(Token::Mnemonic(Mnemonic::Syscall)),
         "xor" => Some(Token::Mnemonic(Mnemonic::Xor)),
 
         "rax" => Some(Token::Register(Register::Rax)),
