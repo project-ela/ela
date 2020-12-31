@@ -269,7 +269,7 @@ impl Linker {
     }
 
     fn layout(&mut self) {
-        let mut cur_offset = 0;
+        let mut cur_offset = size_of::<Header>() as u64;
         for (section_index, section) in self.output_elf.sections.iter_mut().enumerate() {
             // skip null section
             if section_index == 0 {
