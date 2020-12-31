@@ -21,6 +21,7 @@ pub enum Mnemonic {
     Setle,
     Setne,
     Sub,
+    Syscall,
     Xor,
 }
 
@@ -56,6 +57,7 @@ impl Mnemonic {
             Setle => Unary,
             Setne => Unary,
             Sub => Binary,
+            Syscall => Nullary,
             Xor => Binary,
         }
     }

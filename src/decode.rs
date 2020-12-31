@@ -62,6 +62,7 @@ impl Decoder {
             0x0f => {
                 let op = self.consume_u8();
                 match op {
+                    0x05 => Instruction::new_nullary(Mnemonic::Syscall),
                     0x84 => self.decode_d32(Mnemonic::Je),
                     0x94 => self.decode_set(Mnemonic::Sete),
                     0x95 => self.decode_set(Mnemonic::Setne),
