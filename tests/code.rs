@@ -14,6 +14,11 @@ fn hlt() {
 }
 
 #[test]
+fn syscall() {
+    do_test("syscall", "0f 05");
+}
+
+#[test]
 fn push() {
     do_test("push 1", "6a 01");
     do_test("push rax", "50");
