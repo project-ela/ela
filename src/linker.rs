@@ -1,18 +1,18 @@
 use std::{
     collections::{HashMap, HashSet},
     fs,
+    mem::size_of,
 };
 
 use elfen::{
     elf::Elf,
-    header,
+    header::{self, Header},
     rel::Rela,
-    section::{self, SectionData},
+    section::{self, SectionData, SectionHeader},
     segment::{self, ProgramHeader},
     strtab::Strtab,
     symbol::{self, Symbol},
 };
-use section::SectionHeader;
 
 pub fn link_to_files(input_files: Vec<String>, output_file: String) -> Result<(), String> {
     let input_elfs = input_files
@@ -88,6 +88,9 @@ impl Linker {
         self.link_sections();
 
         self.layout();
+
+        self.gen_symtab_strtab();
+        self.gen_shstrtab();
 
         self.dump();
 
@@ -321,6 +324,76 @@ impl Linker {
 
     fn align(x: u64, align: u64) -> u64 {
         (x + align - 1) & !(align - 1)
+    }
+
+    fn gen_symtab_strtab(&mut self) {
+        let mut symbols: Vec<Symbol> = Vec::new();
+        let mut strtab = Strtab::default();
+
+        symbols.push(Symbol::default());
+        strtab.insert("".into());
+
+        let mut symbol_sigs: Vec<&SymbolSignature> = self.global_symbols.values().collect();
+        symbol_sigs.sort_by_key(|sig| sig.symbol.value);
+
+        for symbol_sig in symbol_sigs {
+            let mut symbol = symbol_sig.symbol.clone();
+            let symbol_name = symbol_sig.name.clone();
+
+            let symbol_section_index = symbol.section_index as usize;
+            symbol.value += self.section_offsets.get(&symbol_section_index).unwrap();
+            symbol.name = strtab.insert(symbol_name) as u32;
+
+            symbols.push(symbol);
+        }
+
+        // generate symtab
+        {
+            let mut header = SectionHeader::default();
+            header.set_type(section::Type::Symtab);
+            header.set_entry_size(size_of::<Symbol>() as u64);
+            header.set_link(self.output_elf.sections.len() as u32 + 1);
+            header.set_align(8);
+            let num_local_symbols = symbols
+                .iter()
+                .filter(|symbol| symbol.get_binding() == Some(symbol::Binding::Local))
+                .count();
+            header.set_info(num_local_symbols as u32);
+
+            let data = SectionData::Symbols(symbols);
+
+            self.output_elf.add_section(".symtab", header, data);
+        }
+
+        // generate strtab
+        {
+            let mut header = SectionHeader::default();
+            header.set_type(section::Type::Strtab);
+            header.set_align(1);
+
+            let data = SectionData::Strtab(strtab);
+
+            self.output_elf.add_section(".strtab", header, data);
+        }
+    }
+
+    fn gen_shstrtab(&mut self) {
+        let mut header = SectionHeader::default();
+        header.set_type(section::Type::Strtab);
+        header.set_align(1);
+
+        let mut strtab = Strtab::default();
+        strtab.insert("".into());
+        for section in self.output_elf.sections.as_mut_slice() {
+            section
+                .header
+                .set_name(strtab.insert(section.name.clone()) as u32);
+        }
+        header.set_name(strtab.insert(".shstrtab".into()) as u32);
+
+        let data = SectionData::Strtab(strtab);
+
+        self.output_elf.add_section(".shstrtab", header, data);
     }
 
     fn dump(&self) {
