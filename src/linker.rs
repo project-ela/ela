@@ -81,6 +81,8 @@ impl Linker {
 
         self.link_sections();
 
+        self.dump();
+
         Ok(self.output_elf)
     }
 
@@ -253,5 +255,20 @@ impl Linker {
             }
         }
         section_names
+    }
+
+    fn dump(&self) {
+        println!("{:x?}", self.global_symbols);
+        println!("{:x?}", self.symbol_map);
+        println!("{:x?}", self.relas);
+        println!("{:x?}", self.rela_map);
+        println!(
+            "{:?}",
+            self.output_elf
+                .sections
+                .iter()
+                .map(|section| &section.name)
+                .collect::<Vec<&String>>()
+        );
     }
 }
