@@ -13,7 +13,7 @@ fn main() {
     let input_files = args[1..args_num].to_vec();
     let output_file = args[args_num].clone();
 
-    if let Err(err) = linker::link(input_files, output_file) {
+    if let Err(err) = linker::link_to_files(input_files, output_file) {
         println!("Failed to link: {}", err);
         std::process::exit(1);
     }
