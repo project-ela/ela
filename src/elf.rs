@@ -45,6 +45,16 @@ impl Elf {
             .map(|(i, _)| i)
     }
 
+    pub fn get_section(&self, name: &str) -> Option<&Section> {
+        self.find_section(name)
+            .and_then(|index| self.sections.get(index))
+    }
+
+    pub fn get_section_mut(&mut self, name: &str) -> Option<&mut Section> {
+        self.find_section(name)
+            .and_then(move |index| self.sections.get_mut(index))
+    }
+
     pub fn finalize(&mut self) {
         self.header.section_header_num = self.sections.len() as u16;
         self.header.string_table_index = self.find_section(".shstrtab").unwrap() as u16;
