@@ -58,6 +58,20 @@ impl SectionData {
         None
     }
 
+    pub fn as_rela(&self) -> Option<&Vec<Rela>> {
+        if let SectionData::Rela(rela) = self {
+            return Some(rela);
+        }
+        None
+    }
+
+    pub fn as_rela_mut(&mut self) -> Option<&mut Vec<Rela>> {
+        if let SectionData::Rela(rela) = self {
+            return Some(rela);
+        }
+        None
+    }
+
     pub fn as_strtab(&self) -> Option<&Strtab> {
         if let SectionData::Strtab(strtab) = self {
             return Some(strtab);
