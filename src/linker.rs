@@ -8,6 +8,7 @@ use elfen::{
     header,
     rel::Rela,
     section::{self, SectionData},
+    segment::{self, ProgramHeader},
     strtab::Strtab,
     symbol::{self, Symbol},
 };
@@ -41,7 +42,11 @@ struct Linker {
     symbol_map: HashMap<SectionPlace, Vec<String>>,
     relas: Vec<RelaSignature>,
     rela_map: HashMap<SectionPlace, Vec<usize>>,
+    section_offsets: HashMap<usize, u64>,
 }
+
+const BASE_ADDRESS: u64 = 0x400000;
+const PAGE_SIZE: u64 = 0x1000;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct SectionPlace {
@@ -70,6 +75,7 @@ impl Linker {
             symbol_map: HashMap::new(),
             relas: Vec::new(),
             rela_map: HashMap::new(),
+            section_offsets: HashMap::new(),
         }
     }
 
@@ -80,6 +86,8 @@ impl Linker {
         self.load_symbols();
 
         self.link_sections();
+
+        self.layout();
 
         self.dump();
 
@@ -257,6 +265,64 @@ impl Linker {
         section_names
     }
 
+    fn layout(&mut self) {
+        let mut cur_offset = 0;
+        for (section_index, section) in self.output_elf.sections.iter_mut().enumerate() {
+            // skip null section
+            if section_index == 0 {
+                continue;
+            }
+            let shdr = &mut section.header;
+
+            shdr.size = section.data.len() as u64;
+
+            if shdr.flags & section::Flags::Alloc as u64 != 0 {
+                let mut phdr = Self::gen_segment(&shdr);
+                shdr.offset = Self::align(cur_offset, phdr.alignment);
+                phdr.offset = shdr.offset;
+
+                shdr.addr = BASE_ADDRESS + shdr.offset;
+                phdr.virt_addr = shdr.addr;
+                phdr.phys_addr = shdr.addr;
+
+                self.output_elf.segments.push(phdr);
+            } else {
+                shdr.offset = Self::align(cur_offset, shdr.alignment);
+            }
+            cur_offset = shdr.offset + shdr.size;
+
+            let offset = if shdr.addr != 0 {
+                shdr.addr
+            } else {
+                shdr.offset
+            };
+            self.section_offsets.insert(section_index, offset);
+        }
+    }
+
+    fn gen_segment(shdr: &SectionHeader) -> ProgramHeader {
+        let mut phdr = ProgramHeader::default();
+        phdr.set_type(segment::Type::Load);
+        phdr.set_flags(segment::Flags::R);
+        phdr.alignment = PAGE_SIZE;
+
+        phdr.file_size = shdr.size;
+        phdr.memory_size = shdr.size;
+
+        if shdr.flags & section::Flags::Execinstr as u64 != 0 {
+            phdr.set_flags(segment::Flags::X);
+        }
+        if shdr.flags & section::Flags::Write as u64 != 0 {
+            phdr.set_flags(segment::Flags::W);
+        }
+
+        phdr
+    }
+
+    fn align(x: u64, align: u64) -> u64 {
+        (x + align - 1) & !(align - 1)
+    }
+
     fn dump(&self) {
         println!("{:x?}", self.global_symbols);
         println!("{:x?}", self.symbol_map);
@@ -270,5 +336,6 @@ impl Linker {
                 .map(|section| &section.name)
                 .collect::<Vec<&String>>()
         );
+        println!("{:x?}", self.section_offsets);
     }
 }
