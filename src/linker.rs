@@ -86,8 +86,8 @@ impl Linker {
         self.load_symbols();
 
         self.link_sections();
-
         self.layout();
+        self.resolve_relas();
 
         self.gen_symtab_strtab();
         self.gen_shstrtab();
@@ -305,6 +305,37 @@ impl Linker {
                 shdr.offset
             };
             self.section_offsets.insert(section_index, offset);
+        }
+    }
+
+    fn resolve_relas(&mut self) {
+        for (section_index, section) in self.output_elf.sections.iter_mut().enumerate() {
+            let place = SectionPlace {
+                elf_index: 0,
+                section_index,
+            };
+            let rela_indices = if let Some(indices) = self.rela_map.get(&place) {
+                indices
+            } else {
+                continue;
+            };
+
+            for rela_index in rela_indices {
+                let rela_sig = self.relas.get_mut(*rela_index).unwrap();
+                let addr_from = rela_sig.rela.offset as i32;
+                let addr_to = self
+                    .global_symbols
+                    .get(&rela_sig.symbol_name)
+                    .unwrap()
+                    .symbol
+                    .value as i32;
+                let code_index = addr_from as usize;
+                let diff = addr_to - addr_from + rela_sig.rela.addend as i32;
+                let section_data = section.data.as_raw_mut().unwrap();
+                for (i, value) in diff.to_le_bytes().iter().enumerate() {
+                    section_data[(code_index + i)] = *value;
+                }
+            }
         }
     }
 
