@@ -40,6 +40,17 @@ impl Emulator {
                 let new_rip = self.pop64().unwrap();
                 self.cpu.set_rip(new_rip);
             }
+            Mnemonic::Syscall => {
+                let rax = self.cpu.get_register64(&Register::Rax);
+                match rax {
+                    60 => {
+                        let exit_code = self.cpu.get_register(&Register::Rdi) as u8;
+                        println!("Exited with code {}", exit_code);
+                        std::process::exit(0);
+                    }
+                    x => unimplemented!("syscall with {}", x),
+                }
+            }
             _ => panic!(),
         }
     }
