@@ -65,7 +65,7 @@ impl ElfGen {
         header.set_type(section::Type::Progbits);
         header.set_flags(section::Flags::Alloc);
         header.set_flags(section::Flags::Execinstr);
-        header.set_align(1);
+        header.alignment = 1;
 
         let program = std::mem::replace(&mut self.data.program, Vec::new());
         let data = SectionData::Raw(program);
@@ -76,12 +76,12 @@ impl ElfGen {
     fn gen_symtab_strtab(&mut self) {
         let mut symtab_header = SectionHeader::default();
         symtab_header.set_type(section::Type::Symtab);
-        symtab_header.set_entry_size(size_of::<Symbol>() as u64);
-        symtab_header.set_align(8);
+        symtab_header.entry_size = size_of::<Symbol>() as u64;
+        symtab_header.alignment = 8;
 
         let mut strtab_header = SectionHeader::default();
         strtab_header.set_type(section::Type::Strtab);
-        strtab_header.set_align(1);
+        strtab_header.alignment = 1;
 
         let mut symbols = Vec::new();
         let mut strtab = Strtab::default();
@@ -106,7 +106,7 @@ impl ElfGen {
             match symbol_data.addr {
                 Some(addr) => {
                     symbol.set_index_type(symbol::IndexType::Index(text_section_index));
-                    symbol.set_value(addr as u64);
+                    symbol.value = addr as u64;
                 }
                 None => symbol.set_index_type(symbol::IndexType::Undef),
             }
@@ -119,10 +119,10 @@ impl ElfGen {
         // set symtab's info/link value
         let num_local_symbols = symbols
             .iter()
-            .filter(|symbol| symbol.get_binding() == Some(symbol::Binding::Local))
+            .filter(|symbol| symbol.get_binding() == symbol::Binding::Local)
             .count();
-        symtab_header.set_info(num_local_symbols as u32);
-        symtab_header.set_link(self.elf.sections.len() as u32 + 1);
+        symtab_header.info = num_local_symbols as u32;
+        symtab_header.link = self.elf.sections.len() as u32 + 1;
 
         let symtab_data = SectionData::Symbols(symbols);
         let strtab_data = SectionData::Strtab(strtab);
@@ -134,14 +134,14 @@ impl ElfGen {
     fn gen_rela(&mut self) {
         let mut header = SectionHeader::default();
         header.set_type(section::Type::Rela);
-        header.set_entry_size(size_of::<Rela>() as u64);
         header.set_flags(section::Flags::InfoLink);
-        header.set_align(8);
+        header.entry_size = size_of::<Rela>() as u64;
+        header.alignment = 8;
 
         let symtab_section_index = self.elf.find_section(".symtab").unwrap();
-        header.set_link(symtab_section_index as u32);
+        header.link = symtab_section_index as u32;
         let text_section_index = self.elf.find_section(".text").unwrap();
-        header.set_info(text_section_index as u32);
+        header.info = text_section_index as u32;
 
         let mut relas = Vec::new();
         for rela_data in &self.data.relas {
@@ -152,7 +152,7 @@ impl ElfGen {
                 .get(&rela_data.name)
                 .expect(&format!("cannot find symbol '{}'", rela_data.name));
             rela.set_info(*symbol_index as u64, rel::Type::Plt32);
-            rela.set_addend(-4);
+            rela.addend = -4;
             relas.push(rela);
         }
 
@@ -164,16 +164,14 @@ impl ElfGen {
     fn gen_shstrtab(&mut self) {
         let mut header = SectionHeader::default();
         header.set_type(section::Type::Strtab);
-        header.set_align(1);
+        header.alignment = 1;
 
         let mut strtab = Strtab::default();
         strtab.insert("".into());
         for section in self.elf.sections.as_mut_slice() {
-            section
-                .header
-                .set_name(strtab.insert(section.name.clone()) as u32);
+            section.header.name = strtab.insert(section.name.clone()) as u32;
         }
-        header.set_name(strtab.insert(".shstrtab".into()) as u32);
+        header.name = strtab.insert(".shstrtab".into()) as u32;
 
         let data = SectionData::Strtab(strtab);
 

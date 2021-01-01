@@ -3,7 +3,7 @@
 [[package]]
 name = "elfen"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/elfen#246c953e6ea6200a836a9db833612bb0c9cb9be3"
+source = "git+https://github.com/Project-Norn/elfen#83e39d9910a61c598d94a8fbcfb7a076f71fc299"
 
 [[package]]
 name = "rota"
