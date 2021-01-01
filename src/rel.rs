@@ -10,6 +10,7 @@ pub struct Rela {
     pub addend: ElfSxword,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Type {
     None,
     Plt32,
