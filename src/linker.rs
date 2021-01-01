@@ -95,8 +95,6 @@ impl Linker {
         self.layout();
         self.finalize_elf();
 
-        self.dump();
-
         Ok(self.output_elf)
     }
 
@@ -446,21 +444,5 @@ impl Linker {
         let symbol_offset = self.section_offsets.get(&symbol_section_index).unwrap();
 
         Some(symbol.value + symbol_offset)
-    }
-
-    fn dump(&self) {
-        println!("{:x?}", self.global_symbols);
-        println!("{:x?}", self.symbol_map);
-        println!("{:x?}", self.relas);
-        println!("{:x?}", self.rela_map);
-        println!(
-            "{:?}",
-            self.output_elf
-                .sections
-                .iter()
-                .map(|section| &section.name)
-                .collect::<Vec<&String>>()
-        );
-        println!("{:x?}", self.section_offsets);
     }
 }
