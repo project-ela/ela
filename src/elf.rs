@@ -55,18 +55,37 @@ impl Elf {
             .and_then(move |index| self.sections.get_mut(index))
     }
 
-    pub fn finalize(&mut self) {
+    pub fn update_header(&mut self) {
         self.header.section_header_num = self.sections.len() as u16;
-        self.header.string_table_index = self.find_section(".shstrtab").unwrap() as u16;
+        self.header.program_header_num = self.segments.len() as u16;
+
+        self.header.elf_header_size = size_of::<Header>() as u16;
+        self.header.section_header_size = size_of::<SectionHeader>() as u16;
+        self.header.program_header_size = size_of::<ProgramHeader>() as u16;
 
         let mut offset = size_of::<Header>() as u64;
-        for section in self.sections.iter_mut() {
+        offset += (size_of::<ProgramHeader>() * self.segments.len()) as u64;
+        offset += self
+            .sections
+            .iter()
+            .map(|section| section.header.offset + section.header.size)
+            .max()
+            .unwrap();
+        self.header.section_header_offset = offset;
+        self.header.program_header_offset = size_of::<Header>() as u64;
+
+        self.header.string_table_index = self.find_section(".shstrtab").unwrap() as u16;
+    }
+
+    pub fn update_section_headers(&mut self) {
+        let mut offset = size_of::<Header>() as u64;
+        // skip null section
+        for section in self.sections.iter_mut().skip(1) {
             let section_size = section.data.len() as u64;
             section.header.offset = offset;
             section.header.size = section_size;
             offset += section_size;
         }
-        self.header.section_header_offset = offset;
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
