@@ -1,3 +1,5 @@
+pub mod typ;
+
 use crate::*;
 
 #[repr(C)]
@@ -9,25 +11,24 @@ pub struct Rela {
 }
 
 pub enum Type {
-    None = 0,
-    Plt32 = 4,
+    None,
+    Plt32,
+    Unknown(u64),
 }
 
 impl Rela {
     pub fn set_info(&mut self, sym: u64, typ: Type) {
-        self.info = (sym << 32) + (typ as u64)
-    }
-
-    pub fn set_addend(&mut self, addend: i64) {
-        self.addend = addend;
+        let typ_bytes: u64 = typ.into();
+        self.info = (sym << 32) + typ_bytes;
     }
 
     pub fn get_symbol(&self) -> u64 {
         self.info >> 32
     }
 
-    pub fn get_type(&self) -> u64 {
-        self.info & 0xffffffff
+    pub fn get_type(&self) -> Type {
+        let bytes = self.info & 0xffffffff;
+        Type::from(bytes)
     }
 
     pub fn write_to(&self, buf: &mut Vec<u8>) {

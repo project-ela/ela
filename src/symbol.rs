@@ -1,3 +1,8 @@
+pub mod binding;
+pub mod index_typ;
+pub mod typ;
+pub mod visibility;
+
 use crate::*;
 
 #[repr(C)]
@@ -13,26 +18,10 @@ pub struct Symbol {
 
 #[derive(Eq, PartialEq)]
 pub enum Binding {
-    Local = 0,
-    Global = 1,
-    Weak = 2,
-}
-
-pub enum Type {
-    Notype = 0,
-    Object = 1,
-    Func = 2,
-    Section = 3,
-    File = 4,
-    Common = 5,
-    TLS = 6,
-}
-
-pub enum Visibility {
-    Default = 0,
-    Internal = 1,
-    Hidden = 2,
-    Protected = 3,
+    Local,
+    Global,
+    Weak,
+    Unknown(u8),
 }
 
 pub enum IndexType {
@@ -42,40 +31,59 @@ pub enum IndexType {
     Index(u16),
 }
 
+pub enum Type {
+    Notype,
+    Object,
+    Func,
+    Section,
+    File,
+    Common,
+    TLS,
+    Unknown(u8),
+}
+
+pub enum Visibility {
+    Default,
+    Internal,
+    Hidden,
+    Protected,
+    Unknown(u8),
+}
+
 impl Symbol {
-    pub fn set_binding(&mut self, binding: Binding) {
-        self.info |= (binding as u8) << 4;
+    pub fn get_binding(&self) -> Binding {
+        Binding::from(self.info >> 4)
     }
 
-    pub fn get_binding(&self) -> Option<Binding> {
-        let binding = self.info >> 4;
-        match binding {
-            0 => Some(Binding::Local),
-            1 => Some(Binding::Global),
-            2 => Some(Binding::Weak),
-            _ => None,
-        }
+    pub fn set_binding(&mut self, binding: Binding) {
+        let byte: u8 = binding.into();
+        self.info |= byte << 4;
+    }
+
+    pub fn get_type(&self) -> Type {
+        Type::from(self.info & 0xf)
     }
 
     pub fn set_type(&mut self, typ: Type) {
-        self.info |= typ as u8;
+        let byte: u8 = typ.into();
+        self.info |= byte;
+    }
+
+    pub fn get_visibility(&self) -> Visibility {
+        Visibility::from(self.other)
     }
 
     pub fn set_visibility(&mut self, visibility: Visibility) {
-        self.other |= visibility as u8;
+        let byte: u8 = visibility.into();
+        self.other |= byte;
     }
 
-    pub fn set_value(&mut self, value: ElfAddr) {
-        self.value = value;
+    pub fn get_index_type(&self) -> IndexType {
+        IndexType::from(self.section_index)
     }
 
     pub fn set_index_type(&mut self, typ: IndexType) {
-        self.section_index = match typ {
-            IndexType::Undef => 0x0,
-            IndexType::Abs => 0xfff1,
-            IndexType::Common => 0xfff2,
-            IndexType::Index(value) => value,
-        };
+        self.section_index = typ.into();
     }
 
     pub fn write_to(&self, buf: &mut Vec<u8>) {

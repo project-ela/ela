@@ -3,9 +3,11 @@ use std::mem::size_of;
 use section::SectionData;
 use segment::ProgramHeader;
 
-use crate::header::Header;
-use crate::section::{Section, SectionHeader};
-use crate::*;
+use crate::{
+    header::Header,
+    section::{Section, SectionHeader},
+    *,
+};
 
 pub struct Elf {
     pub header: Header,
