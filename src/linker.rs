@@ -117,7 +117,7 @@ impl Linker {
             let rela_sections: Vec<(usize, Vec<Rela>)> = elf
                 .sections
                 .iter_mut()
-                .filter(|section| section.header.section_type == section::Type::Rela as u32)
+                .filter(|section| section.header.get_type() == section::Type::Rela)
                 .map(|section| {
                     let section_index = section.header.info as usize;
                     let relas = std::mem::replace(section.data.as_rela_mut().unwrap(), Vec::new());
@@ -161,7 +161,7 @@ impl Linker {
             let strtab = std::mem::replace(strtab_data, Strtab::default());
 
             for symbol in symbols {
-                if symbol.get_binding() != Some(symbol::Binding::Global) {
+                if symbol.get_binding() != symbol::Binding::Global {
                     continue;
                 }
                 let symbol_name = strtab.get(symbol.name as usize);
@@ -263,7 +263,7 @@ impl Linker {
         let mut section_names = HashSet::new();
         for elf in &self.input_elfs {
             for section in &elf.sections {
-                if section.header.flags & section::Flags::Alloc as u64 != 0 {
+                if section::Flags::Alloc.contained_in(section.header.flags) {
                     section_names.insert(section.name.clone());
                 }
             }
@@ -284,7 +284,7 @@ impl Linker {
 
             shdr.size = section.data.len() as u64;
 
-            if shdr.flags & section::Flags::Alloc as u64 != 0 {
+            if section::Flags::Alloc.contained_in(shdr.flags) {
                 let mut phdr = Self::gen_segment(&shdr);
                 shdr.offset = Self::align(cur_offset, phdr.alignment);
                 phdr.offset = shdr.offset;
@@ -348,10 +348,10 @@ impl Linker {
         phdr.file_size = shdr.size;
         phdr.memory_size = shdr.size;
 
-        if shdr.flags & section::Flags::Execinstr as u64 != 0 {
+        if section::Flags::Execinstr.contained_in(shdr.flags) {
             phdr.set_flags(segment::Flags::X);
         }
-        if shdr.flags & section::Flags::Write as u64 != 0 {
+        if section::Flags::Write.contained_in(shdr.flags) {
             phdr.set_flags(segment::Flags::W);
         }
 
@@ -387,14 +387,14 @@ impl Linker {
         {
             let mut header = SectionHeader::default();
             header.set_type(section::Type::Symtab);
-            header.set_entry_size(size_of::<Symbol>() as u64);
-            header.set_link(self.output_elf.sections.len() as u32 + 1);
-            header.set_align(8);
+            header.entry_size = size_of::<Symbol>() as u64;
+            header.link = self.output_elf.sections.len() as u32 + 1;
+            header.alignment = 8;
             let num_local_symbols = symbols
                 .iter()
-                .filter(|symbol| symbol.get_binding() == Some(symbol::Binding::Local))
+                .filter(|symbol| symbol.get_binding() == symbol::Binding::Local)
                 .count();
-            header.set_info(num_local_symbols as u32);
+            header.info = num_local_symbols as u32;
 
             let data = SectionData::Symbols(symbols);
 
@@ -405,7 +405,7 @@ impl Linker {
         {
             let mut header = SectionHeader::default();
             header.set_type(section::Type::Strtab);
-            header.set_align(1);
+            header.alignment = 1;
 
             let data = SectionData::Strtab(strtab);
 
@@ -416,16 +416,14 @@ impl Linker {
     fn gen_shstrtab(&mut self) {
         let mut header = SectionHeader::default();
         header.set_type(section::Type::Strtab);
-        header.set_align(1);
+        header.alignment = 1;
 
         let mut strtab = Strtab::default();
         strtab.insert("".into());
         for section in self.output_elf.sections.as_mut_slice() {
-            section
-                .header
-                .set_name(strtab.insert(section.name.clone()) as u32);
+            section.header.name = strtab.insert(section.name.clone()) as u32;
         }
-        header.set_name(strtab.insert(".shstrtab".into()) as u32);
+        header.name = strtab.insert(".shstrtab".into()) as u32;
 
         let data = SectionData::Strtab(strtab);
 
