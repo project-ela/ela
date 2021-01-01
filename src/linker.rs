@@ -163,31 +163,32 @@ impl Linker {
                     continue;
                 }
                 let symbol_name = strtab.get(symbol.name as usize);
-                match self.global_symbols.get(&symbol_name) {
-                    Some(symbol_sig) => {
-                        if symbol_sig.symbol.section_index == 0 {
-                            panic!("duplicate symbol: {}", symbol_name);
-                        }
-                    }
-                    None => {
-                        self.global_symbols.insert(
-                            symbol_name.clone(),
-                            SymbolSignature {
-                                name: symbol_name.clone(),
-                                symbol,
-                            },
-                        );
 
-                        let place = SectionPlace {
-                            elf_index,
-                            section_index: symbol.section_index as usize,
-                        };
-                        self.symbol_map
-                            .entry(place)
-                            .or_insert(Vec::new())
-                            .push(symbol_name);
+                if let Some(symbol_sig) = self.global_symbols.get(&symbol_name) {
+                    if symbol.get_index_type() == symbol::IndexType::Undef {
+                        continue;
+                    }
+                    if symbol_sig.symbol.get_index_type() != symbol::IndexType::Undef {
+                        panic!("duplicate symbol: {}", symbol_name);
                     }
                 }
+
+                self.global_symbols.insert(
+                    symbol_name.clone(),
+                    SymbolSignature {
+                        name: symbol_name.clone(),
+                        symbol,
+                    },
+                );
+
+                let place = SectionPlace {
+                    elf_index,
+                    section_index: symbol.section_index as usize,
+                };
+                self.symbol_map
+                    .entry(place)
+                    .or_insert(Vec::new())
+                    .push(symbol_name);
             }
         }
     }
