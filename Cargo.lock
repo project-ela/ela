@@ -4,8 +4,14 @@
 name = "eir"
 version = "0.1.0"
 dependencies = [
+ "elfen",
  "x86asm",
 ]
+
+[[package]]
+name = "elfen"
+version = "0.1.0"
+source = "git+https://github.com/Project-Norn/elfen#5e042414c7178b3c8faf0b0588ee6343eab46f01"
 
 [[package]]
 name = "x86asm"
