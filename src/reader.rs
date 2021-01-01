@@ -1,12 +1,11 @@
 use header::Header;
 use rel::Rela;
-use section::{Section, SectionData, SectionHeader};
+use section::{Section, SectionData};
 use segment::ProgramHeader;
 use strtab::Strtab;
 use symbol::Symbol;
 
-use crate::elf::*;
-use crate::*;
+use crate::{elf::Elf, section::SectionHeader, *};
 use std::fs;
 
 impl Elf {
@@ -73,14 +72,14 @@ impl Elf {
     }
 
     fn read_section_data(header: &SectionHeader, data: Vec<u8>) -> SectionData {
-        match header.section_type {
-            x if x == section::Type::Null as u32 => SectionData::None,
-            x if x == section::Type::Rela as u32 => {
+        match header.get_type() {
+            section::Type::Null => SectionData::None,
+            section::Type::Rela => {
                 let relas = Self::read_relas(header, data);
                 SectionData::Rela(relas)
             }
-            x if x == section::Type::Strtab as u32 => SectionData::Strtab(Strtab::new(data)),
-            x if x == section::Type::Symtab as u32 => {
+            section::Type::Strtab => SectionData::Strtab(Strtab::new(data)),
+            section::Type::Symtab => {
                 let symbols = Self::read_symbols(header, data);
                 SectionData::Symbols(symbols)
             }

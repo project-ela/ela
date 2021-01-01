@@ -1,8 +1,12 @@
+pub mod class;
+pub mod data;
+pub mod machine;
+pub mod osabi;
+pub mod typ;
+
 use std::mem::size_of;
 
-use section::SectionHeader;
-
-use crate::*;
+use crate::{section::SectionHeader, *};
 
 #[repr(C)]
 #[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
@@ -24,33 +28,38 @@ pub struct Header {
 }
 
 pub enum Class {
-    ClassNone = 0,
-    Class32 = 1,
-    Class64 = 2,
+    ClassNone,
+    Class32,
+    Class64,
+    Unknown(u8),
 }
 
 pub enum Data {
-    DataNone = 0,
-    Data2LSB = 1,
-    Data2MSB = 2,
-}
-
-pub enum OSABI {
-    OSABISysV = 0,
-}
-
-pub enum Type {
-    None = 0,
-    Rel = 1,
-    Exec = 2,
-    Dyn = 3,
-    Core = 4,
+    DataNone,
+    Data2LSB,
+    Data2MSB,
+    Unknown(u8),
 }
 
 pub enum Machine {
-    None = 0,
-    X86 = 3,
-    X86_64 = 62,
+    None,
+    X86,
+    X86_64,
+    Unknown(u16),
+}
+
+pub enum OSABI {
+    OSABISysV,
+    Unknown(u8),
+}
+
+pub enum Type {
+    None,
+    Rel,
+    Exec,
+    Dyn,
+    Core,
+    Unknown(u16),
 }
 
 impl Header {
@@ -64,56 +73,49 @@ impl Header {
         hdr
     }
 
+    pub fn get_class(&self) -> Class {
+        let byte = (self.ident >> (11 * 8)) as u8;
+        Class::from(byte)
+    }
+
     pub fn set_class(&mut self, class: Class) {
-        self.ident |= (class as u128) << (11 * 8);
+        let byte: u8 = class.into();
+        self.ident |= (byte as u128) << (11 * 8);
+    }
+
+    pub fn get_data(&self) -> Data {
+        let byte = (self.ident >> (10 * 8)) as u8;
+        Data::from(byte)
     }
 
     pub fn set_data(&mut self, data: Data) {
-        self.ident |= (data as u128) << (10 * 8);
+        let byte: u8 = data.into();
+        self.ident |= (byte as u128) << (10 * 8);
+    }
+
+    pub fn get_osabi(&self) -> OSABI {
+        let byte = (self.ident >> (8 * 8)) as u8;
+        OSABI::from(byte)
     }
 
     pub fn set_osabi(&mut self, osabi: OSABI) {
-        self.ident |= (osabi as u128) << (8 * 8);
+        let byte: u8 = osabi.into();
+        self.ident |= (byte as u128) << (8 * 8);
     }
 
+    pub fn get_filetype(&self) -> Type {
+        Type::from(self.filetype)
+    }
     pub fn set_filetype(&mut self, typ: Type) {
-        self.filetype = typ as ElfHalf;
+        self.filetype = typ.into();
+    }
+
+    pub fn get_machine(&self) -> Machine {
+        Machine::from(self.machine)
     }
 
     pub fn set_machine(&mut self, machine: Machine) {
-        self.machine = machine as ElfHalf;
-    }
-
-    pub fn set_entrypoint(&mut self, addr: ElfAddr) {
-        self.entrypoint = addr;
-    }
-
-    pub fn set_program_header_offset(&mut self, offset: ElfOff) {
-        self.program_header_offset = offset;
-    }
-
-    pub fn set_section_header_offset(&mut self, offset: ElfOff) {
-        self.section_header_offset = offset;
-    }
-
-    pub fn set_program_header_size(&mut self, size: ElfHalf) {
-        self.program_header_size = size;
-    }
-
-    pub fn set_program_header_num(&mut self, num: ElfHalf) {
-        self.program_header_num = num;
-    }
-
-    pub fn set_section_header_size(&mut self, size: ElfHalf) {
-        self.section_header_size = size;
-    }
-
-    pub fn set_section_header_num(&mut self, num: ElfHalf) {
-        self.section_header_num = num;
-    }
-
-    pub fn set_string_table_index(&mut self, index: ElfHalf) {
-        self.string_table_index = index;
+        self.machine = machine.into();
     }
 
     pub fn write_to(&self, buf: &mut Vec<u8>) {

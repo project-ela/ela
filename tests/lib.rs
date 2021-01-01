@@ -13,8 +13,8 @@ use std::fs;
 fn ret_o_header() -> Header {
     Header {
         ident: 0x7f454c46020101000000000000000000,
-        filetype: header::Type::Rel as u16,
-        machine: header::Machine::X86_64 as u16,
+        filetype: header::Type::Rel.into(),
+        machine: header::Machine::X86_64.into(),
         version: 1,
         entrypoint: 0,
         program_header_offset: 0,
@@ -51,8 +51,9 @@ fn ret_o_sections() -> Vec<Section> {
             name: ".text".to_string(),
             header: SectionHeader {
                 name: 32,
-                section_type: section::Type::Progbits as u32,
-                flags: (section::Flags::Alloc as u64 | section::Flags::Execinstr as u64),
+                section_type: section::Type::Progbits.into(),
+                flags: (Into::<u64>::into(section::Flags::Alloc)
+                    | Into::<u64>::into(section::Flags::Execinstr)),
                 addr: 0,
                 offset: 0x40,
                 size: 0x13,
@@ -69,8 +70,8 @@ fn ret_o_sections() -> Vec<Section> {
             name: ".rela.text".to_string(),
             header: SectionHeader {
                 name: 27,
-                section_type: section::Type::Rela as u32,
-                flags: section::Flags::InfoLink as u64,
+                section_type: section::Type::Rela.into(),
+                flags: section::Flags::InfoLink.into(),
                 addr: 0,
                 offset: 0xf8,
                 size: 0x18,
@@ -89,8 +90,9 @@ fn ret_o_sections() -> Vec<Section> {
             name: ".data".to_string(),
             header: SectionHeader {
                 name: 38,
-                section_type: section::Type::Progbits as u32,
-                flags: (section::Flags::Write as u64 | section::Flags::Alloc as u64),
+                section_type: section::Type::Progbits.into(),
+                flags: (Into::<u64>::into(section::Flags::Write)
+                    | Into::<u64>::into(section::Flags::Alloc)),
                 addr: 0,
                 offset: 0x53,
                 size: 0,
@@ -105,8 +107,9 @@ fn ret_o_sections() -> Vec<Section> {
             name: ".bss".to_string(),
             header: SectionHeader {
                 name: 44,
-                section_type: section::Type::Nobits as u32,
-                flags: (section::Flags::Write as u64 | section::Flags::Alloc as u64),
+                section_type: section::Type::Nobits.into(),
+                flags: (Into::<u64>::into(section::Flags::Write)
+                    | Into::<u64>::into(section::Flags::Alloc)),
                 addr: 0,
                 offset: 0x53,
                 size: 0,
@@ -121,7 +124,7 @@ fn ret_o_sections() -> Vec<Section> {
             name: ".symtab".to_string(),
             header: SectionHeader {
                 name: 1,
-                section_type: section::Type::Symtab as u32,
+                section_type: section::Type::Symtab.into(),
                 flags: 0,
                 addr: 0,
                 offset: 0x58,
@@ -186,7 +189,7 @@ fn ret_o_sections() -> Vec<Section> {
             name: ".strtab".to_string(),
             header: SectionHeader {
                 name: 9,
-                section_type: section::Type::Strtab as u32,
+                section_type: section::Type::Strtab.into(),
                 flags: 0,
                 addr: 0,
                 offset: 0xe8,
@@ -202,7 +205,7 @@ fn ret_o_sections() -> Vec<Section> {
             name: ".shstrtab".to_string(),
             header: SectionHeader {
                 name: 17,
-                section_type: section::Type::Strtab as u32,
+                section_type: section::Type::Strtab.into(),
                 flags: 0,
                 addr: 0,
                 offset: 0x110,
@@ -222,8 +225,8 @@ fn ret_o_sections() -> Vec<Section> {
 fn ret_header() -> Header {
     Header {
         ident: 0x7f454c46020101000000000000000000,
-        filetype: header::Type::Exec as u16,
-        machine: header::Machine::X86_64 as u16,
+        filetype: header::Type::Exec.into(),
+        machine: header::Machine::X86_64.into(),
         version: 1,
         entrypoint: 0x401000,
         program_header_offset: 64,
@@ -260,8 +263,9 @@ fn ret_sections() -> Vec<Section> {
             name: ".text".to_string(),
             header: SectionHeader {
                 name: 27,
-                section_type: section::Type::Progbits as u32,
-                flags: (section::Flags::Alloc as u64 | section::Flags::Execinstr as u64),
+                section_type: section::Type::Progbits.into(),
+                flags: (Into::<u64>::into(section::Flags::Alloc)
+                    | Into::<u64>::into(section::Flags::Execinstr)),
                 addr: 0x401000,
                 offset: 0x1000,
                 size: 0x13,
@@ -278,7 +282,7 @@ fn ret_sections() -> Vec<Section> {
             name: ".symtab".to_string(),
             header: SectionHeader {
                 name: 1,
-                section_type: section::Type::Symtab as u32,
+                section_type: section::Type::Symtab.into(),
                 flags: 0,
                 addr: 0,
                 offset: 0x1018,
@@ -351,7 +355,7 @@ fn ret_sections() -> Vec<Section> {
             name: ".strtab".to_string(),
             header: SectionHeader {
                 name: 9,
-                section_type: section::Type::Strtab as u32,
+                section_type: section::Type::Strtab.into(),
                 flags: 0,
                 addr: 0,
                 offset: 0x10c0,
@@ -369,7 +373,7 @@ fn ret_sections() -> Vec<Section> {
             name: ".shstrtab".to_string(),
             header: SectionHeader {
                 name: 17,
-                section_type: section::Type::Strtab as u32,
+                section_type: section::Type::Strtab.into(),
                 flags: 0,
                 addr: 0,
                 offset: 0x10de,
@@ -389,8 +393,8 @@ fn ret_sections() -> Vec<Section> {
 fn ret_segments() -> Vec<ProgramHeader> {
     vec![
         ProgramHeader {
-            typ: segment::Type::Load as u32,
-            flags: segment::Flags::R as u32,
+            typ: segment::Type::Load.into(),
+            flags: segment::Flags::R.into(),
             offset: 0,
             virt_addr: 0x400000,
             phys_addr: 0x400000,
@@ -399,8 +403,8 @@ fn ret_segments() -> Vec<ProgramHeader> {
             alignment: 4096,
         },
         ProgramHeader {
-            typ: segment::Type::Load as u32,
-            flags: (segment::Flags::R as u32 | segment::Flags::X as u32),
+            typ: segment::Type::Load.into(),
+            flags: (Into::<u32>::into(segment::Flags::R) | Into::<u32>::into(segment::Flags::X)),
             offset: 0x1000,
             virt_addr: 0x401000,
             phys_addr: 0x401000,
