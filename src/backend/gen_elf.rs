@@ -35,7 +35,8 @@ impl ElfGen {
     fn generate(mut self) -> Result<Elf, String> {
         self.gen_header();
         self.gen_sections();
-        self.elf.finalize();
+        self.elf.update_section_headers();
+        self.elf.update_header();
         Ok(self.elf)
     }
 
