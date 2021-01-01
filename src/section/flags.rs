@@ -1,5 +1,11 @@
 use super::Flags;
 
+impl Flags {
+    pub fn contained_in(self, flags: u64) -> bool {
+        flags & Into::<u64>::into(self) != 0
+    }
+}
+
 impl Into<u64> for Flags {
     fn into(self) -> u64 {
         let n = match self {
