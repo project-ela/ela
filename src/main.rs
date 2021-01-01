@@ -11,6 +11,6 @@ fn main() {
     }
     let file = args[1].as_str();
     let mut emu = Emulator::new(0x7C00, 0x7c00);
-    emu.load_from_file(file);
+    emu.load_elf(file);
     emu.run()
 }

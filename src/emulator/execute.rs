@@ -37,7 +37,7 @@ impl Emulator {
                 std::process::exit(0);
             }
             Mnemonic::Ret => {
-                let new_rip = self.pop64();
+                let new_rip = self.pop64().unwrap();
                 self.cpu.set_rip(new_rip);
             }
             _ => panic!(),
@@ -48,7 +48,7 @@ impl Emulator {
         match mnemonic {
             Mnemonic::Call => {
                 let opr1 = self.get_operand(&opr1);
-                self.push64(self.cpu.get_rip());
+                self.push64(self.cpu.get_rip()).unwrap();
                 self.cpu.set_rip(opr1);
             }
             Mnemonic::IDiv => {
@@ -69,10 +69,10 @@ impl Emulator {
             }
             Mnemonic::Push => {
                 let opr1 = self.get_operand(&opr1);
-                self.push64(opr1);
+                self.push64(opr1).unwrap();
             }
             Mnemonic::Pop => {
-                let value = self.pop64();
+                let value = self.pop64().unwrap();
                 self.set_operand(&opr1, value);
             }
             Mnemonic::Sete => self.set_operand(&opr1, self.cpu.get_flag(Flags::ZF) as u64),
@@ -159,7 +159,7 @@ impl Emulator {
                 Immediate::Imm32(value) => *value as u64,
             },
             Operand::Register(reg) => self.cpu.get_register(reg),
-            Operand::Memory(mem) => self.mmu.get_memory64(self.calc_address(mem)),
+            Operand::Memory(mem) => self.mmu.get_memory64(self.calc_address(mem)).unwrap(),
             Operand::Offset(off) => match off {
                 Offset::Off8(value) => (self.cpu.get_rip() as i64 + *value as i64) as u64,
                 Offset::Off32(value) => (self.cpu.get_rip() as i64 + *value as i64) as u64,
@@ -170,7 +170,10 @@ impl Emulator {
     fn set_operand(&mut self, opr: &Operand, value: u64) {
         match opr {
             Operand::Register(reg) => self.cpu.set_register(reg, value),
-            Operand::Memory(mem) => self.mmu.set_memory64(self.calc_address(mem), value),
+            Operand::Memory(mem) => self
+                .mmu
+                .set_memory64(self.calc_address(mem), value)
+                .unwrap(),
             _ => panic!(),
         }
     }

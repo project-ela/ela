@@ -1,51 +1,92 @@
 pub struct Mmu {
-    ram: Vec<u8>,
+    segments: Vec<Vec<u8>>,
+    segment_details: Vec<SegmentDetail>,
+}
+
+struct SegmentDetail {
+    virt_addr: usize,
+    size: usize,
+    index: usize,
+}
+
+pub struct PhysicalAddress {
+    pub segment_index: usize,
+    pub segment_offset: usize,
 }
 
 impl Mmu {
-    pub fn new(ram_size: usize) -> Self {
+    pub fn new() -> Self {
         Self {
-            ram: vec![0; ram_size],
+            segments: Vec::new(),
+            segment_details: Vec::new(),
         }
     }
 
-    pub fn get_memory8(&self, address: usize) -> u8 {
-        self.ram[address]
+    pub fn add_segment(&mut self, virt_addr: usize, data: Vec<u8>) {
+        let detail = SegmentDetail {
+            virt_addr,
+            size: data.len(),
+            index: self.segments.len(),
+        };
+
+        self.segments.push(data);
+        self.segment_details.push(detail);
     }
 
-    pub fn get_memory32(&self, address: usize) -> u32 {
+    pub fn calc_phys_addr(&self, virt_addr: usize) -> Result<PhysicalAddress, String> {
+        for detail in &self.segment_details {
+            let start_addr = detail.virt_addr;
+            let end_addr = start_addr + detail.size;
+            if virt_addr >= start_addr && virt_addr < end_addr {
+                let offset = virt_addr - detail.virt_addr;
+                return Ok(PhysicalAddress {
+                    segment_index: detail.index,
+                    segment_offset: offset,
+                });
+            }
+        }
+
+        Err("SEGV".to_string())
+    }
+
+    pub fn get_memory8(&self, address: usize) -> Result<u8, String> {
+        let addr = self.calc_phys_addr(address)?;
+        Ok(self.segments[addr.segment_index][addr.segment_offset])
+    }
+
+    pub fn get_memory32(&self, address: usize) -> Result<u32, String> {
         let mut ret: u32 = 0;
         for i in 0..4 {
-            ret |= (self.get_memory8(address + i) as u32) << (8 * i);
+            ret |= (self.get_memory8(address + i)? as u32) << (8 * i);
         }
-        return ret;
+        Ok(ret)
     }
 
-    pub fn get_memory64(&self, address: usize) -> u64 {
+    pub fn get_memory64(&self, address: usize) -> Result<u64, String> {
         let mut ret = 0;
         for i in 0..8 {
-            ret |= (self.get_memory8(address + i) as u64) << (8 * i);
+            ret |= (self.get_memory8(address + i)? as u64) << (8 * i);
         }
-        return ret;
+        Ok(ret)
     }
 
-    pub fn set_memory8(&mut self, address: usize, value: u8) {
-        self.ram[address] = value;
+    pub fn set_memory8(&mut self, address: usize, value: u8) -> Result<(), String> {
+        let addr = self.calc_phys_addr(address)?;
+        self.segments[addr.segment_index][addr.segment_offset] = value;
+        Ok(())
     }
 
-    pub fn set_memory32(&mut self, address: usize, value: u32) {
+    pub fn set_memory32(&mut self, address: usize, value: u32) -> Result<(), String> {
         for i in 0..4 {
-            self.set_memory8(address + i, (value >> (8 * i)) as u8);
+            self.set_memory8(address + i, (value >> (8 * i)) as u8)?;
         }
+        Ok(())
     }
 
-    pub fn set_memory64(&mut self, address: usize, value: u64) {
+    pub fn set_memory64(&mut self, address: usize, value: u64) -> Result<(), String> {
         for i in 0..8 {
-            self.set_memory8(address + i, (value >> (8 * i)) as u8);
+            self.set_memory8(address + i, (value >> (8 * i)) as u8)?;
         }
-    }
-
-    pub fn get_raw_memory(&mut self) -> &mut Vec<u8> {
-        &mut self.ram
+        Ok(())
     }
 }

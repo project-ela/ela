@@ -4,14 +4,12 @@ pub mod execute;
 pub mod flags;
 pub mod mmu;
 
-use std::fs::File;
-use std::io::Read;
+use std::fs;
 
 use cpu::{Cpu, Flags};
+use elfen::elf::Elf;
 use mmu::Mmu;
 use x86asm::instruction::operand::register::Register;
-
-const MEMORY_SIZE: usize = 1024 * 1024;
 
 pub struct Emulator {
     pub cpu: Cpu,
@@ -22,21 +20,29 @@ impl Emulator {
     pub fn new(rip: u64, rsp: u64) -> Self {
         let mut emu = Self {
             cpu: Cpu::new(),
-            mmu: Mmu::new(MEMORY_SIZE),
+            mmu: Mmu::new(),
         };
         emu.cpu.set_rip(rip);
         emu.cpu.set_register(&Register::Rsp, rsp);
+        emu.mmu.add_segment(0, vec![0; rsp as usize]);
 
         return emu;
     }
 
-    pub fn load_from_file(&mut self, path: &str) {
-        let mut file = File::open(path).expect("Failed to open file.");
-        let rip = self.cpu.get_rip() as usize;
-        let len = file
-            .read(&mut self.mmu.get_raw_memory()[rip..])
-            .expect("Failed to read file.") as u32;
-        println!("Loaded {} bytes", len);
+    pub fn load_elf(&mut self, path: &str) {
+        let file_data = fs::read(path).expect("Failed to read file.");
+        let elf = Elf::read_from_file(path);
+
+        for segment in &elf.segments {
+            let offset = segment.offset as usize;
+            let size = segment.file_size as usize;
+            let virt_addr = segment.virt_addr as usize;
+            let data = file_data[offset..(offset + size)].to_vec();
+            self.mmu.add_segment(virt_addr, data);
+        }
+
+        let entrypoint = elf.header.entrypoint;
+        self.cpu.set_rip(entrypoint);
     }
 
     pub fn run(&mut self) {
@@ -57,31 +63,14 @@ impl Emulator {
         }
     }
 
-    pub fn inc_eip(&mut self, value: u64) {
-        let rip = self.cpu.get_rip();
-        self.cpu.set_rip(rip.wrapping_add(value));
-    }
-
-    pub fn get_code8(&self, index: usize) -> u8 {
-        let rip = self.cpu.get_rip() as usize;
-        self.mmu.get_memory8(rip + index)
-    }
-
-    pub fn get_code32(&self, index: usize) -> u32 {
-        let mut ret: u32 = 0;
-        for i in 0..4 {
-            ret |= (self.get_code8(index + i) as u32) << (i * 8)
-        }
-        return ret;
-    }
-
-    pub fn push64(&mut self, value: u64) {
+    pub fn push64(&mut self, value: u64) -> Result<(), String> {
         let new_rsp = self.cpu.get_register(&Register::Rsp) - 8;
-        self.mmu.set_memory64(new_rsp as usize, value);
+        self.mmu.set_memory64(new_rsp as usize, value)?;
         self.cpu.set_register(&Register::Rsp, new_rsp);
+        Ok(())
     }
 
-    pub fn pop64(&mut self) -> u64 {
+    pub fn pop64(&mut self) -> Result<u64, String> {
         let rsp = self.cpu.get_register(&Register::Rsp);
         self.cpu.set_register(&Register::Rsp, rsp + 8);
         self.mmu.get_memory64(rsp as usize)
@@ -89,17 +78,16 @@ impl Emulator {
 
     pub fn dump(&self) {
         println!("----------------------------------------");
-        println!("RIP: {:8X}", self.cpu.get_rip());
-        println!("Opcode: {:X}", self.get_code8(0));
+        println!("RIP: {:016X}", self.cpu.get_rip());
 
-        self.dump_eflags();
+        self.dump_flags();
         self.dump_registers();
         self.dump_stack();
 
         println!();
     }
 
-    pub fn dump_eflags(&self) {
+    pub fn dump_flags(&self) {
         println!(
             "flag: [Carry: {}, Parity: {}, Zero: {}, Sign: {}, Overflow: {}]",
             self.cpu.get_flag(Flags::CF),
@@ -133,11 +121,11 @@ impl Emulator {
         println!("----- stack -----");
         for i in 0..5 {
             let rsp = self.cpu.get_register(&Register::Rsp) as usize;
-            println!(
-                "0x{:016X}: {:016X}",
-                rsp + 8 * i,
-                self.mmu.get_memory64(rsp + 8 * i)
-            );
+            let addr = rsp + 8 * i;
+            match self.mmu.get_memory64(addr) {
+                Ok(value) => println!("0x{:016X}: {:016X}", addr, value),
+                Err(_) => break,
+            }
         }
     }
 }
