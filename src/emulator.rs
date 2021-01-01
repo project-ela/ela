@@ -78,16 +78,16 @@ impl Emulator {
 
     pub fn dump(&self) {
         println!("----------------------------------------");
-        println!("RIP: {:8X}", self.cpu.get_rip());
+        println!("RIP: {:016X}", self.cpu.get_rip());
 
-        self.dump_eflags();
+        self.dump_flags();
         self.dump_registers();
         self.dump_stack();
 
         println!();
     }
 
-    pub fn dump_eflags(&self) {
+    pub fn dump_flags(&self) {
         println!(
             "flag: [Carry: {}, Parity: {}, Zero: {}, Sign: {}, Overflow: {}]",
             self.cpu.get_flag(Flags::CF),
