@@ -16,12 +16,14 @@ pub struct ProgramHeader {
     pub alignment: ElfXword,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Flags {
     X,
     W,
     R,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Type {
     Null,
     Load,

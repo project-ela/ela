@@ -27,6 +27,7 @@ pub struct Header {
     pub string_table_index: ElfHalf,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Class {
     ClassNone,
     Class32,
@@ -34,6 +35,7 @@ pub enum Class {
     Unknown(u8),
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Data {
     DataNone,
     Data2LSB,
@@ -41,6 +43,7 @@ pub enum Data {
     Unknown(u8),
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Machine {
     None,
     X86,
@@ -48,11 +51,13 @@ pub enum Machine {
     Unknown(u16),
 }
 
+#[derive(Eq, PartialEq)]
 pub enum OSABI {
     OSABISysV,
     Unknown(u8),
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Type {
     None,
     Rel,

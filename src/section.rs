@@ -32,6 +32,7 @@ pub struct SectionHeader {
     pub entry_size: ElfXword,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Flags {
     Write,
     Alloc,
@@ -47,6 +48,7 @@ pub enum Flags {
     Execlude,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Type {
     Null,
     Progbits,

@@ -24,6 +24,7 @@ pub enum Binding {
     Unknown(u8),
 }
 
+#[derive(Eq, PartialEq)]
 pub enum IndexType {
     Undef,
     Abs,
@@ -31,6 +32,7 @@ pub enum IndexType {
     Index(u16),
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Type {
     Notype,
     Object,
@@ -42,6 +44,7 @@ pub enum Type {
     Unknown(u8),
 }
 
+#[derive(Eq, PartialEq)]
 pub enum Visibility {
     Default,
     Internal,
