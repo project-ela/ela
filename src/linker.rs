@@ -433,27 +433,7 @@ impl Linker {
     }
 
     fn finalize_elf(&mut self) {
-        self.output_elf.header.section_header_num = self.output_elf.sections.len() as u16;
-        self.output_elf.header.program_header_num = self.output_elf.segments.len() as u16;
-
-        self.output_elf.header.elf_header_size = size_of::<Header>() as u16;
-        self.output_elf.header.section_header_size = size_of::<SectionHeader>() as u16;
-        self.output_elf.header.program_header_size = size_of::<ProgramHeader>() as u16;
-
-        let mut offset = size_of::<Header>() as u64;
-        offset += (size_of::<ProgramHeader>() * self.output_elf.segments.len()) as u64;
-        offset += self
-            .output_elf
-            .sections
-            .iter()
-            .map(|section| section.header.offset + section.header.size)
-            .max()
-            .unwrap();
-        self.output_elf.header.section_header_offset = offset;
-        self.output_elf.header.program_header_offset = size_of::<Header>() as u64;
-
-        self.output_elf.header.string_table_index =
-            self.output_elf.find_section(".shstrtab").unwrap() as u16;
+        self.output_elf.update_header();
 
         let addr_of_text = self.output_elf.get_section(".text").unwrap().header.addr;
         let entrypoint = self.find_symbol("_start").unwrap_or(addr_of_text);
