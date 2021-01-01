@@ -3,7 +3,7 @@
 [[package]]
 name = "elfen"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/elfen#405ada029d6f279df8b99b3c5be09e2348d47430"
+source = "git+https://github.com/Project-Norn/elfen#246c953e6ea6200a836a9db833612bb0c9cb9be3"
 
 [[package]]
 name = "herja"
