@@ -56,13 +56,10 @@ impl Elf {
     }
 
     pub fn update_header(&mut self) {
-        self.header.section_header_num = self.sections.len() as u16;
-        self.header.program_header_num = self.segments.len() as u16;
-
         self.header.elf_header_size = size_of::<Header>() as u16;
-        self.header.section_header_size = size_of::<SectionHeader>() as u16;
-        self.header.program_header_size = size_of::<ProgramHeader>() as u16;
 
+        self.header.section_header_num = self.sections.len() as u16;
+        self.header.section_header_size = size_of::<SectionHeader>() as u16;
         let mut offset = size_of::<Header>() as u64;
         offset += (size_of::<ProgramHeader>() * self.segments.len()) as u64;
         offset += self
@@ -72,7 +69,12 @@ impl Elf {
             .max()
             .unwrap();
         self.header.section_header_offset = offset;
-        self.header.program_header_offset = size_of::<Header>() as u64;
+
+        if !self.segments.is_empty() {
+            self.header.program_header_num = self.segments.len() as u16;
+            self.header.program_header_size = size_of::<ProgramHeader>() as u16;
+            self.header.program_header_offset = size_of::<Header>() as u64;
+        }
 
         self.header.string_table_index = self.find_section(".shstrtab").unwrap() as u16;
     }
