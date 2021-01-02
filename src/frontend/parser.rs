@@ -126,15 +126,11 @@ impl Parser {
             TokenKind::If => self.parse_if_statement(token.pos),
             TokenKind::While => self.parse_while_statement(token.pos),
             TokenKind::Ident { name } => match self.peek().kind {
-                TokenKind::Assign => self.parse_assign_statement(name, token.pos),
                 TokenKind::LParen => self.parse_call_statement(name, token.pos),
-                x => Err(Error::new(
-                    token.pos,
-                    ErrorKind::UnexpectedToken {
-                        expected: None,
-                        actual: x,
-                    },
-                )),
+                _ => {
+                    self.pos -= 1;
+                    self.parse_assign_statement(token.pos)
+                }
             },
             x => Err(Error::new(
                 token.pos,
@@ -179,12 +175,13 @@ impl Parser {
         Ok(Statement::new(StatementKind::Val { name, typ, value }, pos))
     }
 
-    fn parse_assign_statement(&mut self, name: String, pos: Pos) -> Result<Statement, Error> {
-        self.consume();
+    fn parse_assign_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
+        let dst = self.parse_expression()?;
+        self.expect(TokenKind::Assign)?;
         let value = self.parse_expression()?;
         Ok(Statement::new(
             StatementKind::Assign {
-                name,
+                dst: Box::new(dst),
                 value: Box::new(value),
             },
             pos,

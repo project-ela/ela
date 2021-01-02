@@ -53,7 +53,7 @@ pub enum StatementKind {
         value: Option<Box<Expression>>,
     },
     Assign {
-        name: String,
+        dst: Box<Expression>,
         value: Box<Expression>,
     },
     Return {

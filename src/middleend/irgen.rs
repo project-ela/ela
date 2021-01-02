@@ -1,6 +1,10 @@
 pub mod ir;
 
-use crate::{common::error::Error, frontend::parser::ast::*, middleend::irgen::ir::*};
+use crate::{
+    common::error::{Error, ErrorKind},
+    frontend::parser::ast::*,
+    middleend::irgen::ir::*,
+};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -127,9 +131,9 @@ impl IRGen {
                 )));
                 self.gen_assign(addr, *value, func)?;
             }
-            StatementKind::Assign { name, value } => {
-                let operand = self.ctx.find_variable(&name);
-                self.gen_assign(operand, *value, func)?;
+            StatementKind::Assign { dst, value } => {
+                let dst = self.gen_lvalue(*dst)?;
+                self.gen_assign(dst, *value, func)?;
             }
             StatementKind::Return { value } => {
                 let src = match value {
@@ -229,6 +233,16 @@ impl IRGen {
                 self.gen_call(Some(dst), name, args, func)?;
                 Ok(dst)
             }
+        }
+    }
+
+    fn gen_lvalue(&mut self, expr: Expression) -> Result<MemoryAddr, Error> {
+        match expr.kind {
+            ExpressionKind::Ident { name } => {
+                let addr = self.ctx.find_variable(&name);
+                Ok(addr)
+            }
+            _ => Err(Error::new(expr.pos, ErrorKind::LvalueRequired)),
         }
     }
 

@@ -179,33 +179,8 @@ impl<'a> SymbolPass<'a> {
                     }
                 }
             }
-            StatementKind::Assign { name, value } => {
-                let value_typ = self.apply_expression(&*value);
-                let var = self.ctx.find_variable(&name).cloned();
-                match (var, value_typ) {
-                    (Some(var), Some(value_typ)) => {
-                        if var.typ != value_typ {
-                            self.issue(Error::new(
-                                stmt.pos.clone(),
-                                ErrorKind::TypeMismatch {
-                                    lhs: var.typ,
-                                    rhs: value_typ,
-                                },
-                            ));
-                        }
-                        if var.is_const {
-                            self.issue(Error::new(
-                                stmt.pos.clone(),
-                                ErrorKind::AssignToConstant { name: name.into() },
-                            ));
-                        }
-                    }
-                    (None, _) => self.issue(Error::new(
-                        stmt.pos.clone(),
-                        ErrorKind::NotDefinedVariable { name: name.into() },
-                    )),
-                    _ => {}
-                }
+            StatementKind::Assign { dst, value } => {
+                self.check_assign(&*dst, &*value, stmt.pos.clone())
             }
             StatementKind::Return { value } => {
                 if let Some(value) = value {
@@ -314,6 +289,48 @@ impl<'a> SymbolPass<'a> {
                 }
             }
             ExpressionKind::Call { name, args } => self.check_call(&name, args, expr.pos.clone()),
+        }
+    }
+
+    fn check_assign(&mut self, dst: &Expression, value: &Expression, pos: Pos) {
+        let value_typ = self.apply_expression(&value);
+        let (var, var_name) = match dst.kind {
+            ExpressionKind::Ident { ref name } => {
+                let var = self.ctx.find_variable(name);
+                (var.cloned(), name)
+            }
+            _ => {
+                self.issue(Error::new(dst.pos.clone(), ErrorKind::LvalueRequired));
+                return;
+            }
+        };
+        match (var, value_typ) {
+            (Some(var), Some(value_typ)) => {
+                if var.typ != value_typ {
+                    self.issue(Error::new(
+                        pos.clone(),
+                        ErrorKind::TypeMismatch {
+                            lhs: var.typ,
+                            rhs: value_typ,
+                        },
+                    ));
+                }
+                if var.is_const {
+                    self.issue(Error::new(
+                        pos,
+                        ErrorKind::AssignToConstant {
+                            name: var_name.into(),
+                        },
+                    ));
+                }
+            }
+            (None, _) => self.issue(Error::new(
+                pos,
+                ErrorKind::NotDefinedVariable {
+                    name: var_name.into(),
+                },
+            )),
+            _ => {}
         }
     }
 

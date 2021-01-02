@@ -46,8 +46,8 @@ fn opt_statement(statement: Statement) -> Option<Statement> {
             typ,
             value: value.map(|x| Box::new(opt_expression(*x))),
         },
-        StatementKind::Assign { name, value } => StatementKind::Assign {
-            name,
+        StatementKind::Assign { dst, value } => StatementKind::Assign {
+            dst,
             value: Box::new(opt_expression(*value)),
         },
         StatementKind::Return { value } => StatementKind::Return {

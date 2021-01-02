@@ -58,6 +58,9 @@ pub enum ErrorKind {
         actual: usize,
     },
 
+    // irgen
+    LvalueRequired,
+
     // regalloc
     RegistersExhausted,
 }
@@ -104,6 +107,7 @@ impl fmt::Display for ErrorKind {
                 "'{}' function takes {} argument but {} arguments were supplied",
                 name, expected, actual
             ),
+            LvalueRequired => write!(f, "lvalue required"),
             RegistersExhausted => write!(f, "registers exhausted"),
         }
     }
