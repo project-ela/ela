@@ -65,12 +65,16 @@ pub enum IR {
         dst: Operand,
         src: Operand,
     },
-    Load {
+    Addr {
         dst: Operand,
         src: MemoryAddr,
     },
+    Load {
+        dst: Operand,
+        src: Operand,
+    },
     Store {
-        dst: MemoryAddr,
+        dst: Operand,
         src: Operand,
     },
     StoreArg {
@@ -213,8 +217,9 @@ impl IR {
                 }
             }
             IR::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
-            IR::Load { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
-            IR::Store { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
+            IR::Addr { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
+            IR::Load { dst, src } => format!("  {} = [{}]", dst.dump(), src.dump()),
+            IR::Store { dst, src } => format!("  [{}] = {}", dst.dump(), src.dump()),
             IR::StoreArg { dst, src } => format!("  {} = param({})", dst.dump(), src),
             IR::Jump { label } => format!("  jmp label {}", label),
             IR::JumpIfNot { label, cond } => format!("  jmpifnot {}, label {}", cond.dump(), label),

@@ -111,9 +111,10 @@ impl GenX86 {
                     self.gen(format!("  mov {}, rax", opr(&dst.unwrap())).as_str());
                 }
             }
+            IR::Addr { dst, src } => self.gen(&format!("  lea {}, {}", opr(dst), addr(src))),
             IR::Move { dst, src } => self.gen(format!("  mov {}, {}", opr(dst), opr(src)).as_str()),
-            IR::Load { dst, src } => self.gen(&format!("  mov {}, {}", opr(dst), addr(src))),
-            IR::Store { dst, src } => self.gen(&format!("  mov {}, {}", addr(dst), opr(src))),
+            IR::Load { dst, src } => self.gen(&format!("  mov {}, [{}]", opr(dst), opr(src))),
+            IR::Store { dst, src } => self.gen(&format!("  mov [{}], {}", opr(dst), opr(src))),
             IR::StoreArg {
                 dst,
                 src: param_index,

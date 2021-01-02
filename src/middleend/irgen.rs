@@ -124,15 +124,20 @@ impl IRGen {
             } => {
                 let addr = self.alloc_stack_local();
                 self.ctx.add_variable(name, addr);
+
+                let dst = self.next_reg();
+                func.push(IR::Addr { dst, src: addr });
+
                 // init by 0 if value is None
-                let value = value.unwrap_or(Box::new(Expression::new(
+                let src = value.map(|value| *value).unwrap_or(Expression::new(
                     ExpressionKind::Integer { value: 0 },
                     stmt.pos,
-                )));
-                self.gen_assign(addr, *value, func)?;
+                ));
+
+                self.gen_assign(dst, src, func)?;
             }
             StatementKind::Assign { dst, value } => {
-                let dst = self.gen_lvalue(*dst)?;
+                let dst = self.gen_lvalue(*dst, func)?;
                 self.gen_assign(dst, *value, func)?;
             }
             StatementKind::Return { value } => {
@@ -210,9 +215,9 @@ impl IRGen {
                 });
                 Ok(dst)
             }
-            ExpressionKind::Ident { name } => {
-                let src = self.ctx.find_variable(&name);
+            ExpressionKind::Ident { .. } => {
                 let dst = self.next_reg();
+                let src = self.gen_lvalue(expr, func)?;
                 func.push(IR::Load { dst, src });
                 Ok(dst)
             }
@@ -233,14 +238,26 @@ impl IRGen {
                 self.gen_call(Some(dst), name, args, func)?;
                 Ok(dst)
             }
+            ExpressionKind::Index { lhs, index } => {
+                let dst = self.next_reg();
+                // let lhs_addr = self.gen_lvalue(*lhs)?;
+                // // let offset = self
+
+                // func.push(IR::Load { dst, src: lhs_addr });
+                Ok(dst)
+            }
         }
     }
 
-    fn gen_lvalue(&mut self, expr: Expression) -> Result<MemoryAddr, Error> {
+    fn gen_lvalue(&mut self, expr: Expression, func: &mut IRFunction) -> Result<Operand, Error> {
         match expr.kind {
             ExpressionKind::Ident { name } => {
-                let addr = self.ctx.find_variable(&name);
-                Ok(addr)
+                let reg = self.next_reg();
+                func.push(IR::Addr {
+                    dst: reg,
+                    src: self.ctx.find_variable(&name),
+                });
+                Ok(reg)
             }
             _ => Err(Error::new(expr.pos, ErrorKind::LvalueRequired)),
         }
@@ -248,14 +265,12 @@ impl IRGen {
 
     fn gen_assign(
         &mut self,
-        dst: MemoryAddr,
+        dst: Operand,
         src: Expression,
         func: &mut IRFunction,
     ) -> Result<(), Error> {
         let src = self.gen_expression(src, func)?;
-        let src_reg = self.next_reg();
-        func.push(IR::Move { dst: src_reg, src });
-        func.push(IR::Store { dst, src: src_reg });
+        func.push(IR::Store { dst, src });
         Ok(())
     }
 

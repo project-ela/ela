@@ -38,7 +38,7 @@ impl RegAlloc {
     fn alloc_register_block(&mut self, block: &mut IRBlock) -> Result<(), Error> {
         for ir in block.irs.iter_mut() {
             match ir {
-                IR::UnOp { op: _, ref mut src } => {
+                IR::UnOp { op: _, src } => {
                     self.get_operand(src, false);
                 }
                 IR::BinOp {
@@ -63,11 +63,16 @@ impl RegAlloc {
                     self.get_operand(src, true);
                     self.alloc_operand(dst)?;
                 }
-                IR::Load { dst, src: _ } => {
+                IR::Addr { dst, src: _ } => {
                     self.alloc_operand(dst)?;
                 }
-                IR::Store { dst: _, src } => {
+                IR::Load { dst, src } => {
                     self.get_operand(src, true);
+                    self.alloc_operand(dst)?;
+                }
+                IR::Store { dst, src } => {
+                    self.get_operand(src, true);
+                    self.get_operand(dst, true);
                 }
                 IR::StoreArg { dst: _, src: _ } => {}
                 IR::Jump { .. } => {}
