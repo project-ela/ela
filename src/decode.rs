@@ -113,6 +113,7 @@ impl Decoder {
             }
             0x89 => self.decode_mr(Mnemonic::Mov),
             0x8b => self.decode_rm(Mnemonic::Mov),
+            0x8d => self.decode_rm(Mnemonic::Lea),
             0x8f => self.decode_m(Mnemonic::Pop),
             0xc3 => Instruction::new_nullary(Mnemonic::Ret),
             0xc7 => {
