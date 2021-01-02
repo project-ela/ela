@@ -38,7 +38,7 @@ impl RegAlloc {
     fn alloc_register_block(&mut self, block: &mut IRBlock) -> Result<(), Error> {
         for ir in block.irs.iter_mut() {
             match ir {
-                IR::UnOp { op: _, ref mut src } => {
+                IR::UnOp { op: _, src } => {
                     self.get_operand(src, false);
                 }
                 IR::BinOp {
@@ -63,6 +63,18 @@ impl RegAlloc {
                     self.get_operand(src, true);
                     self.alloc_operand(dst)?;
                 }
+                IR::Addr { dst, src: _ } => {
+                    self.alloc_operand(dst)?;
+                }
+                IR::Load { dst, src } => {
+                    self.get_operand(src, true);
+                    self.alloc_operand(dst)?;
+                }
+                IR::Store { dst, src } => {
+                    self.get_operand(src, true);
+                    self.get_operand(dst, true);
+                }
+                IR::StoreArg { dst: _, src: _ } => {}
                 IR::Jump { .. } => {}
                 IR::JumpIfNot { label: _, cond } => {
                     self.get_operand(cond, true);
@@ -82,7 +94,7 @@ impl RegAlloc {
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.alloc_reg(info.virtual_index)?);
             }
-            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
+            Operand::Const(_) => {}
         }
 
         Ok(())
@@ -93,7 +105,7 @@ impl RegAlloc {
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.get_reg(info.virtual_index));
             }
-            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
+            Operand::Const(_) => {}
         }
 
         if kill {
@@ -106,7 +118,7 @@ impl RegAlloc {
             Operand::Reg(info) => {
                 self.kill_reg(&info.virtual_index);
             }
-            Operand::Const(_) | Operand::Variable(_) | Operand::Parameter(_) => {}
+            Operand::Const(_) => {}
         }
     }
 

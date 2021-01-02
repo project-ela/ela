@@ -53,7 +53,7 @@ pub enum StatementKind {
         value: Option<Box<Expression>>,
     },
     Assign {
-        name: String,
+        dst: Box<Expression>,
         value: Box<Expression>,
     },
     Return {
@@ -112,5 +112,9 @@ pub enum ExpressionKind {
     Call {
         name: String,
         args: Vec<Expression>,
+    },
+    Index {
+        lhs: Box<Expression>,
+        index: Box<Expression>,
     },
 }

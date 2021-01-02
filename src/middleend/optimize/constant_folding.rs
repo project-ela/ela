@@ -46,21 +46,28 @@ fn opt_statement(statement: Statement) -> Option<Statement> {
             typ,
             value: value.map(|x| Box::new(opt_expression(*x))),
         },
-        StatementKind::Assign { name, value } => StatementKind::Assign {
-            name,
+        StatementKind::Assign { dst, value } => StatementKind::Assign {
+            dst,
             value: Box::new(opt_expression(*value)),
         },
         StatementKind::Return { value } => StatementKind::Return {
             value: value.map(|value| Box::new(opt_expression(*value))),
         },
-        StatementKind::If { cond, then, els } => match opt_expression(*cond).kind {
-            ExpressionKind::Bool { value } => {
+        StatementKind::If { cond, then, els } => match opt_expression(*cond) {
+            Expression {
+                kind: ExpressionKind::Bool { value },
+                pos: _,
+            } => {
                 return match (value, els) {
                     (true, _) => opt_statement(*then),
                     (false, els) => els.and_then(|els| opt_statement(*els)),
                 }
             }
-            _ => unreachable!(),
+            cond => StatementKind::If {
+                cond: Box::new(cond),
+                then,
+                els,
+            },
         },
         StatementKind::While { cond, body } => StatementKind::While {
             cond: Box::new(opt_expression(*cond)),
@@ -106,6 +113,13 @@ fn opt_expression(expression: Expression) -> Expression {
                 expression.pos,
             )
         }
+        ExpressionKind::Index { lhs, index } => Expression::new(
+            ExpressionKind::Index {
+                lhs,
+                index: Box::new(opt_expression(*index)),
+            },
+            expression.pos,
+        ),
     }
 }
 

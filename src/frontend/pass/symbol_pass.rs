@@ -123,12 +123,15 @@ impl<'a> SymbolPass<'a> {
     }
 
     fn apply_function(&mut self, function: &'a Function) {
-        self.ctx
-            .add_function(function.name.to_owned(), &function.params, function.ret_typ);
+        self.ctx.add_function(
+            function.name.to_owned(),
+            &function.params,
+            function.ret_typ.clone(),
+        );
         self.ctx.push();
         for param in &function.params {
             self.ctx
-                .add_variable(param.name.to_owned(), param.typ, false);
+                .add_variable(param.name.to_owned(), param.typ.clone(), false);
         }
         if function.body.is_some() {
             self.apply_statement(function.body.as_ref().unwrap(), &function.ret_typ);
@@ -146,7 +149,7 @@ impl<'a> SymbolPass<'a> {
                 self.ctx.pop();
             }
             StatementKind::Var { name, typ, value } => {
-                self.ctx.add_variable(name.to_owned(), *typ, false);
+                self.ctx.add_variable(name.to_owned(), typ.clone(), false);
                 if value.is_none() {
                     return;
                 }
@@ -155,7 +158,7 @@ impl<'a> SymbolPass<'a> {
                         self.issue(Error::new(
                             stmt.pos.clone(),
                             ErrorKind::TypeMismatch {
-                                lhs: *typ,
+                                lhs: typ.clone(),
                                 rhs: value_typ,
                             },
                         ));
@@ -163,7 +166,7 @@ impl<'a> SymbolPass<'a> {
                 }
             }
             StatementKind::Val { name, typ, value } => {
-                self.ctx.add_variable(name.to_owned(), *typ, true);
+                self.ctx.add_variable(name.to_owned(), typ.clone(), true);
                 if value.is_none() {
                     return;
                 }
@@ -172,40 +175,15 @@ impl<'a> SymbolPass<'a> {
                         self.issue(Error::new(
                             stmt.pos.clone(),
                             ErrorKind::TypeMismatch {
-                                lhs: *typ,
+                                lhs: typ.clone(),
                                 rhs: value_typ,
                             },
                         ));
                     }
                 }
             }
-            StatementKind::Assign { name, value } => {
-                let value_typ = self.apply_expression(&*value);
-                let var = self.ctx.find_variable(&name).cloned();
-                match (var, value_typ) {
-                    (Some(var), Some(value_typ)) => {
-                        if var.typ != value_typ {
-                            self.issue(Error::new(
-                                stmt.pos.clone(),
-                                ErrorKind::TypeMismatch {
-                                    lhs: var.typ,
-                                    rhs: value_typ,
-                                },
-                            ));
-                        }
-                        if var.is_const {
-                            self.issue(Error::new(
-                                stmt.pos.clone(),
-                                ErrorKind::AssignToConstant { name: name.into() },
-                            ));
-                        }
-                    }
-                    (None, _) => self.issue(Error::new(
-                        stmt.pos.clone(),
-                        ErrorKind::NotDefinedVariable { name: name.into() },
-                    )),
-                    _ => {}
-                }
+            StatementKind::Assign { dst, value } => {
+                self.check_assign(&*dst, &*value, stmt.pos.clone())
             }
             StatementKind::Return { value } => {
                 if let Some(value) = value {
@@ -214,7 +192,7 @@ impl<'a> SymbolPass<'a> {
                             self.issue(Error::new(
                                 stmt.pos.clone(),
                                 ErrorKind::TypeMismatch {
-                                    lhs: *ret_typ,
+                                    lhs: ret_typ.clone(),
                                     rhs: value_typ,
                                 },
                             ));
@@ -263,7 +241,7 @@ impl<'a> SymbolPass<'a> {
             ExpressionKind::Integer { .. } => Some(Type::Int),
             ExpressionKind::Bool { .. } => Some(Type::Bool),
             ExpressionKind::Ident { name } => match self.ctx.find_variable(&name) {
-                Some(var) => Some(var.typ),
+                Some(var) => Some(var.typ.clone()),
                 None => {
                     self.issue(Error::new(
                         expr.pos.clone(),
@@ -314,6 +292,58 @@ impl<'a> SymbolPass<'a> {
                 }
             }
             ExpressionKind::Call { name, args } => self.check_call(&name, args, expr.pos.clone()),
+            ExpressionKind::Index { lhs, index } => {
+                let lhs_typ = self.apply_expression(lhs)?;
+                let index_typ = self.apply_expression(index)?;
+                if !matches!(lhs_typ, Type::Array { ..}) {
+                    self.issue(Error::new(
+                        expr.pos.clone(),
+                        ErrorKind::CannotIndex { lhs: lhs_typ },
+                    ));
+                }
+                if index_typ != Type::Int {
+                    self.issue(Error::new(
+                        expr.pos.clone(),
+                        ErrorKind::TypeMismatch {
+                            lhs: index_typ,
+                            rhs: Type::Int,
+                        },
+                    ));
+                }
+                None
+            }
+        }
+    }
+
+    fn check_assign(&mut self, dst: &Expression, value: &Expression, pos: Pos) {
+        let dst_typ = self.apply_expression(dst);
+        let value_typ = self.apply_expression(value);
+        match (dst_typ, value_typ) {
+            (Some(dst_typ), Some(value_typ)) => {
+                if dst_typ != value_typ {
+                    self.issue(Error::new(
+                        pos.clone(),
+                        ErrorKind::TypeMismatch {
+                            lhs: dst_typ,
+                            rhs: value_typ,
+                        },
+                    ));
+                }
+            }
+            _ => return,
+        }
+
+        match &dst.kind {
+            ExpressionKind::Ident { name } => {
+                let var = self.ctx.find_variable(name).unwrap();
+                if var.is_const {
+                    self.issue(Error::new(
+                        pos,
+                        ErrorKind::AssignToConstant { name: name.into() },
+                    ));
+                }
+            }
+            _ => {}
         }
     }
 
@@ -344,10 +374,10 @@ impl<'a> SymbolPass<'a> {
                         actual: args.len(),
                     },
                 ));
-                return Some(sig.ret_typ);
+                return Some(sig.ret_typ.clone());
             }
 
-            let param_types = sig.params.iter().map(|param| param.typ);
+            let param_types = sig.params.iter().map(|param| param.typ.clone());
 
             for (arg_typ, param_typ) in arg_types.into_iter().zip(param_types) {
                 if let Some(arg_typ) = arg_typ {
@@ -363,7 +393,7 @@ impl<'a> SymbolPass<'a> {
                 }
             }
 
-            Some(sig.ret_typ)
+            Some(sig.ret_typ.clone())
         };
         let ret_typ = do_check();
 

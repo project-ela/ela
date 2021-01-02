@@ -65,6 +65,22 @@ pub enum IR {
         dst: Operand,
         src: Operand,
     },
+    Addr {
+        dst: Operand,
+        src: MemoryAddr,
+    },
+    Load {
+        dst: Operand,
+        src: Operand,
+    },
+    Store {
+        dst: Operand,
+        src: Operand,
+    },
+    StoreArg {
+        dst: MemoryAddr,
+        src: usize, // index of argument
+    },
     Jump {
         label: String,
     },
@@ -81,8 +97,6 @@ pub enum IR {
 pub enum Operand {
     Reg(RegisterInfo),
     Const(i32),
-    Variable(u32),
-    Parameter(u32),
 }
 
 impl Operand {
@@ -98,11 +112,15 @@ impl Operand {
         match (self, other) {
             (Operand::Reg(info1), Operand::Reg(info2)) => info1.is_same_reg(info2),
             (Operand::Const(value1), Operand::Const(value2)) => value1 == value2,
-            (Operand::Variable(offset1), Operand::Variable(offset2)) => offset1 == offset2,
-            (Operand::Parameter(index1), Operand::Parameter(index2)) => index1 == index2,
             _ => false,
         }
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct MemoryAddr {
+    pub base: Register,
+    pub offset: i32,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -199,6 +217,10 @@ impl IR {
                 }
             }
             IR::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
+            IR::Addr { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
+            IR::Load { dst, src } => format!("  {} = [{}]", dst.dump(), src.dump()),
+            IR::Store { dst, src } => format!("  [{}] = {}", dst.dump(), src.dump()),
+            IR::StoreArg { dst, src } => format!("  {} = param({})", dst.dump(), src),
             IR::Jump { label } => format!("  jmp label {}", label),
             IR::JumpIfNot { label, cond } => format!("  jmpifnot {}, label {}", cond.dump(), label),
             IR::Ret { src } => match src {
@@ -218,9 +240,13 @@ impl Operand {
                 info.physical_index.map_or("none", |reg| reg.dump())
             ),
             Operand::Const(value) => format!("{}", value),
-            Operand::Variable(offset) => format!("var({})", offset),
-            Operand::Parameter(offst) => format!("param({})", offst),
         }
+    }
+}
+
+impl MemoryAddr {
+    pub fn dump(&self) -> String {
+        format!("addr({}{:+})", self.base.dump(), self.offset)
     }
 }
 
