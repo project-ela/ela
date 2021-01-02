@@ -34,6 +34,9 @@ pub enum ErrorKind {
         lhs: Type,
         rhs: Type,
     },
+    CannotIndex {
+        lhs: Type,
+    },
     AssignToConstant {
         name: String,
     },
@@ -87,6 +90,7 @@ impl fmt::Display for ErrorKind {
             MainNotFound => write!(f, "there must be 'main' function"),
             MainShouldReturnInt => write!(f, "'main' function should return int value"),
             TypeMismatch { ref lhs, ref rhs } => write!(f, "type mismatch {} and {}", lhs, rhs),
+            CannotIndex { ref lhs } => write!(f, "cannot index type {}", lhs),
             AssignToConstant { ref name } => {
                 write!(f, "cannot assign to constant variable '{}'", name)
             }

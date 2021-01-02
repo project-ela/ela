@@ -113,4 +113,8 @@ pub enum ExpressionKind {
         name: String,
         args: Vec<Expression>,
     },
+    Index {
+        lhs: Box<Expression>,
+        index: Box<Expression>,
+    },
 }

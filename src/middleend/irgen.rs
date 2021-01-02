@@ -1,7 +1,11 @@
 pub mod ir;
 
 use crate::{
-    common::error::{Error, ErrorKind},
+    common::{
+        error::{Error, ErrorKind},
+        operator::BinaryOperator,
+        types::Type,
+    },
     frontend::parser::ast::*,
     middleend::irgen::ir::*,
 };
@@ -91,7 +95,7 @@ impl IRGen {
         let mut ir_func = IRFunction::new(func.name.to_owned());
         ir_func.new_block(format!(".L.{}.entry", func.name));
         for (index, param) in func.params.iter().enumerate() {
-            let addr = self.alloc_stack_local();
+            let addr = self.alloc_stack_local(&param.typ);
             self.ctx.add_variable(param.name.to_owned(), addr);
             ir_func.push(IR::StoreArg {
                 dst: addr,
@@ -113,29 +117,45 @@ impl IRGen {
                 }
                 self.ctx.pop();
             }
-            StatementKind::Var {
-                name,
-                typ: _,
-                value,
-            }
-            | StatementKind::Val {
-                name,
-                typ: _,
-                value,
-            } => {
-                let addr = self.alloc_stack_local();
+            StatementKind::Var { name, typ, value } | StatementKind::Val { name, typ, value } => {
+                let addr = self.alloc_stack_local(&typ);
                 self.ctx.add_variable(name, addr);
 
-                let dst = self.next_reg();
-                func.push(IR::Addr { dst, src: addr });
+                match value {
+                    Some(value) => {
+                        let dst = self.next_reg();
+                        func.push(IR::Addr { dst, src: addr });
+                        self.gen_assign(dst, *value, func)?;
+                    }
+                    None => match typ {
+                        Type::Array { elm_type, len } => {
+                            for i in 0..len {
+                                let dst = self.next_reg();
+                                func.push(IR::Addr { dst, src: addr });
+                                let offset = i * elm_type.size();
+                                func.push(IR::BinOp {
+                                    op: BinaryOperator::Add,
+                                    dst,
+                                    lhs: dst,
+                                    rhs: Operand::Const(offset as i32),
+                                });
 
-                // init by 0 if value is None
-                let src = value.map(|value| *value).unwrap_or(Expression::new(
-                    ExpressionKind::Integer { value: 0 },
-                    stmt.pos,
-                ));
-
-                self.gen_assign(dst, src, func)?;
+                                let zero = Expression::new(
+                                    ExpressionKind::Integer { value: 0 },
+                                    stmt.pos.clone(),
+                                );
+                                self.gen_assign(dst, zero, func)?;
+                            }
+                        }
+                        _ => {
+                            let dst = self.next_reg();
+                            func.push(IR::Addr { dst, src: addr });
+                            let zero =
+                                Expression::new(ExpressionKind::Integer { value: 0 }, stmt.pos);
+                            self.gen_assign(dst, zero, func)?;
+                        }
+                    },
+                }
             }
             StatementKind::Assign { dst, value } => {
                 let dst = self.gen_lvalue(*dst, func)?;
@@ -216,7 +236,7 @@ impl IRGen {
                 });
                 Ok(dst)
             }
-            ExpressionKind::Ident { .. } => {
+            ExpressionKind::Ident { .. } | ExpressionKind::Index { .. } => {
                 let dst = self.next_reg();
                 let src = self.gen_lvalue(expr, func)?;
                 func.push(IR::Load { dst, src });
@@ -239,14 +259,6 @@ impl IRGen {
                 self.gen_call(Some(dst), name, args, func)?;
                 Ok(dst)
             }
-            ExpressionKind::Index { lhs, index } => {
-                let dst = self.next_reg();
-                // let lhs_addr = self.gen_lvalue(*lhs)?;
-                // // let offset = self
-
-                // func.push(IR::Load { dst, src: lhs_addr });
-                Ok(dst)
-            }
         }
     }
 
@@ -258,6 +270,25 @@ impl IRGen {
                     dst: reg,
                     src: self.ctx.find_variable(&name),
                 });
+                Ok(reg)
+            }
+            ExpressionKind::Index { lhs, index } => {
+                let reg = self.gen_lvalue(*lhs, func)?;
+
+                let index = self.gen_expression(*index, func)?;
+                func.push(IR::BinOp {
+                    op: BinaryOperator::Mul,
+                    dst: index,
+                    lhs: index,
+                    rhs: Operand::Const(8), // TODO
+                });
+                func.push(IR::BinOp {
+                    op: BinaryOperator::Add,
+                    dst: reg,
+                    lhs: reg,
+                    rhs: index,
+                });
+
                 Ok(reg)
             }
             _ => Err(Error::new(expr.pos, ErrorKind::LvalueRequired)),
@@ -316,8 +347,8 @@ impl IRGen {
         format!(".L.{}.{}", self.cur_funcname, cur_label)
     }
 
-    fn alloc_stack_local(&mut self) -> MemoryAddr {
-        self.stack_offset_local -= 8;
+    fn alloc_stack_local(&mut self, typ: &Type) -> MemoryAddr {
+        self.stack_offset_local -= typ.size() as i32;
         MemoryAddr {
             base: Register::Rbp,
             offset: self.stack_offset_local,

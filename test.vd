@@ -196,5 +196,14 @@ func main(): int {
 
   asserti(fib(5), 5)
 
+  var arr: int[10]
+  i = 0
+  while i < 10 {
+    asserti(arr[i], 0)
+    arr[i] = i * 2
+    asserti(arr[i], i * 2)
+    i = i + 1
+  }
+
   return 0
 }

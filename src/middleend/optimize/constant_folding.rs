@@ -113,6 +113,13 @@ fn opt_expression(expression: Expression) -> Expression {
                 expression.pos,
             )
         }
+        ExpressionKind::Index { lhs, index } => Expression::new(
+            ExpressionKind::Index {
+                lhs,
+                index: Box::new(opt_expression(*index)),
+            },
+            expression.pos,
+        ),
     }
 }
 

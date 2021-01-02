@@ -362,8 +362,26 @@ impl Parser {
                 self.parse_unary()?
             )),
             TokenKind::Not => Ok(new_unop!(self, UnaryOperator::Not, self.parse_unary()?)),
-            _ => Ok(self.parse_primary()?),
+            _ => Ok(self.parse_postfix()?),
         }
+    }
+
+    fn parse_postfix(&mut self) -> Result<Expression, Error> {
+        let mut node = self.parse_primary()?;
+
+        if self.peek().kind == TokenKind::LBracket {
+            let pos = self.consume().pos;
+            node = Expression::new(
+                ExpressionKind::Index {
+                    lhs: Box::new(node),
+                    index: Box::new(self.parse_expression()?),
+                },
+                pos,
+            );
+            self.expect(TokenKind::RBracket)?;
+        }
+
+        Ok(node)
     }
 
     fn parse_primary(&mut self) -> Result<Expression, Error> {
@@ -446,17 +464,45 @@ impl Parser {
         }
     }
 
-    fn consume_type(&mut self) -> Result<Type, Error> {
-        let next_token_pos = self.peek().pos;
-        let name = self.consume_ident()?;
-        match name.as_str() {
-            "int" => Ok(Type::Int),
-            "bool" => Ok(Type::Bool),
-            x => Err(Error::new(
-                next_token_pos,
-                ErrorKind::NotTypeName { name: x.into() },
+    fn consume_int(&mut self) -> Result<i32, Error> {
+        let next_token = self.consume();
+        match next_token.kind {
+            TokenKind::IntLiteral { value } => Ok(value),
+            _ => Err(Error::new(
+                next_token.pos,
+                ErrorKind::UnexpectedToken {
+                    actual: next_token.kind,
+                    expected: Some(TokenKind::IntLiteral { value: 0 }),
+                },
             )),
         }
+    }
+
+    fn consume_type(&mut self) -> Result<Type, Error> {
+        let next_token_pos = self.peek().pos;
+        let mut typ = match self.consume_ident()?.as_str() {
+            "int" => Type::Int,
+            "bool" => Type::Bool,
+            x => {
+                return Err(Error::new(
+                    next_token_pos,
+                    ErrorKind::NotTypeName { name: x.into() },
+                ))
+            }
+        };
+
+        if self.peek().kind == TokenKind::LBracket {
+            self.consume();
+            let len = self.consume_int()? as u32;
+            self.expect(TokenKind::RBracket)?;
+
+            typ = Type::Array {
+                elm_type: Box::new(typ),
+                len,
+            }
+        }
+
+        Ok(typ)
     }
 
     fn consume(&mut self) -> Token {
