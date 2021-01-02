@@ -191,6 +191,12 @@ fn encode_binary_op(inst: &Instruction) -> EncodedInst {
             }
             _ => panic!(),
         },
+        Mnemonic::Lea => match (opr1, opr2) {
+            (Operand::Register(reg), Operand::Memory(_)) => {
+                encoding::encode_rm(&[0x8d], reg, opr2.to_rm())
+            }
+            _ => panic!(),
+        },
         Mnemonic::Mov => match (opr1, opr2) {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
