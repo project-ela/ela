@@ -100,6 +100,7 @@ impl IRGen {
             ir_func.params.push(index as u32);
         }
         self.gen_statement(func.body.unwrap(), &mut ir_func)?;
+        ir_func.stack_offset = (-self.stack_offset_local) as u32;
         Ok(Some(ir_func))
     }
 

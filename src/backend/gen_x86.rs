@@ -44,6 +44,7 @@ impl GenX86 {
         self.gen(format!("{}:", function.name).as_str());
         self.gen("  push rbp");
         self.gen("  mov rbp, rsp");
+        self.gen(&format!("  sub rsp, {}", function.stack_offset));
         self.gen("  push r12");
         self.gen("  push r13");
         self.gen("  push r14");
