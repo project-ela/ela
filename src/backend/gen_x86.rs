@@ -112,6 +112,15 @@ impl GenX86 {
                 }
             }
             IR::Move { dst, src } => self.gen(format!("  mov {}, {}", opr(dst), opr(src)).as_str()),
+            IR::Load { dst, src } => self.gen(&format!("  mov {}, {}", opr(dst), addr(src))),
+            IR::Store { dst, src } => self.gen(&format!("  mov {}, {}", addr(dst), opr(src))),
+            IR::StoreArg {
+                dst,
+                src: param_index,
+            } => {
+                let param_reg = PARAM_REGS[*param_index];
+                self.gen(&format!("  mov {}, {}", addr(dst), reg(&param_reg)));
+            }
             IR::Jump { label } => self.gen(format!("  jmp {}", label).as_str()),
             IR::JumpIfNot { label, cond } => {
                 self.gen(format!("  cmp {}, 0", opr(cond)).as_str());
@@ -165,8 +174,6 @@ fn opr(operand: &Operand) -> String {
     match operand {
         Operand::Const(value) => format!("{}", value),
         Operand::Reg(info) => reg(&info.physical_index.unwrap()).to_string(),
-        Operand::Variable(offset) => format!("[rbp-{}]", offset),
-        Operand::Parameter(idx) => PARAM_REGS[*idx as usize].dump().to_string(),
     }
 }
 
@@ -175,6 +182,10 @@ fn opr8(operand: &Operand) -> String {
         Operand::Reg(reg) => reg8(reg.physical_index.unwrap()).to_owned(),
         _ => unreachable!(),
     }
+}
+
+fn addr(addr: &MemoryAddr) -> String {
+    format!("[{}{:+}]", reg(&addr.base), addr.offset)
 }
 
 fn reg(reg: &Register) -> &'static str {

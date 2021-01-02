@@ -9,14 +9,13 @@ struct IRGen {
     reg: u32,
     label: u32,
 
-    stack_offset_local: u32,
-    param_index: u32,
+    stack_offset_local: i32,
 
     ctx: Context,
 }
 
 #[derive(Debug)]
-struct Context(Vec<HashMap<String, Operand>>);
+struct Context(Vec<HashMap<String, MemoryAddr>>);
 
 impl Context {
     fn new() -> Self {
@@ -25,11 +24,11 @@ impl Context {
         ctx
     }
 
-    fn add_variable(&mut self, name: String, operand: Operand) {
-        self.0.last_mut().unwrap().insert(name, operand);
+    fn add_variable(&mut self, name: String, addr: MemoryAddr) {
+        self.0.last_mut().unwrap().insert(name, addr);
     }
 
-    fn find_variable(&self, name: &str) -> Operand {
+    fn find_variable(&self, name: &str) -> MemoryAddr {
         for ctx in self.0.iter().rev() {
             if ctx.contains_key(name) {
                 return *ctx.get(name).unwrap();
@@ -64,7 +63,6 @@ impl IRGen {
             reg: 0,
             label: 0,
             stack_offset_local: 0,
-            param_index: 0,
             ctx: Context::new(),
         }
     }
@@ -87,12 +85,16 @@ impl IRGen {
         self.init();
         self.cur_funcname = func.name.clone();
         let mut ir_func = IRFunction::new(func.name.to_owned());
-        for param in &func.params {
-            let operand = self.next_param();
-            self.ctx.add_variable(param.name.to_owned(), operand);
-            ir_func.params.push(self.param_index - 1);
-        }
         ir_func.new_block(format!(".L.{}.entry", func.name));
+        for (index, param) in func.params.iter().enumerate() {
+            let addr = self.alloc_stack_local();
+            self.ctx.add_variable(param.name.to_owned(), addr);
+            ir_func.push(IR::StoreArg {
+                dst: addr,
+                src: index,
+            });
+            ir_func.params.push(index as u32);
+        }
         self.gen_statement(func.body.unwrap(), &mut ir_func)?;
         Ok(Some(ir_func))
     }
@@ -116,14 +118,14 @@ impl IRGen {
                 typ: _,
                 value,
             } => {
-                let operand = self.alloc_stack_local();
-                self.ctx.add_variable(name, operand);
+                let addr = self.alloc_stack_local();
+                self.ctx.add_variable(name, addr);
                 // init by 0 if value is None
                 let value = value.unwrap_or(Box::new(Expression::new(
                     ExpressionKind::Integer { value: 0 },
                     stmt.pos,
                 )));
-                self.gen_assign(operand, *value, func)?;
+                self.gen_assign(addr, *value, func)?;
             }
             StatementKind::Assign { name, value } => {
                 let operand = self.ctx.find_variable(&name);
@@ -205,9 +207,9 @@ impl IRGen {
                 Ok(dst)
             }
             ExpressionKind::Ident { name } => {
-                let operand = self.ctx.find_variable(&name);
+                let src = self.ctx.find_variable(&name);
                 let dst = self.next_reg();
-                func.push(IR::Move { dst, src: operand });
+                func.push(IR::Load { dst, src });
                 Ok(dst)
             }
             ExpressionKind::UnaryOp { op, expr } => {
@@ -232,14 +234,14 @@ impl IRGen {
 
     fn gen_assign(
         &mut self,
-        dst: Operand,
+        dst: MemoryAddr,
         src: Expression,
         func: &mut IRFunction,
     ) -> Result<(), Error> {
         let src = self.gen_expression(src, func)?;
         let src_reg = self.next_reg();
         func.push(IR::Move { dst: src_reg, src });
-        func.push(IR::Move { dst, src: src_reg });
+        func.push(IR::Store { dst, src: src_reg });
         Ok(())
     }
 
@@ -266,7 +268,6 @@ impl IRGen {
         self.reg = 0;
         self.label = 0;
         self.stack_offset_local = 0;
-        self.param_index = 0; // because of ebp
         self.ctx.clear();
     }
 
@@ -285,14 +286,12 @@ impl IRGen {
         format!(".L.{}.{}", self.cur_funcname, cur_label)
     }
 
-    fn alloc_stack_local(&mut self) -> Operand {
-        self.stack_offset_local += 8;
-        Operand::Variable(self.stack_offset_local)
-    }
-
-    fn next_param(&mut self) -> Operand {
-        self.param_index += 1;
-        Operand::Parameter(self.param_index - 1)
+    fn alloc_stack_local(&mut self) -> MemoryAddr {
+        self.stack_offset_local -= 8;
+        MemoryAddr {
+            base: Register::Rbp,
+            offset: self.stack_offset_local,
+        }
     }
 }
 
