@@ -3,7 +3,7 @@
 try() {
   option=$1
 
-  cargo run -- $option test.vd tmp.s 2> /dev/null
+  cargo run -- $option test.vd tmp.s
   gcc tmp.s -o tmp
   ./tmp
   actual=$?
