@@ -134,6 +134,7 @@ fn find_keyword(ident: &str) -> Option<Token> {
         "imul" => Some(Token::Mnemonic(Mnemonic::IMul)),
         "je" => Some(Token::Mnemonic(Mnemonic::Je)),
         "jmp" => Some(Token::Mnemonic(Mnemonic::Jmp)),
+        "lea" => Some(Token::Mnemonic(Mnemonic::Lea)),
         "mov" => Some(Token::Mnemonic(Mnemonic::Mov)),
         "or" => Some(Token::Mnemonic(Mnemonic::Or)),
         "pop" => Some(Token::Mnemonic(Mnemonic::Pop)),

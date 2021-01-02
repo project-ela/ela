@@ -242,6 +242,14 @@ fn cmp() {
     do_test("cmp [r9-8],rax", "49 39 41 f8");
 }
 
+#[test]
+fn lea() {
+    do_test("lea rax,[rax]", "48 8d 00");
+    do_test("lea rax,[r9]", "49 8d 01");
+    do_test("lea rax,[rax+8]", "48 8d 40 08");
+    do_test("lea rax,[r9-8]", "49 8d 41 f8");
+}
+
 fn do_test(source: &str, expected_output: &str) {
     let output = lexer::tokenize(source.to_string())
         .and_then(|tokens| parser::parse(tokens))
