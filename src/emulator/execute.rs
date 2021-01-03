@@ -69,6 +69,24 @@ impl Emulator {
                     self.mmu.set_memory8(addr, value).unwrap();
                 }
             }
+            1 => {
+                let fd = self.cpu.get_register64(&Register::Rdi);
+                let buf_addr = self.cpu.get_register64(&Register::Rsi) as usize;
+                let count = self.cpu.get_register64(&Register::Rdx) as usize;
+
+                let mut buf = String::new();
+                for i in 0..count {
+                    let addr = buf_addr + i;
+                    let value = self.mmu.get_memory8(addr).unwrap();
+                    buf.push(value as char);
+                }
+
+                match fd {
+                    1 => print!("{}", buf),
+                    2 => eprint!("{}", buf),
+                    _ => unimplemented!(),
+                }
+            }
             60 => {
                 let exit_code = self.cpu.get_register(&Register::Rdi) as u8;
                 println!("Exited with code {}", exit_code);
