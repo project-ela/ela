@@ -14,6 +14,8 @@ use x86asm::instruction::operand::register::Register;
 pub struct Emulator {
     pub cpu: Cpu,
     pub mmu: Mmu,
+
+    pub dump_state: bool,
 }
 
 impl Emulator {
@@ -21,6 +23,7 @@ impl Emulator {
         let mut emu = Self {
             cpu: Cpu::new(),
             mmu: Mmu::new(),
+            dump_state: false,
         };
         emu.cpu.set_rip(rip);
         emu.cpu.set_register(&Register::Rsp, rsp);
@@ -46,13 +49,19 @@ impl Emulator {
     }
 
     pub fn run(&mut self) {
-        self.dump();
+        if self.dump_state {
+            self.dump();
+        }
         loop {
             match self.decode() {
                 Ok(inst) => {
-                    println!("Decoded: {:?}", inst);
+                    if self.dump_state {
+                        println!("Decoded: {:?}", inst);
+                    }
                     self.exec(inst);
-                    self.dump();
+                    if self.dump_state {
+                        self.dump();
+                    }
                 }
                 Err(err) => {
                     self.dump();
