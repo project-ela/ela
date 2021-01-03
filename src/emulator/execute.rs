@@ -197,7 +197,10 @@ impl Emulator {
     }
 
     fn calc_address(&self, mem: &Memory) -> usize {
-        let base = self.cpu.get_register(&mem.base) as isize;
+        let base = mem
+            .base
+            .as_ref()
+            .map_or(0, |base| self.cpu.get_register64(&base) as isize);
         let disp = mem.disp.as_ref().map_or(0, |disp| match disp {
             Displacement::Disp8(value) => *value as isize,
             Displacement::Disp32(value) => *value as isize,
