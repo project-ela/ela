@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use x86asm::instruction::{
     mnemonic::{self, Mnemonic},
     operand::{
@@ -48,6 +50,25 @@ impl Emulator {
     fn exec_syscall(&mut self) {
         let rax = self.cpu.get_register64(&Register::Rax);
         match rax {
+            0 => {
+                let fd = self.cpu.get_register64(&Register::Rdi);
+                let buf_addr = self.cpu.get_register64(&Register::Rsi) as usize;
+                let count = self.cpu.get_register64(&Register::Rdx) as usize;
+
+                if fd != 0 {
+                    unimplemented!();
+                }
+                let mut buf = String::new();
+                let mut buf_len = std::io::stdin().read_line(&mut buf).unwrap();
+                buf_len = min(buf_len, count);
+
+                let buf_bytes = buf.as_bytes();
+                for i in 0..buf_len {
+                    let addr = buf_addr + i;
+                    let value = buf_bytes[i];
+                    self.mmu.set_memory8(addr, value).unwrap();
+                }
+            }
             60 => {
                 let exit_code = self.cpu.get_register(&Register::Rdi) as u8;
                 println!("Exited with code {}", exit_code);
