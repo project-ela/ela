@@ -12,7 +12,9 @@ impl Emulator {
                 Err(_) => break,
             }
         }
-        println!("Fetched: {:X?}", bytes);
+        if self.dump_state {
+            println!("Fetched: {:X?}", bytes);
+        }
 
         let mut decoder = decode::Decoder::new(&bytes);
         let inst = decoder.decode_inst();
