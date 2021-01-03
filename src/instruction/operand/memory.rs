@@ -2,7 +2,7 @@ use super::register::Register;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Memory {
-    pub base: Register,
+    pub base: Option<Register>,
     pub disp: Option<Displacement>,
 }
 
@@ -14,7 +14,17 @@ pub enum Displacement {
 
 impl Memory {
     pub fn new(base: Register, disp: Option<Displacement>) -> Self {
-        Self { base, disp }
+        Self {
+            base: Some(base),
+            disp,
+        }
+    }
+
+    pub fn new_disp(disp: Displacement) -> Self {
+        Self {
+            base: None,
+            disp: Some(disp),
+        }
     }
 }
 

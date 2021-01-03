@@ -1,7 +1,7 @@
 pub mod decoding;
 
 use crate::{
-    common::{modrm::ModRM, rex::Rex},
+    common::{modrm::ModRM, rex::Rex, sib::Sib},
     instruction::{
         mnemonic::Mnemonic,
         operand::{
@@ -244,7 +244,18 @@ impl Decoder {
 
     fn decode_modrm(&mut self, modrm: &ModRM) -> Operand {
         match modrm.modval {
-            0b00 => Operand::Memory(Memory::new(self.decode_register_rm(modrm.rm), None)),
+            0b00 => match modrm.rm {
+                0b100 => {
+                    let sib = Sib::from_byte(self.consume_u8());
+                    match sib.base {
+                        0b101 => Operand::Memory(Memory::new_disp(Displacement::Disp32(
+                            self.consume_i32(),
+                        ))),
+                        _ => panic!(),
+                    }
+                }
+                _ => Operand::Memory(Memory::new(self.decode_register_rm(modrm.rm), None)),
+            },
             0b01 => Operand::Memory(Memory::new(
                 self.decode_register_rm(modrm.rm),
                 Some(Displacement::Disp8(self.consume_i8())),

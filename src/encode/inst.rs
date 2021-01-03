@@ -1,5 +1,5 @@
 use crate::{
-    common::{modrm::ModRM, rex::Rex},
+    common::{modrm::ModRM, rex::Rex, sib::Sib},
     instruction::operand::{immediate::Immediate, memory::Displacement},
 };
 
@@ -8,6 +8,7 @@ pub struct EncodedInst {
     pub rex: Option<Rex>,
     pub opcode: Vec<u8>,
     pub modrm: Option<ModRM>,
+    pub sib: Option<Sib>,
     pub disp: Option<Displacement>,
     pub imm: Option<Immediate>,
 }
@@ -30,6 +31,10 @@ impl EncodedInst {
 
         if let Some(ref modrm) = self.modrm {
             enc.push(modrm.to_byte());
+        }
+
+        if let Some(ref sib) = self.sib {
+            enc.push(sib.to_byte());
         }
 
         if let Some(ref disp) = self.disp {
