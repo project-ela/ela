@@ -44,6 +44,14 @@ fn unary_m() {
         Mnemonic::Push,
         Operand::Memory(Memory::new_disp(Displacement::Disp32(2))),
     ));
+    do_test(Instruction::new_unary(
+        Mnemonic::Push,
+        Operand::Memory(Memory::new(Register::R12, Some(Displacement::Disp8(0)))),
+    ));
+    do_test(Instruction::new_unary(
+        Mnemonic::Push,
+        Operand::Memory(Memory::new(Register::R13, Some(Displacement::Disp8(0)))),
+    ));
 
     do_test(Instruction::new_unary(
         Mnemonic::Sete,
@@ -116,6 +124,16 @@ fn binary_mi() {
     ));
     do_test(Instruction::new_binary(
         Mnemonic::Add,
+        Operand::Memory(Memory::new(Register::R12, Some(Displacement::Disp8(0)))),
+        Operand::Immediate(Immediate::Imm8(2)),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
+        Operand::Memory(Memory::new(Register::R13, Some(Displacement::Disp8(0)))),
+        Operand::Immediate(Immediate::Imm8(2)),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
         Operand::Memory(Memory::new(Register::Rax, Some(Displacement::Disp8(2)))),
         Operand::Immediate(Immediate::Imm8(2)),
     ));
@@ -165,6 +183,16 @@ fn binary_mr() {
     ));
     do_test(Instruction::new_binary(
         Mnemonic::Add,
+        Operand::Memory(Memory::new(Register::R12, Some(Displacement::Disp8(0)))),
+        Operand::Register(Register::Rax),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
+        Operand::Memory(Memory::new(Register::R13, Some(Displacement::Disp8(0)))),
+        Operand::Register(Register::Rax),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
         Operand::Memory(Memory::new(Register::Rax, Some(Displacement::Disp8(2)))),
         Operand::Register(Register::Rax),
     ));
@@ -191,6 +219,16 @@ fn binary_rm() {
         Mnemonic::Add,
         Operand::Register(Register::Rax),
         Operand::Memory(Memory::new(Register::R8, None)),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
+        Operand::Register(Register::Rax),
+        Operand::Memory(Memory::new(Register::R12, Some(Displacement::Disp8(0)))),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
+        Operand::Register(Register::Rax),
+        Operand::Memory(Memory::new(Register::R13, Some(Displacement::Disp8(0)))),
     ));
     do_test(Instruction::new_binary(
         Mnemonic::Add,
