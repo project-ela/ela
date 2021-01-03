@@ -68,6 +68,22 @@ impl Decoder {
         Instruction::new_binary(mnemonic, Operand::Register(opr1), opr2)
     }
 
+    // TODO
+    pub fn decode_rmi8(&mut self, mnemonic: Mnemonic) -> Instruction {
+        let modrm = ModRM::from_byte(self.consume_u8());
+        let opr1 = self.decode_register_reg(modrm.reg);
+        let opr2 = Immediate::Imm8(self.consume_i8());
+        Instruction::new_binary(mnemonic, Operand::Register(opr1), Operand::Immediate(opr2))
+    }
+
+    // TODO
+    pub fn decode_rmi32(&mut self, mnemonic: Mnemonic) -> Instruction {
+        let modrm = ModRM::from_byte(self.consume_u8());
+        let opr1 = self.decode_register_reg(modrm.reg);
+        let opr2 = Immediate::Imm32(self.consume_i32());
+        Instruction::new_binary(mnemonic, Operand::Register(opr1), Operand::Immediate(opr2))
+    }
+
     pub fn decode_set(&mut self, mnemonic: Mnemonic) -> Instruction {
         let modrm = ModRM::from_byte(self.consume_u8());
         let extend = self.rex.as_ref().map_or(false, |rex| rex.b);
