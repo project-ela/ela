@@ -248,6 +248,7 @@ impl Decoder {
                 0b100 => {
                     let sib = Sib::from_byte(self.consume_u8());
                     match sib.base {
+                        0b100 => Operand::Memory(Memory::new(Register::R12, None)),
                         0b101 => Operand::Memory(Memory::new_disp(Displacement::Disp32(
                             self.consume_i32(),
                         ))),

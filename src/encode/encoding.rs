@@ -147,7 +147,11 @@ fn encode_modrm(rm: &RM) -> ModRM {
     match rm {
         RM::Memory(mem) => match &mem.base {
             Some(base) => match &mem.disp {
-                None => ModRM::new(0b00, 0, base.number()),
+                None => match base {
+                    Register::R12 => ModRM::new(0b00, 0, 0b100),
+                    Register::R13 => ModRM::new(0b01, 0, 0b101),
+                    _ => ModRM::new(0b00, 0, base.number()),
+                },
                 Some(Displacement::Disp8(_)) => ModRM::new(0b01, 0, base.number()),
                 Some(Displacement::Disp32(_)) => ModRM::new(0b10, 0, base.number()),
             },
@@ -164,6 +168,10 @@ fn encode_modrm(rm: &RM) -> ModRM {
 fn encode_sib(rm: &RM) -> Option<Sib> {
     match rm {
         RM::Memory(Memory {
+            base: Some(Register::R12),
+            disp: None,
+        }) => Some(Sib::new(0, 0b100, 0b100)),
+        RM::Memory(Memory {
             base: None,
             disp: Some(disp),
         }) => match disp {
@@ -176,6 +184,10 @@ fn encode_sib(rm: &RM) -> Option<Sib> {
 
 fn encode_disp(rm: &RM) -> Option<Displacement> {
     match rm {
+        RM::Memory(Memory {
+            base: Some(Register::R13),
+            disp: None,
+        }) => Some(Displacement::Disp8(0)),
         RM::Memory(Memory { disp, .. }) => disp.clone(),
         _ => None,
     }
