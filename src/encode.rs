@@ -185,6 +185,10 @@ fn encode_binary_op(inst: &Instruction) -> EncodedInst {
             _ => panic!(),
         },
         Mnemonic::IMul => match (opr1, opr2) {
+            (Operand::Register(reg), Operand::Immediate(imm)) => match imm {
+                Immediate::Imm8(_) => encoding::encode_rmi(&[0x6b], reg, opr1.to_rm(), imm),
+                Immediate::Imm32(_) => encoding::encode_rmi(&[0x69], reg, opr1.to_rm(), imm),
+            },
             (Operand::Register(reg), Operand::Register(_))
             | (Operand::Register(reg), Operand::Memory(_)) => {
                 encoding::encode_rm(&[0x0f, 0xaf], reg, opr2.to_rm())

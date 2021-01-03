@@ -190,6 +190,40 @@ fn binary_rm() {
     ));
 }
 
+#[test]
+fn binary_rmi() {
+    do_test(Instruction::new_binary(
+        Mnemonic::IMul,
+        Operand::Register(Register::Eax),
+        Operand::Immediate(Immediate::Imm8(2)),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::IMul,
+        Operand::Register(Register::Rax),
+        Operand::Immediate(Immediate::Imm8(2)),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::IMul,
+        Operand::Register(Register::R8),
+        Operand::Immediate(Immediate::Imm8(2)),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::IMul,
+        Operand::Register(Register::Eax),
+        Operand::Immediate(Immediate::Imm32(2)),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::IMul,
+        Operand::Register(Register::Rax),
+        Operand::Immediate(Immediate::Imm32(2)),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::IMul,
+        Operand::Register(Register::R8),
+        Operand::Immediate(Immediate::Imm32(2)),
+    ));
+}
+
 fn do_test(inst: Instruction) {
     let code = encode::encode(&inst);
     let inst_disasm = &decode::decode(&code)[0];

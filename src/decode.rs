@@ -85,7 +85,9 @@ impl Decoder {
             0x50..=0x57 => self.decode_o(Mnemonic::Push, opcode - 0x50),
             0x58..=0x5f => self.decode_o(Mnemonic::Pop, opcode - 0x58),
             0x68 => self.decode_i32(Mnemonic::Push),
+            0x69 => self.decode_rmi32(Mnemonic::IMul),
             0x6a => self.decode_i8(Mnemonic::Push),
+            0x6b => self.decode_rmi8(Mnemonic::IMul),
             0x74 => self.decode_d8(Mnemonic::Je),
             0x81 => {
                 let modrm = ModRM::from_byte(self.consume_u8());

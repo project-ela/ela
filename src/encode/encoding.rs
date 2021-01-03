@@ -79,6 +79,19 @@ pub fn encode_rm(opcode: &[u8], opr1: &Register, opr2: RM) -> EncodedInst {
     enc
 }
 
+pub fn encode_rmi(opcode: &[u8], opr1: &Register, opr2: RM, opr3: &Immediate) -> EncodedInst {
+    let mut enc = EncodedInst::new(opcode);
+    enc.rex = encode_rex(Some(&opr2), Some(opr1));
+    enc.modrm = Some({
+        let mut modrm = encode_modrm(&opr2);
+        modrm.reg = opr1.number();
+        modrm
+    });
+    enc.disp = encode_disp(&opr2);
+    enc.imm = Some(opr3.clone());
+    enc
+}
+
 pub fn encode_set(opcode: &[u8], opr1: RM) -> EncodedInst {
     let mut enc = EncodedInst::new(opcode);
     enc.rex = match opr1 {
