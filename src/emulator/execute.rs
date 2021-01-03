@@ -137,6 +137,13 @@ impl Emulator {
                 let result = self.calc_mul(lhs, rhs);
                 self.set_operand(&opr1, result);
             }
+            Mnemonic::Lea => match opr2 {
+                Operand::Memory(mem) => {
+                    let addr = self.calc_address(&mem);
+                    self.set_operand(&opr1, addr as u64);
+                }
+                _ => panic!(),
+            },
             Mnemonic::Mov => {
                 let value = self.get_operand(&opr2);
                 self.set_operand(&opr1, value);
