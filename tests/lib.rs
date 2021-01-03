@@ -40,6 +40,10 @@ fn unary_m() {
         Mnemonic::Push,
         Operand::Memory(Memory::new(Register::R8, Some(Displacement::Disp8(2)))),
     ));
+    do_test(Instruction::new_unary(
+        Mnemonic::Push,
+        Operand::Memory(Memory::new_disp(Displacement::Disp32(2))),
+    ));
 
     do_test(Instruction::new_unary(
         Mnemonic::Sete,
@@ -120,6 +124,11 @@ fn binary_mi() {
         Operand::Memory(Memory::new(Register::R8, Some(Displacement::Disp8(2)))),
         Operand::Immediate(Immediate::Imm8(2)),
     ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
+        Operand::Memory(Memory::new_disp(Displacement::Disp32(2))),
+        Operand::Immediate(Immediate::Imm8(2)),
+    ));
 }
 
 #[test]
@@ -164,6 +173,11 @@ fn binary_mr() {
         Operand::Memory(Memory::new(Register::R8, Some(Displacement::Disp8(2)))),
         Operand::Register(Register::Rax),
     ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
+        Operand::Memory(Memory::new_disp(Displacement::Disp32(2))),
+        Operand::Register(Register::Rax),
+    ));
 }
 
 #[test]
@@ -187,6 +201,11 @@ fn binary_rm() {
         Mnemonic::Add,
         Operand::Register(Register::Rax),
         Operand::Memory(Memory::new(Register::R8, Some(Displacement::Disp8(2)))),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
+        Operand::Register(Register::Rax),
+        Operand::Memory(Memory::new_disp(Displacement::Disp32(2))),
     ));
 }
 
