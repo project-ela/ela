@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use x86asm::instruction::{
     mnemonic::{self, Mnemonic},
     operand::{
@@ -40,18 +42,57 @@ impl Emulator {
                 let new_rip = self.pop64().unwrap();
                 self.cpu.set_rip(new_rip);
             }
-            Mnemonic::Syscall => {
-                let rax = self.cpu.get_register64(&Register::Rax);
-                match rax {
-                    60 => {
-                        let exit_code = self.cpu.get_register(&Register::Rdi) as u8;
-                        println!("Exited with code {}", exit_code);
-                        std::process::exit(0);
-                    }
-                    x => unimplemented!("syscall with {}", x),
+            Mnemonic::Syscall => self.exec_syscall(),
+            _ => panic!(),
+        }
+    }
+
+    fn exec_syscall(&mut self) {
+        let rax = self.cpu.get_register64(&Register::Rax);
+        match rax {
+            0 => {
+                let fd = self.cpu.get_register64(&Register::Rdi);
+                let buf_addr = self.cpu.get_register64(&Register::Rsi) as usize;
+                let count = self.cpu.get_register64(&Register::Rdx) as usize;
+
+                if fd != 0 {
+                    unimplemented!();
+                }
+                let mut buf = String::new();
+                let mut buf_len = std::io::stdin().read_line(&mut buf).unwrap();
+                buf_len = min(buf_len, count);
+
+                let buf_bytes = buf.as_bytes();
+                for i in 0..buf_len {
+                    let addr = buf_addr + i;
+                    let value = buf_bytes[i];
+                    self.mmu.set_memory8(addr, value).unwrap();
                 }
             }
-            _ => panic!(),
+            1 => {
+                let fd = self.cpu.get_register64(&Register::Rdi);
+                let buf_addr = self.cpu.get_register64(&Register::Rsi) as usize;
+                let count = self.cpu.get_register64(&Register::Rdx) as usize;
+
+                let mut buf = String::new();
+                for i in 0..count {
+                    let addr = buf_addr + i;
+                    let value = self.mmu.get_memory8(addr).unwrap();
+                    buf.push(value as char);
+                }
+
+                match fd {
+                    1 => print!("{}", buf),
+                    2 => eprint!("{}", buf),
+                    _ => unimplemented!(),
+                }
+            }
+            60 => {
+                let exit_code = self.cpu.get_register(&Register::Rdi) as u8;
+                println!("Exited with code {}", exit_code);
+                std::process::exit(0);
+            }
+            x => unimplemented!("syscall with {}", x),
         }
     }
 
@@ -197,7 +238,10 @@ impl Emulator {
     }
 
     fn calc_address(&self, mem: &Memory) -> usize {
-        let base = self.cpu.get_register(&mem.base) as isize;
+        let base = mem
+            .base
+            .as_ref()
+            .map_or(0, |base| self.cpu.get_register64(&base) as isize);
         let disp = mem.disp.as_ref().map_or(0, |disp| match disp {
             Displacement::Disp8(value) => *value as isize,
             Displacement::Disp32(value) => *value as isize,
