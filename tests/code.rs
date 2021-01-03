@@ -131,6 +131,9 @@ fn sub() {
 
 #[test]
 fn imul() {
+    do_test("imul eax,1", "6b c0 01");
+    do_test("imul rax,1", "48 6b c0 01");
+    do_test("imul r9,1", "4d 6b c9 01");
     do_test("imul eax,eax", "0f af c0");
     do_test("imul rax,rax", "48 0f af c0");
     do_test("imul rax,r9", "49 0f af c1");
