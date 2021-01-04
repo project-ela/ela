@@ -489,9 +489,7 @@ impl Parser {
     fn consume_type(&mut self) -> Result<Type, Error> {
         if self.peek().kind == TokenKind::Asterisk {
             self.consume();
-            return Ok(Type::Pointer {
-                pointer_to: Box::new(self.consume_type()?),
-            });
+            return Ok(self.consume_type()?.pointer_to());
         }
 
         let next_token_pos = self.peek().pos;

@@ -280,9 +280,7 @@ impl<'a> SymbolPass<'a> {
                         | ExpressionKind::UnaryOp {
                             op: UnaryOperator::Addr,
                             ..
-                        } => Some(Type::Pointer {
-                            pointer_to: Box::new(expr_typ),
-                        }),
+                        } => Some(expr_typ.pointer_to()),
                         _ => {
                             self.issue(Error::new(expr.pos.clone(), ErrorKind::LvalueRequired));
                             None

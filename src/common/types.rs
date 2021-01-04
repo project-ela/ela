@@ -19,6 +19,20 @@ impl Type {
             Type::Array { elm_type, len } => elm_type.size() * len,
         }
     }
+
+    pub fn pointer_to(&self) -> Type {
+        Type::Pointer {
+            pointer_to: Box::new(self.clone()),
+        }
+    }
+
+    pub fn elm_typ(&self) -> Type {
+        match self {
+            Type::Pointer { pointer_to } => *pointer_to.clone(),
+            Type::Array { elm_type, len: _ } => *elm_type.clone(),
+            _ => panic!(),
+        }
+    }
 }
 
 impl fmt::Display for Type {
