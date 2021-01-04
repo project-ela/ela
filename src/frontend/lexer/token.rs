@@ -14,6 +14,7 @@ impl Token {
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
+    CharLiteral { value: char },
     IntLiteral { value: i32 },
     Ident { name: String },
 

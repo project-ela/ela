@@ -247,6 +247,14 @@ impl IRGen {
         func: &mut IRFunction,
     ) -> Result<(Operand, Type), Error> {
         match expr.kind {
+            ExpressionKind::Char { value } => {
+                let dst = self.next_reg();
+                func.push(IR::Move {
+                    dst,
+                    src: Operand::Const(value as i32),
+                });
+                Ok((dst, Type::Byte))
+            }
             ExpressionKind::Integer { value } => {
                 let dst = self.next_reg();
                 func.push(IR::Move {

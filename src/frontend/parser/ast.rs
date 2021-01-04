@@ -89,6 +89,9 @@ impl Expression {
 
 #[derive(Debug)]
 pub enum ExpressionKind {
+    Char {
+        value: char,
+    },
     Integer {
         value: i32,
     },

@@ -250,6 +250,7 @@ impl<'a> SymbolPass<'a> {
         use BinaryOperator::*;
         use UnaryOperator::*;
         match &expr.kind {
+            ExpressionKind::Char { .. } => Some(Type::Byte),
             ExpressionKind::Integer { .. } => Some(Type::Int),
             ExpressionKind::Bool { .. } => Some(Type::Bool),
             ExpressionKind::Ident { name } => match self.ctx.find_variable(&name) {

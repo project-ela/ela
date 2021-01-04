@@ -395,6 +395,7 @@ impl Parser {
     fn parse_primary(&mut self) -> Result<Expression, Error> {
         let token = self.consume();
         let kind = match token.kind {
+            TokenKind::CharLiteral { value } => ExpressionKind::Char { value },
             TokenKind::IntLiteral { value } => ExpressionKind::Integer { value },
             TokenKind::False => ExpressionKind::Bool { value: false },
             TokenKind::True => ExpressionKind::Bool { value: true },
