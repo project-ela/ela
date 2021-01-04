@@ -67,6 +67,7 @@ impl Tokenizer {
         }
 
         match self.peek_char() {
+            '\'' => self.consume_char_literal(),
             x if x.is_digit(10) => Ok(self.consume_number()),
             x if x.is_alphabetic() => Ok(find_keyword(self.consume_ident())),
             x => self.consume_symbol(x),
@@ -144,6 +145,19 @@ impl Tokenizer {
         }
 
         TokenKind::Ident { name }
+    }
+
+    fn consume_char_literal(&mut self) -> Result<TokenKind, Error> {
+        self.consume_char();
+        let value = self.consume_char();
+
+        match self.consume_char() {
+            '\'' => Ok(TokenKind::CharLiteral { value }),
+            x => Err(Error::new(
+                self.pos.clone(),
+                ErrorKind::UnexpectedChar { c: x },
+            )),
+        }
     }
 
     fn consume_number(&mut self) -> TokenKind {

@@ -1,4 +1,7 @@
-use crate::common::operator::{BinaryOperator, UnaryOperator};
+use crate::common::{
+    operator::{BinaryOperator, UnaryOperator},
+    types::Type,
+};
 
 #[derive(Debug, Default)]
 pub struct IRProgram {
@@ -72,14 +75,17 @@ pub enum IR {
     Load {
         dst: Operand,
         src: Operand,
+        size: RegSize,
     },
     Store {
         dst: Operand,
         src: Operand,
+        size: RegSize,
     },
     StoreArg {
         dst: MemoryAddr,
         src: usize, // index of argument
+        size: RegSize,
     },
     Jump {
         label: String,
@@ -156,6 +162,37 @@ pub enum Register {
     R15,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum RegSize {
+    Byte,
+    Word,
+    DWord,
+    QWord,
+}
+
+impl From<&Type> for RegSize {
+    fn from(typ: &Type) -> Self {
+        let size = match typ {
+            Type::Array { elm_type, .. } => elm_type.size(),
+            x => x.size(),
+        };
+
+        match size {
+            1 => RegSize::Byte,
+            2 => RegSize::Word,
+            4 => RegSize::DWord,
+            8 => RegSize::QWord,
+            _ => panic!(),
+        }
+    }
+}
+
+impl From<Type> for RegSize {
+    fn from(typ: Type) -> Self {
+        Self::from(&typ)
+    }
+}
+
 impl IRProgram {
     pub fn dump(&self) -> String {
         let mut s = String::new();
@@ -218,9 +255,9 @@ impl IR {
             }
             IR::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
             IR::Addr { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
-            IR::Load { dst, src } => format!("  {} = [{}]", dst.dump(), src.dump()),
-            IR::Store { dst, src } => format!("  [{}] = {}", dst.dump(), src.dump()),
-            IR::StoreArg { dst, src } => format!("  {} = param({})", dst.dump(), src),
+            IR::Load { dst, src, size: _ } => format!("  {} = [{}]", dst.dump(), src.dump()),
+            IR::Store { dst, src, size: _ } => format!("  [{}] = {}", dst.dump(), src.dump()),
+            IR::StoreArg { dst, src, size: _ } => format!("  {} = param({})", dst.dump(), src),
             IR::Jump { label } => format!("  jmp label {}", label),
             IR::JumpIfNot { label, cond } => format!("  jmpifnot {}, label {}", cond.dump(), label),
             IR::Ret { src } => match src {

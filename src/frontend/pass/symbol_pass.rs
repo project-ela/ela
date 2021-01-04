@@ -165,7 +165,7 @@ impl<'a> SymbolPass<'a> {
             StatementKind::Return { value } => {
                 if let Some(value) = value {
                     if let Some(value_typ) = self.apply_expression(&*value) {
-                        if &value_typ != ret_typ {
+                        if !value_typ.is_same(ret_typ) {
                             self.issue(Error::new(
                                 stmt.pos.clone(),
                                 ErrorKind::TypeMismatch {
@@ -234,7 +234,7 @@ impl<'a> SymbolPass<'a> {
             .as_deref()
             .and_then(|value| self.apply_expression(&*value));
         if let Some(value_typ) = value_typ {
-            if &value_typ != typ {
+            if !value_typ.is_same(typ) {
                 self.issue(Error::new(
                     pos.clone(),
                     ErrorKind::TypeMismatch {
@@ -250,6 +250,7 @@ impl<'a> SymbolPass<'a> {
         use BinaryOperator::*;
         use UnaryOperator::*;
         match &expr.kind {
+            ExpressionKind::Char { .. } => Some(Type::Byte),
             ExpressionKind::Integer { .. } => Some(Type::Int),
             ExpressionKind::Bool { .. } => Some(Type::Bool),
             ExpressionKind::Ident { name } => match self.ctx.find_variable(&name) {
@@ -280,9 +281,7 @@ impl<'a> SymbolPass<'a> {
                         | ExpressionKind::UnaryOp {
                             op: UnaryOperator::Addr,
                             ..
-                        } => Some(Type::Pointer {
-                            pointer_to: Box::new(expr_typ),
-                        }),
+                        } => Some(expr_typ.pointer_to()),
                         _ => {
                             self.issue(Error::new(expr.pos.clone(), ErrorKind::LvalueRequired));
                             None
@@ -365,7 +364,7 @@ impl<'a> SymbolPass<'a> {
         let value_typ = self.apply_expression(value);
         match (dst_typ, value_typ) {
             (Some(dst_typ), Some(value_typ)) => {
-                if dst_typ != value_typ {
+                if !dst_typ.is_same(&value_typ) {
                     self.issue(Error::new(
                         pos.clone(),
                         ErrorKind::TypeMismatch {
@@ -430,16 +429,8 @@ impl<'a> SymbolPass<'a> {
             let param_types = sig.params.iter().map(|param| param.typ.clone());
 
             for (arg_typ, param_typ) in arg_types.into_iter().zip(param_types) {
-                match (&arg_typ, &param_typ) {
-                    (Some(Type::Array { elm_type, .. }), Type::Pointer { pointer_to }) => {
-                        if pointer_to == elm_type {
-                            continue;
-                        }
-                    }
-                    _ => {}
-                }
                 if let Some(arg_typ) = arg_typ {
-                    if arg_typ != param_typ {
+                    if !arg_typ.is_same(&param_typ) {
                         issues.push(Error::new(
                             pos.clone(),
                             ErrorKind::TypeMismatch {

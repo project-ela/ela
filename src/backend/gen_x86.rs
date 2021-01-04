@@ -115,15 +115,33 @@ impl GenX86 {
             }
             IR::Addr { dst, src } => self.gen(&format!("  lea {}, {}", opr(dst), addr(src))),
             IR::Move { dst, src } => self.gen(format!("  mov {}, {}", opr(dst), opr(src)).as_str()),
-            IR::Load { dst, src } => self.gen(&format!("  mov {}, [{}]", opr(dst), opr(src))),
-            IR::Store { dst, src } => self.gen(&format!("  mov [{}], {}", opr(dst), opr(src))),
+            IR::Load { dst, src, size } => match size {
+                RegSize::Byte => {
+                    self.gen(&format!("  movsx {}, byte ptr [{}]", opr(dst), opr(src)))
+                }
+                RegSize::QWord => self.gen(&format!("  mov {}, [{}]", opr(dst), opr(src))),
+                _ => unimplemented!(),
+            },
+            IR::Store { dst, src, size } => match size {
+                RegSize::Byte => self.gen(&format!("  mov [{}], {}", opr(dst), opr8(src))),
+                RegSize::QWord => self.gen(&format!("  mov [{}], {}", opr(dst), opr(src))),
+                _ => unimplemented!(),
+            },
             IR::StoreArg {
                 dst,
                 src: param_index,
+                size,
             } => {
                 let param_reg = PARAM_REGS[*param_index];
-                self.gen(&format!("  mov {}, {}", addr(dst), reg(&param_reg)));
+                match size {
+                    RegSize::Byte => self.gen(&format!("  mov {}, {}", addr(dst), reg8(param_reg))),
+                    RegSize::QWord => {
+                        self.gen(&format!("  mov {}, {}", addr(dst), reg(&param_reg)))
+                    }
+                    _ => unimplemented!(),
+                }
             }
+
             IR::Jump { label } => self.gen(format!("  jmp {}", label).as_str()),
             IR::JumpIfNot { label, cond } => {
                 self.gen(format!("  cmp {}, 0", opr(cond)).as_str());
