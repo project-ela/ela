@@ -125,6 +125,9 @@ impl Lexer {
 
 fn find_keyword(ident: &str) -> Option<Token> {
     match ident {
+        "byte" => Some(Token::Keyword(token::Keyword::Byte)),
+        "ptr" => Some(Token::Keyword(token::Keyword::Ptr)),
+
         "add" => Some(Token::Mnemonic(Mnemonic::Add)),
         "and" => Some(Token::Mnemonic(Mnemonic::And)),
         "call" => Some(Token::Mnemonic(Mnemonic::Call)),
@@ -136,6 +139,7 @@ fn find_keyword(ident: &str) -> Option<Token> {
         "jmp" => Some(Token::Mnemonic(Mnemonic::Jmp)),
         "lea" => Some(Token::Mnemonic(Mnemonic::Lea)),
         "mov" => Some(Token::Mnemonic(Mnemonic::Mov)),
+        "movsx" => Some(Token::Mnemonic(Mnemonic::Movsx)),
         "or" => Some(Token::Mnemonic(Mnemonic::Or)),
         "pop" => Some(Token::Mnemonic(Mnemonic::Pop)),
         "push" => Some(Token::Mnemonic(Mnemonic::Push)),

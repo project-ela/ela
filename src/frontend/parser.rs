@@ -5,6 +5,8 @@ use x86asm::instruction::mnemonic;
 
 use crate::frontend::lexer::token::{Symbol, Token};
 
+use super::lexer::token::Keyword;
+
 struct Parser {
     pos: usize,
     tokens: Vec<Token>,
@@ -87,6 +89,12 @@ impl Parser {
                 reg: reg.to_owned(),
             }),
             Token::Symbol(Symbol::LBracket) => self.parse_operand_address(),
+            // TODO
+            Token::Keyword(Keyword::Byte) => {
+                self.expect(&Token::Keyword(Keyword::Ptr))?;
+                self.expect(&Token::Symbol(Symbol::LBracket))?;
+                self.parse_operand_address()
+            }
             x => Err(format!("unexpected token: {:?}", x)),
         }
     }
