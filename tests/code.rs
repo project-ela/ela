@@ -205,6 +205,17 @@ fn mov() {
 }
 
 #[test]
+fn movsx() {
+    do_test("movsx rax, byte ptr [rax]", "48 0f be 00");
+    do_test("movsx rax, byte ptr [r9]", "49 0f be 01");
+    do_test("movsx rax, byte ptr [r12]", "49 0f be 04 24");
+    do_test("movsx rax, byte ptr [r13]", "49 0f be 45 00");
+    do_test("movsx rax, byte ptr [rax+8]", "48 0f be 40 08");
+    do_test("movsx rax, byte ptr [r9-8]", "49 0f be 41 f8");
+    do_test("movsx rax, byte ptr [r9-129]", "49 0f be 81 7f ff ff ff");
+}
+
+#[test]
 fn and() {
     do_test("and eax,1", "83 e0 01");
     do_test("and rax,1", "48 83 e0 01");

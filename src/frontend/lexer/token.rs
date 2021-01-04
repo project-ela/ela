@@ -5,6 +5,7 @@ pub enum Token {
     Integer(u32),
     Ident(String),
     Symbol(Symbol),
+    Keyword(Keyword),
     Mnemonic(Mnemonic),
     Register(Register),
     Comment(String),
@@ -19,4 +20,10 @@ pub enum Symbol {
     RBracket,
     Plus,
     Minus,
+}
+
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum Keyword {
+    Byte,
+    Ptr,
 }
