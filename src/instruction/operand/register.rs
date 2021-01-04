@@ -30,10 +30,10 @@ pub enum Register {
     Cl,
     Dl,
     Bl,
-    Sil,
     Dil,
-    Spl,
+    Sil,
     Bpl,
+    Spl,
     R8b,
     R9b,
     R10b,
@@ -59,7 +59,7 @@ impl Register {
             Rax | Rcx | Rdx | Rbx | Rsp | Rbp | Rsi | Rdi | R8 | R9 | R10 | R11 | R12 | R13
             | R14 | R15 => Size::QWord,
             Eax | Ecx | Edx | Ebx | Esp | Ebp | Esi | Edi => Size::DWord,
-            Al | Cl | Dl | Bl | Sil | Dil | Spl | Bpl | R8b | R9b | R10b | R11b | R12b | R13b
+            Al | Cl | Dl | Bl | Spl | Bpl | Sil | Dil | R8b | R9b | R10b | R11b | R12b | R13b
             | R14b | R15b => Size::Byte,
         }
     }
@@ -71,10 +71,10 @@ impl Register {
             Rcx | R9 | Ecx | Cl | R9b => 1,
             Rdx | R10 | Edx | Dl | R10b => 2,
             Rbx | R11 | Ebx | Bl | R11b => 3,
-            Rsp | R12 | Esp | Sil | R12b => 4,
-            Rbp | R13 | Ebp | Dil | R13b => 5,
-            Rsi | R14 | Esi | Spl | R14b => 6,
-            Rdi | R15 | Edi | Bpl | R15b => 7,
+            Rsp | R12 | Esp | Spl | R12b => 4,
+            Rbp | R13 | Ebp | Bpl | R13b => 5,
+            Rsi | R14 | Esi | Sil | R14b => 6,
+            Rdi | R15 | Edi | Dil | R15b => 7,
         }
     }
 
