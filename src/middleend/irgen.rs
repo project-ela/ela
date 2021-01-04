@@ -17,7 +17,7 @@ struct IRGen {
     reg: u32,
     label: u32,
 
-    stack_offset_local: i32,
+    stack_offset_local: u32,
 
     ctx: Context,
 }
@@ -108,7 +108,7 @@ impl IRGen {
             ir_func.params.push(index as u32);
         }
         self.gen_statement(func.body.unwrap(), &mut ir_func)?;
-        ir_func.stack_offset = (-self.stack_offset_local) as u32;
+        ir_func.stack_offset = self.stack_offset_local;
         Ok(Some(ir_func))
     }
 
@@ -388,10 +388,10 @@ impl IRGen {
     }
 
     fn alloc_stack_local(&mut self, typ: &Type) -> MemoryAddr {
-        self.stack_offset_local -= typ.size() as i32;
+        self.stack_offset_local += typ.size();
         MemoryAddr {
             base: Register::Rbp,
-            offset: self.stack_offset_local,
+            offset: -(self.stack_offset_local as i32),
         }
     }
 }
