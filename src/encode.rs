@@ -208,9 +208,10 @@ fn encode_binary_op(inst: &Instruction) -> EncodedInst {
                 Immediate::Imm32(_) => encoding::encode_mi(&[0xc7], opr1.to_rm(), imm).set_reg(0),
             },
             (Operand::Register(_), Operand::Register(reg))
-            | (Operand::Memory(_), Operand::Register(reg)) => {
-                encoding::encode_mr(&[0x89], opr1.to_rm(), reg)
-            }
+            | (Operand::Memory(_), Operand::Register(reg)) => match reg.size() {
+                register::Size::Byte => encoding::encode_mr(&[0x88], opr1.to_rm(), reg),
+                _ => encoding::encode_mr(&[0x89], opr1.to_rm(), reg),
+            },
             (Operand::Register(reg), Operand::Memory(_)) => {
                 encoding::encode_rm(&[0x8b], reg, opr2.to_rm())
             }
