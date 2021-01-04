@@ -16,4 +16,4 @@ source = "git+https://github.com/Project-Norn/elfen#5e042414c7178b3c8faf0b0588ee
 [[package]]
 name = "x86asm"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/x86asm#99556058b26b668223045bd6762b81d90bf0dc5c"
+source = "git+https://github.com/Project-Norn/x86asm#46e289c570f6590baa70735c794837ab6317ddc4"
