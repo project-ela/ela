@@ -71,6 +71,7 @@ impl Decoder {
                     0x9e => self.decode_set(Mnemonic::Setle),
                     0x9f => self.decode_set(Mnemonic::Setg),
                     0xaf => self.decode_rm(Mnemonic::IMul),
+                    0xbe => self.decode_rm(Mnemonic::Movsx),
                     _ => panic!(),
                 }
             }
