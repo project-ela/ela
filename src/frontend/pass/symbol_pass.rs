@@ -77,6 +77,11 @@ impl<'a> Context<'a> {
         None
     }
 
+    fn find_variable_scope(&self, name: &str) -> Option<&Variable> {
+        let ctx = self.0.last().unwrap();
+        ctx.variables.get(name)
+    }
+
     fn push(&mut self) {
         self.0.push(ContextData::default());
     }
@@ -149,38 +154,10 @@ impl<'a> SymbolPass<'a> {
                 self.ctx.pop();
             }
             StatementKind::Var { name, typ, value } => {
-                self.ctx.add_variable(name.to_owned(), typ.clone(), false);
-                if value.is_none() {
-                    return;
-                }
-                if let Some(value_typ) = self.apply_expression(value.as_deref().unwrap()) {
-                    if &value_typ != typ {
-                        self.issue(Error::new(
-                            stmt.pos.clone(),
-                            ErrorKind::TypeMismatch {
-                                lhs: typ.clone(),
-                                rhs: value_typ,
-                            },
-                        ));
-                    }
-                }
+                self.apply_var(name, typ, value, &stmt.pos, false)
             }
             StatementKind::Val { name, typ, value } => {
-                self.ctx.add_variable(name.to_owned(), typ.clone(), true);
-                if value.is_none() {
-                    return;
-                }
-                if let Some(value_typ) = self.apply_expression(value.as_deref().unwrap()) {
-                    if &value_typ != typ {
-                        self.issue(Error::new(
-                            stmt.pos.clone(),
-                            ErrorKind::TypeMismatch {
-                                lhs: typ.clone(),
-                                rhs: value_typ,
-                            },
-                        ));
-                    }
-                }
+                self.apply_var(name, typ, value, &stmt.pos, true)
             }
             StatementKind::Assign { dst, value } => {
                 self.check_assign(&*dst, &*value, stmt.pos.clone())
@@ -231,6 +208,40 @@ impl<'a> SymbolPass<'a> {
             }
             StatementKind::Call { name, args } => {
                 self.check_call(&*name, args, stmt.pos.clone());
+            }
+        }
+    }
+
+    fn apply_var(
+        &mut self,
+        name: &String,
+        typ: &Type,
+        value: &Option<Box<Expression>>,
+        pos: &Pos,
+        is_const: bool,
+    ) {
+        if self.ctx.find_variable_scope(name).is_some() {
+            self.issue(Error::new(
+                pos.clone(),
+                ErrorKind::RedefinitionOf { name: name.clone() },
+            ));
+        }
+
+        self.ctx
+            .add_variable(name.to_owned(), typ.clone(), is_const);
+
+        let value_typ = value
+            .as_deref()
+            .and_then(|value| self.apply_expression(&*value));
+        if let Some(value_typ) = value_typ {
+            if &value_typ != typ {
+                self.issue(Error::new(
+                    pos.clone(),
+                    ErrorKind::TypeMismatch {
+                        lhs: typ.clone(),
+                        rhs: value_typ,
+                    },
+                ));
             }
         }
     }
