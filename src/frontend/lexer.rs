@@ -184,7 +184,10 @@ fn find_keyword(ident: &str) -> Option<Token> {
         "cl" => Some(Token::Register(Register::Cl)),
         "dl" => Some(Token::Register(Register::Dl)),
         "bl" => Some(Token::Register(Register::Bl)),
-
+        "sil" => Some(Token::Register(Register::Sil)),
+        "dil" => Some(Token::Register(Register::Dil)),
+        "spl" => Some(Token::Register(Register::Spl)),
+        "bpl" => Some(Token::Register(Register::Bpl)),
         "r8b" => Some(Token::Register(Register::R8b)),
         "r9b" => Some(Token::Register(Register::R9b)),
         "r10b" => Some(Token::Register(Register::R10b)),
