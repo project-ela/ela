@@ -223,6 +223,10 @@ impl Decoder {
                         2 => Register::Cl,
                         1 => Register::Dl,
                         3 => Register::Bl,
+                        4 => Register::Spl,
+                        5 => Register::Bpl,
+                        6 => Register::Sil,
+                        7 => Register::Dil,
                         _ => panic!(),
                     }
                 } else {
