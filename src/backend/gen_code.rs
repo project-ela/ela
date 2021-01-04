@@ -218,7 +218,7 @@ impl Generator {
             OperandNode::Memory(mem) => Operand::Memory(Memory::new(
                 mem.base,
                 mem.disp.map(|disp| {
-                    if disp < 0x80 {
+                    if disp >= -0x80 && disp < 0x80 {
                         Displacement::Disp8(disp as i8)
                     } else {
                         Displacement::Disp32(disp as i32)
