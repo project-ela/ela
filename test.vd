@@ -96,93 +96,120 @@ func main(): int {
   assertb(!true, false)
   assertb(!false, true)
 
-  var i: int
-  var j: int
-  var a: int
-  var b: int
 
-  asserti(i, 0)
-
-  if true {
-    i = 1
-  } else {
-    i = 0
+  {
+    var i: int
+    asserti(i, 0)
   }
-  asserti(i, 1)
 
-  if false {
-    i = 1
-  } else {
-    i = 0
-  }
-  asserti(i, 0)
-
-  if true {
+  {
+    var i: int
     if true {
-      i = 2
-    } else {
       i = 1
+    } else {
+      i = 0
     }
-  } else {
-    i = 0
+    asserti(i, 1)
   }
-  asserti(i, 2)
 
-  if true {
+  {
+    var i: int
     if false {
-      i = 2
-    } else {
       i = 1
+    } else {
+      i = 0
     }
-  } else {
-    i = 0
+    asserti(i, 0)
   }
-  asserti(i, 1)
 
-  if false {
-    i = 0
-  } else if false {
-    i = 1
-  } else {
-    i = 2
-  }
-  asserti(i, 2)
-
-  a = 10
-  asserti(a, 10)
-
-  a = 10
-  b = 5
-  asserti(a + b, 15)
-
-  a = 10
-  b = a
-  a = -10
-  asserti(a + b, 0)
-
-  a = 10
-  b = a
-  asserti(a + b, 20)
-
-  a = 0
-  i = 0
-  while i <= 10 {
-    a = a + i
-    i = i + 1
-  }
-  asserti(a, 55)
-
-  a = 0
-  i = 0
-  while i < 2 {
-    j = 0
-    while j <= 10 {
-      a = a + j
-      j = j + 1
+  {
+    var i: int
+    if true {
+      if true {
+        i = 2
+      } else {
+        i = 1
+      }
+    } else {
+      i = 0
     }
-    i = i + 1
+    asserti(i, 2)
   }
-  asserti(a, 110)
+
+  {
+    var i: int
+    if true {
+      if false {
+        i = 2
+      } else {
+        i = 1
+      }
+    } else {
+      i = 0
+    }
+    asserti(i, 1)
+  }
+
+
+  {
+    var i: int
+    if false {
+      i = 0
+    } else if false {
+      i = 1
+    } else {
+      i = 2
+    }
+    asserti(i, 2)
+  }
+
+  {
+    var a: int = 10
+    asserti(a, 10)
+  }
+
+  {
+    var a: int = 10
+    var b: int = 5
+    asserti(a + b, 15)
+  }
+
+  {
+    var a: int = 10
+    var b: int = a
+    a = -10
+    asserti(a + b, 0)
+  }
+
+  {
+    var a: int = 10
+    var b: int = a
+    asserti(a + b, 20)
+  }
+
+  {
+    var a: int = 0
+    var i: int = 0
+    while i <= 10 {
+      a = a + i
+      i = i + 1
+    }
+    asserti(a, 55)
+  }
+
+  {
+    var a: int = 0
+    var i: int = 0
+    while i < 2 {
+      var j: int = 0
+      while j <= 10 {
+        a = a + j
+        j = j + 1
+      }
+      i = i + 1
+    }
+    asserti(a, 110)
+  }
 
   asserti(test1(), 1)
 
@@ -196,13 +223,15 @@ func main(): int {
 
   asserti(fib(5), 5)
 
-  var arr: int[10]
-  i = 0
-  while i < 10 {
-    asserti(arr[i], 0)
-    arr[i] = i * 2
-    asserti(arr[i], i * 2)
-    i = i + 1
+  {
+    var arr: int[10]
+    var i: int = 0
+    while i < 10 {
+      asserti(arr[i], 0)
+      arr[i] = i * 2
+      asserti(arr[i], i * 2)
+      i = i + 1
+    }
   }
 
   return 0
