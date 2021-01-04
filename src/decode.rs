@@ -114,6 +114,7 @@ impl Decoder {
                     _ => panic!(),
                 }
             }
+            0x88 => self.decode_rm(Mnemonic::Mov),
             0x89 => self.decode_mr(Mnemonic::Mov),
             0x8b => self.decode_rm(Mnemonic::Mov),
             0x8d => self.decode_rm(Mnemonic::Lea),
