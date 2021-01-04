@@ -125,20 +125,24 @@ impl Parser {
             TokenKind::Return => self.parse_return_statement(token.pos),
             TokenKind::If => self.parse_if_statement(token.pos),
             TokenKind::While => self.parse_while_statement(token.pos),
-            TokenKind::Ident { name } => match self.peek().kind {
-                TokenKind::LParen => self.parse_call_statement(name, token.pos),
-                _ => {
-                    self.pos -= 1;
-                    self.parse_assign_statement(token.pos)
+            TokenKind::Comment { .. } => self.parse_statement(),
+            _ => {
+                self.pos -= 1;
+                let expr = self.parse_unary()?;
+                if let ExpressionKind::Call { name, args } = expr.kind {
+                    return Ok(Statement::new(StatementKind::Call { name, args }, expr.pos));
                 }
-            },
-            x => Err(Error::new(
-                token.pos,
-                ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: x,
-                },
-            )),
+                match self.peek().kind {
+                    TokenKind::Assign => self.parse_assign_statement(expr, token.pos),
+                    x => Err(Error::new(
+                        token.pos,
+                        ErrorKind::UnexpectedToken {
+                            expected: None,
+                            actual: x,
+                        },
+                    )),
+                }
+            }
         }
     }
 
@@ -175,8 +179,7 @@ impl Parser {
         Ok(Statement::new(StatementKind::Val { name, typ, value }, pos))
     }
 
-    fn parse_assign_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
-        let dst = self.parse_expression()?;
+    fn parse_assign_statement(&mut self, dst: Expression, pos: Pos) -> Result<Statement, Error> {
         self.expect(TokenKind::Assign)?;
         let value = self.parse_expression()?;
         Ok(Statement::new(
@@ -186,11 +189,6 @@ impl Parser {
             },
             pos,
         ))
-    }
-
-    fn parse_call_statement(&mut self, name: String, pos: Pos) -> Result<Statement, Error> {
-        let (name, args) = self.parse_call(name)?;
-        Ok(Statement::new(StatementKind::Call { name, args }, pos))
     }
 
     fn parse_return_statement(&mut self, pos: Pos) -> Result<Statement, Error> {
@@ -334,6 +332,14 @@ impl Parser {
         loop {
             match self.peek().kind {
                 TokenKind::Asterisk => {
+                    // TODO
+                    if let ExpressionKind::UnaryOp {
+                        op: UnaryOperator::Addr,
+                        ..
+                    } = node.kind
+                    {
+                        break;
+                    }
                     node = new_binop!(self, BinaryOperator::Mul, node, self.parse_unary()?)
                 }
                 TokenKind::Slash => {
@@ -362,6 +368,8 @@ impl Parser {
                 self.parse_unary()?
             )),
             TokenKind::Not => Ok(new_unop!(self, UnaryOperator::Not, self.parse_unary()?)),
+            TokenKind::And => Ok(new_unop!(self, UnaryOperator::Addr, self.parse_unary()?)),
+            TokenKind::Asterisk => Ok(new_unop!(self, UnaryOperator::Load, self.parse_unary()?)),
             _ => Ok(self.parse_postfix()?),
         }
     }
@@ -410,7 +418,7 @@ impl Parser {
                         expected: None,
                         actual: x,
                     },
-                ))
+                ));
             }
         };
 
@@ -479,6 +487,13 @@ impl Parser {
     }
 
     fn consume_type(&mut self) -> Result<Type, Error> {
+        if self.peek().kind == TokenKind::Asterisk {
+            self.consume();
+            return Ok(Type::Pointer {
+                pointer_to: Box::new(self.consume_type()?),
+            });
+        }
+
         let next_token_pos = self.peek().pos;
         let mut typ = match self.consume_ident()?.as_str() {
             "int" => Type::Int,

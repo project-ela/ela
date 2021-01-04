@@ -2,8 +2,8 @@ pub mod ir;
 
 use crate::{
     common::{
-        error::{Error, ErrorKind},
-        operator::BinaryOperator,
+        error::Error,
+        operator::{BinaryOperator, UnaryOperator},
         types::Type,
     },
     frontend::parser::ast::*,
@@ -23,7 +23,10 @@ struct IRGen {
 }
 
 #[derive(Debug)]
-struct Context(Vec<HashMap<String, MemoryAddr>>);
+struct Context(Vec<HashMap<String, Variable>>);
+
+#[derive(Debug, Clone)]
+struct Variable(MemoryAddr, Type);
 
 impl Context {
     fn new() -> Self {
@@ -32,14 +35,14 @@ impl Context {
         ctx
     }
 
-    fn add_variable(&mut self, name: String, addr: MemoryAddr) {
-        self.0.last_mut().unwrap().insert(name, addr);
+    fn add_variable(&mut self, name: String, addr: MemoryAddr, typ: Type) {
+        self.0.last_mut().unwrap().insert(name, Variable(addr, typ));
     }
 
-    fn find_variable(&self, name: &str) -> MemoryAddr {
+    fn find_variable(&self, name: &str) -> Variable {
         for ctx in self.0.iter().rev() {
             if ctx.contains_key(name) {
-                return *ctx.get(name).unwrap();
+                return ctx.get(name).cloned().unwrap();
             }
         }
         unreachable!();
@@ -96,7 +99,8 @@ impl IRGen {
         ir_func.new_block(format!(".L.{}.entry", func.name));
         for (index, param) in func.params.iter().enumerate() {
             let addr = self.alloc_stack_local(&param.typ);
-            self.ctx.add_variable(param.name.to_owned(), addr);
+            self.ctx
+                .add_variable(param.name.to_owned(), addr, param.typ.clone());
             ir_func.push(IR::StoreArg {
                 dst: addr,
                 src: index,
@@ -119,7 +123,7 @@ impl IRGen {
             }
             StatementKind::Var { name, typ, value } | StatementKind::Val { name, typ, value } => {
                 let addr = self.alloc_stack_local(&typ);
-                self.ctx.add_variable(name, addr);
+                self.ctx.add_variable(name, addr, typ.clone());
 
                 match value {
                     Some(value) => {
@@ -236,17 +240,44 @@ impl IRGen {
                 });
                 Ok(dst)
             }
-            ExpressionKind::Ident { .. } | ExpressionKind::Index { .. } => {
+            ExpressionKind::Ident { ref name } => {
+                let var = self.ctx.find_variable(name);
+                match var.1 {
+                    Type::Array { .. } => {
+                        let dst = self.gen_lvalue(expr, func)?;
+                        Ok(dst)
+                    }
+                    _ => {
+                        let src = self.gen_lvalue(expr, func)?;
+                        let dst = self.next_reg();
+                        func.push(IR::Load { dst, src });
+                        Ok(dst)
+                    }
+                }
+            }
+            ExpressionKind::Index { .. } => {
                 let dst = self.next_reg();
                 let src = self.gen_lvalue(expr, func)?;
                 func.push(IR::Load { dst, src });
                 Ok(dst)
             }
-            ExpressionKind::UnaryOp { op, expr } => {
-                let src = self.gen_expression(*expr, func)?;
-                func.push(IR::UnOp { op, src });
-                Ok(src)
-            }
+            ExpressionKind::UnaryOp { op, expr } => match op {
+                UnaryOperator::Addr => {
+                    let src = self.gen_lvalue(*expr, func)?;
+                    Ok(src)
+                }
+                UnaryOperator::Load => {
+                    let src = self.gen_expression(*expr, func)?;
+                    let dst = self.next_reg();
+                    func.push(IR::Load { dst, src });
+                    Ok(dst)
+                }
+                _ => {
+                    let src = self.gen_expression(*expr, func)?;
+                    func.push(IR::UnOp { op, src });
+                    Ok(src)
+                }
+            },
             ExpressionKind::BinaryOp { op, lhs, rhs } => {
                 let lhs = self.gen_expression(*lhs, func)?;
                 let rhs = self.gen_expression(*rhs, func)?;
@@ -268,12 +299,12 @@ impl IRGen {
                 let reg = self.next_reg();
                 func.push(IR::Addr {
                     dst: reg,
-                    src: self.ctx.find_variable(&name),
+                    src: self.ctx.find_variable(&name).0,
                 });
                 Ok(reg)
             }
             ExpressionKind::Index { lhs, index } => {
-                let reg = self.gen_lvalue(*lhs, func)?;
+                let reg = self.gen_expression(*lhs, func)?;
 
                 let index = self.gen_expression(*index, func)?;
                 func.push(IR::BinOp {
@@ -291,7 +322,16 @@ impl IRGen {
 
                 Ok(reg)
             }
-            _ => Err(Error::new(expr.pos, ErrorKind::LvalueRequired)),
+            ExpressionKind::UnaryOp {
+                op: UnaryOperator::Load,
+                expr,
+            } => {
+                let reg = self.next_reg();
+                let src = self.gen_expression(*expr, func)?;
+                func.push(IR::Move { dst: reg, src });
+                Ok(reg)
+            }
+            _ => panic!(),
         }
     }
 

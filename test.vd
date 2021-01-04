@@ -52,6 +52,9 @@ func test3(): int {
   }
 }
 
+func test4(arr: *int): int {
+  return arr[2]
+}
 
 func main(): int {
   asserti(0, 0)
@@ -232,6 +235,37 @@ func main(): int {
       asserti(arr[i], i * 2)
       i = i + 1
     }
+  }
+
+  {
+    var a: int = 0
+    var ap: *int = &a
+    asserti(a, 0)
+    asserti(*ap, 0)
+
+    *ap = 1
+    asserti(a, 1)
+    asserti(*ap, 1)
+
+    ap[0] = 2
+    asserti(a, 2)
+    asserti(*ap, 2)
+  }
+
+  {
+    var a: int
+    var ap: *int = &a
+    var app: **int = &ap
+    *ap = 3
+    asserti(**app, 3)
+  }
+
+  {
+    var arr: int[3]
+    arr[0] = 0
+    arr[1] = 1
+    arr[2] = 2
+    asserti(test4(arr), 2)
   }
 
   return 0

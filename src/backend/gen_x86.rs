@@ -76,6 +76,7 @@ impl GenX86 {
                     self.gen(format!("  cmp {}, 0", opr(src)).as_str());
                     self.gen(format!("  sete {}", opr8(src)).as_str());
                 }
+                _ => panic!(),
             },
             IR::BinOp { op, dst, lhs, rhs } => {
                 // r0 = r1 <op> r2 -> r1 = r0; r1 = r1 <op> r2

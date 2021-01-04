@@ -1,7 +1,7 @@
 use crate::{
     common::{
         error::{Error, ErrorKind, Errors},
-        operator::BinaryOperator,
+        operator::{BinaryOperator, UnaryOperator},
         pos::Pos,
         types::Type,
     },
@@ -248,6 +248,7 @@ impl<'a> SymbolPass<'a> {
 
     fn apply_expression(&mut self, expr: &Expression) -> Option<Type> {
         use BinaryOperator::*;
+        use UnaryOperator::*;
         match &expr.kind {
             ExpressionKind::Integer { .. } => Some(Type::Int),
             ExpressionKind::Bool { .. } => Some(Type::Bool),
@@ -261,16 +262,44 @@ impl<'a> SymbolPass<'a> {
                     None
                 }
             },
-            ExpressionKind::UnaryOp { op, expr } => match self.apply_expression(&*expr)? {
-                Type::Bool => Some(Type::Bool),
-                typ => {
-                    self.issue(Error::new(
-                        expr.pos.clone(),
-                        ErrorKind::UnaryOpErr { op: *op, expr: typ },
-                    ));
-                    None
+            ExpressionKind::UnaryOp { op, expr } => {
+                let expr_typ = self.apply_expression(&*expr)?;
+                match op {
+                    Not => match expr_typ {
+                        Type::Bool => Some(Type::Bool),
+                        typ => {
+                            self.issue(Error::new(
+                                expr.pos.clone(),
+                                ErrorKind::UnaryOpErr { op: *op, expr: typ },
+                            ));
+                            None
+                        }
+                    },
+                    Addr => match expr.kind {
+                        ExpressionKind::Ident { .. }
+                        | ExpressionKind::UnaryOp {
+                            op: UnaryOperator::Addr,
+                            ..
+                        } => Some(Type::Pointer {
+                            pointer_to: Box::new(expr_typ),
+                        }),
+                        _ => {
+                            self.issue(Error::new(expr.pos.clone(), ErrorKind::LvalueRequired));
+                            None
+                        }
+                    },
+                    Load => match expr_typ {
+                        Type::Pointer { pointer_to } => Some(*pointer_to),
+                        x => {
+                            self.issue(Error::new(
+                                expr.pos.clone(),
+                                ErrorKind::CannotLoad { lhs: x },
+                            ));
+                            None
+                        }
+                    },
                 }
-            },
+            }
             ExpressionKind::BinaryOp { op, lhs, rhs } => {
                 let lhs_typ = self.apply_expression(&*lhs)?;
                 let rhs_typ = self.apply_expression(&*rhs)?;
@@ -306,22 +335,27 @@ impl<'a> SymbolPass<'a> {
             ExpressionKind::Index { lhs, index } => {
                 let lhs_typ = self.apply_expression(lhs)?;
                 let index_typ = self.apply_expression(index)?;
-                if !matches!(lhs_typ, Type::Array { ..}) {
-                    self.issue(Error::new(
-                        expr.pos.clone(),
-                        ErrorKind::CannotIndex { lhs: lhs_typ },
-                    ));
+                match lhs_typ {
+                    Type::Array { elm_type: typ, .. } | Type::Pointer { pointer_to: typ } => {
+                        if index_typ != Type::Int {
+                            self.issue(Error::new(
+                                expr.pos.clone(),
+                                ErrorKind::TypeMismatch {
+                                    lhs: index_typ,
+                                    rhs: Type::Int,
+                                },
+                            ));
+                        }
+                        Some(*typ)
+                    }
+                    _ => {
+                        self.issue(Error::new(
+                            expr.pos.clone(),
+                            ErrorKind::CannotIndex { lhs: lhs_typ },
+                        ));
+                        None
+                    }
                 }
-                if index_typ != Type::Int {
-                    self.issue(Error::new(
-                        expr.pos.clone(),
-                        ErrorKind::TypeMismatch {
-                            lhs: index_typ,
-                            rhs: Type::Int,
-                        },
-                    ));
-                }
-                None
             }
         }
     }
@@ -354,7 +388,12 @@ impl<'a> SymbolPass<'a> {
                     ));
                 }
             }
-            _ => {}
+            ExpressionKind::Index { .. } => {}
+            ExpressionKind::UnaryOp {
+                op: UnaryOperator::Load,
+                ..
+            } => {}
+            _ => self.issue(Error::new(pos, ErrorKind::LvalueRequired)),
         }
     }
 
@@ -391,6 +430,14 @@ impl<'a> SymbolPass<'a> {
             let param_types = sig.params.iter().map(|param| param.typ.clone());
 
             for (arg_typ, param_typ) in arg_types.into_iter().zip(param_types) {
+                match (&arg_typ, &param_typ) {
+                    (Some(Type::Array { elm_type, .. }), Type::Pointer { pointer_to }) => {
+                        if pointer_to == elm_type {
+                            continue;
+                        }
+                    }
+                    _ => {}
+                }
                 if let Some(arg_typ) = arg_typ {
                     if arg_typ != param_typ {
                         issues.push(Error::new(
