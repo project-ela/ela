@@ -107,8 +107,10 @@ fn add() {
     do_test("add [r9], rax", "49 01 01");
     do_test("add rax,[rax+8]", "48 03 40 08");
     do_test("add rax,[r9-8]", "49 03 41 f8");
+    do_test("add rax,[r9-129]", "49 03 81 7f ff ff ff");
     do_test("add [rax+8],rax", "48 01 40 08");
     do_test("add [r9-8],rax", "49 01 41 f8");
+    do_test("add [r9-129],rax", "49 01 81 7f ff ff ff");
 }
 
 #[test]
@@ -129,8 +131,10 @@ fn sub() {
     do_test("sub [r9], rax", "49 29 01");
     do_test("sub rax,[rax+8]", "48 2b 40 08");
     do_test("sub rax,[r9-8]", "49 2b 41 f8");
+    do_test("sub rax,[r9-129]", "49 2b 81 7f ff ff ff");
     do_test("sub [rax+8],rax", "48 29 40 08");
     do_test("sub [r9-8],rax", "49 29 41 f8");
+    do_test("sub [r9-129],rax", "49 29 81 7f ff ff ff");
 }
 
 #[test]
@@ -149,6 +153,7 @@ fn imul() {
     do_test("imul rax, [r13]", "49 0f af 45 00");
     do_test("imul rax,[rax+8]", "48 0f af 40 08");
     do_test("imul rax,[r9-8]", "49 0f af 41 f8");
+    do_test("imul rax,[r9-129]", "49 0f af 81 7f ff ff ff");
 }
 
 #[test]
@@ -169,8 +174,10 @@ fn xor() {
     do_test("xor [r9], rax", "49 31 01");
     do_test("xor rax,[rax+8]", "48 33 40 08");
     do_test("xor rax,[r9-8]", "49 33 41 f8");
+    do_test("xor rax,[r9-129]", "49 33 81 7f ff ff ff");
     do_test("xor [rax+8],rax", "48 31 40 08");
     do_test("xor [r9-8],rax", "49 31 41 f8");
+    do_test("xor [r9-129],rax", "49 31 81 7f ff ff ff");
 }
 
 #[test]
@@ -191,8 +198,10 @@ fn mov() {
     do_test("mov [r9],rax", "49 89 01");
     do_test("mov rax,[rax+8]", "48 8b 40 08");
     do_test("mov rax,[r9-8]", "49 8b 41 f8");
+    do_test("mov rax,[r9-129]", "49 8b 81 7f ff ff ff");
     do_test("mov [rax+8],rax", "48 89 40 08");
     do_test("mov [r9-8],rax", "49 89 41 f8");
+    do_test("mov [r9-129],rax", "49 89 81 7f ff ff ff");
 }
 
 #[test]
@@ -213,8 +222,10 @@ fn and() {
     do_test("and [r9],rax", "49 21 01");
     do_test("and rax,[rax+8]", "48 23 40 08");
     do_test("and rax,[r9-8]", "49 23 41 f8");
+    do_test("and rax,[r9-129]", "49 23 81 7f ff ff ff");
     do_test("and [rax+8],rax", "48 21 40 08");
     do_test("and [r9-8],rax", "49 21 41 f8");
+    do_test("and [r9-129],rax", "49 21 81 7f ff ff ff");
 }
 
 #[test]
@@ -235,8 +246,10 @@ fn or() {
     do_test("or [r9],rax", "49 09 01");
     do_test("or rax,[rax+8]", "48 0b 40 08");
     do_test("or rax,[r9-8]", "49 0b 41 f8");
+    do_test("or rax,[r9-129]", "49 0b 81 7f ff ff ff");
     do_test("or [rax+8],rax", "48 09 40 08");
     do_test("or [r9-8],rax", "49 09 41 f8");
+    do_test("or [r9-129],rax", "49 09 81 7f ff ff ff");
 }
 
 #[test]
@@ -257,8 +270,10 @@ fn cmp() {
     do_test("cmp [r9],rax", "49 39 01");
     do_test("cmp rax,[rax+8]", "48 3b 40 08");
     do_test("cmp rax,[r9-8]", "49 3b 41 f8");
+    do_test("cmp rax,[r9-129]", "49 3b 81 7f ff ff ff");
     do_test("cmp [rax+8],rax", "48 39 40 08");
     do_test("cmp [r9-8],rax", "49 39 41 f8");
+    do_test("cmp [r9-129],rax", "49 39 81 7f ff ff ff");
 }
 
 #[test]
@@ -269,6 +284,7 @@ fn lea() {
     do_test("lea rax,[r13]", "49 8d 45 00");
     do_test("lea rax,[rax+8]", "48 8d 40 08");
     do_test("lea rax,[r9-8]", "49 8d 41 f8");
+    do_test("lea rax,[r9-129]", "49 8d 81 7f ff ff ff");
 }
 
 fn do_test(source: &str, expected_output: &str) {
