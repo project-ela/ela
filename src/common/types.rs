@@ -14,7 +14,7 @@ impl Type {
         match self {
             Type::Void => 8,
             Type::Int => 8,
-            Type::Bool => 8,
+            Type::Bool => 1,
             Type::Pointer { .. } => 8,
             Type::Array { elm_type, len } => elm_type.size() * len,
         }

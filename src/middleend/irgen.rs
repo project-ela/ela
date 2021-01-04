@@ -118,11 +118,13 @@ impl IRGen {
         ir_func.new_block(format!(".L.{}.entry", func.name));
         for (index, param) in func.params.iter().enumerate() {
             let addr = self.alloc_stack_local(&param.typ);
+            let size = RegSize::from(&param.typ);
             self.ctx
                 .add_variable(param.name.to_owned(), addr, param.typ.clone());
             ir_func.push(IR::StoreArg {
                 dst: addr,
                 src: index,
+                size,
             });
             ir_func.params.push(index as u32);
         }
@@ -271,7 +273,8 @@ impl IRGen {
                     _ => {
                         let (src, _) = self.gen_lvalue(expr, func)?;
                         let dst = self.next_reg();
-                        func.push(IR::Load { dst, src });
+                        let size = RegSize::from(&typ);
+                        func.push(IR::Load { dst, src, size });
                         Ok((dst, typ))
                     }
                 }
@@ -279,8 +282,10 @@ impl IRGen {
             ExpressionKind::Index { .. } => {
                 let dst = self.next_reg();
                 let (src, typ) = self.gen_lvalue(expr, func)?;
-                func.push(IR::Load { dst, src });
-                Ok((dst, typ.elm_typ()))
+                let typ = typ.elm_typ();
+                let size = RegSize::from(&typ);
+                func.push(IR::Load { dst, src, size });
+                Ok((dst, typ))
             }
             ExpressionKind::UnaryOp { op, expr } => match op {
                 UnaryOperator::Addr => {
@@ -289,9 +294,11 @@ impl IRGen {
                 }
                 UnaryOperator::Load => {
                     let (src, typ) = self.gen_expression(*expr, func)?;
+                    let typ = typ.elm_typ();
                     let dst = self.next_reg();
-                    func.push(IR::Load { dst, src });
-                    Ok((dst, typ.elm_typ()))
+                    let size = RegSize::from(&typ);
+                    func.push(IR::Load { dst, src, size });
+                    Ok((dst, typ))
                 }
                 _ => {
                     let (src, typ) = self.gen_expression(*expr, func)?;
@@ -367,8 +374,9 @@ impl IRGen {
         src: Expression,
         func: &mut IRFunction,
     ) -> Result<(), Error> {
-        let (src, _) = self.gen_expression(src, func)?;
-        func.push(IR::Store { dst, src });
+        let (src, typ) = self.gen_expression(src, func)?;
+        let size = RegSize::from(typ);
+        func.push(IR::Store { dst, src, size });
         Ok(())
     }
 
@@ -415,11 +423,16 @@ impl IRGen {
 
     fn alloc_stack_local(&mut self, typ: &Type) -> MemoryAddr {
         self.stack_offset_local += typ.size();
+        self.stack_offset_local = align_to(self.stack_offset_local, typ.size());
         MemoryAddr {
             base: Register::Rbp,
             offset: -(self.stack_offset_local as i32),
         }
     }
+}
+
+fn align_to(x: u32, align: u32) -> u32 {
+    (x + align - 1) & !(align - 1)
 }
 
 impl IRFunction {

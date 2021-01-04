@@ -66,15 +66,15 @@ impl RegAlloc {
                 IR::Addr { dst, src: _ } => {
                     self.alloc_operand(dst)?;
                 }
-                IR::Load { dst, src } => {
+                IR::Load { dst, src, size: _ } => {
                     self.get_operand(src, true);
                     self.alloc_operand(dst)?;
                 }
-                IR::Store { dst, src } => {
+                IR::Store { dst, src, size: _ } => {
                     self.get_operand(src, true);
                     self.get_operand(dst, true);
                 }
-                IR::StoreArg { dst: _, src: _ } => {}
+                IR::StoreArg { .. } => {}
                 IR::Jump { .. } => {}
                 IR::JumpIfNot { label: _, cond } => {
                     self.get_operand(cond, true);
