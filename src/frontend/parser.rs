@@ -494,6 +494,7 @@ impl Parser {
 
         let next_token_pos = self.peek().pos;
         let mut typ = match self.consume_ident()?.as_str() {
+            "byte" => Type::Byte,
             "int" => Type::Int,
             "bool" => Type::Bool,
             x => {
