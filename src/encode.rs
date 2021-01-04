@@ -216,6 +216,12 @@ fn encode_binary_op(inst: &Instruction) -> EncodedInst {
             }
             _ => panic!(),
         },
+        Mnemonic::Movsx => match (opr1, opr2) {
+            (Operand::Register(reg), Operand::Memory(_)) => {
+                encoding::encode_rm(&[0x0f, 0xbe], reg, opr2.to_rm())
+            }
+            _ => panic!(),
+        },
         Mnemonic::Or => match (opr1, opr2) {
             (Operand::Register(_), Operand::Immediate(imm))
             | (Operand::Memory(_), Operand::Immediate(imm)) => match imm {
