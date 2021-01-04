@@ -430,6 +430,14 @@ impl<'a> SymbolPass<'a> {
             let param_types = sig.params.iter().map(|param| param.typ.clone());
 
             for (arg_typ, param_typ) in arg_types.into_iter().zip(param_types) {
+                match (&arg_typ, &param_typ) {
+                    (Some(Type::Array { elm_type, .. }), Type::Pointer { pointer_to }) => {
+                        if pointer_to == elm_type {
+                            continue;
+                        }
+                    }
+                    _ => {}
+                }
                 if let Some(arg_typ) = arg_typ {
                     if arg_typ != param_typ {
                         issues.push(Error::new(
