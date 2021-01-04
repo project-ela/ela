@@ -1,6 +1,8 @@
 #[derive(Debug, Copy, Clone)]
 pub enum UnaryOperator {
     Not,
+    Addr,
+    Load,
 }
 
 #[derive(Debug, Copy, Clone)]

@@ -90,14 +90,9 @@ fn opt_expression(expression: Expression) -> Expression {
         ExpressionKind::Integer { .. } => expression,
         ExpressionKind::Bool { .. } => expression,
         ExpressionKind::Ident { .. } => expression,
-        ExpressionKind::UnaryOp { op, ref expr } => match expr.kind {
-            ExpressionKind::Integer { value } => {
-                Expression::new(opt_unop_int(op, value), expression.pos)
-            }
-            ExpressionKind::Bool { value } => {
-                Expression::new(opt_unop_bool(op, value), expression.pos)
-            }
-            _ => expression,
+        ExpressionKind::UnaryOp { op, expr } => Expression {
+            kind: opt_unop(op, *expr),
+            pos: expression.pos,
         },
         ExpressionKind::BinaryOp { op, lhs, rhs } => Expression {
             kind: opt_binop(op, *lhs, *rhs),
@@ -123,15 +118,29 @@ fn opt_expression(expression: Expression) -> Expression {
     }
 }
 
+fn opt_unop(op: UnaryOperator, expr: Expression) -> ExpressionKind {
+    let expr = opt_expression(expr);
+    match &expr.kind {
+        ExpressionKind::Integer { value: expr } => opt_unop_int(op, *expr),
+        ExpressionKind::Bool { value: expr } => opt_unop_bool(op, *expr),
+        _ => ExpressionKind::UnaryOp {
+            op,
+            expr: Box::new(expr),
+        },
+    }
+}
+
 fn opt_unop_int(op: UnaryOperator, value: i32) -> ExpressionKind {
     match op {
         UnaryOperator::Not => ExpressionKind::Integer { value: !value },
+        _ => panic!(),
     }
 }
 
 fn opt_unop_bool(op: UnaryOperator, value: bool) -> ExpressionKind {
     match op {
         UnaryOperator::Not => ExpressionKind::Bool { value: !value },
+        _ => panic!(),
     }
 }
 

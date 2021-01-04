@@ -37,6 +37,9 @@ pub enum ErrorKind {
     CannotIndex {
         lhs: Type,
     },
+    CannotLoad {
+        lhs: Type,
+    },
     AssignToConstant {
         name: String,
     },
@@ -63,8 +66,6 @@ pub enum ErrorKind {
     RedefinitionOf {
         name: String,
     },
-
-    // irgen
     LvalueRequired,
 
     // regalloc
@@ -94,6 +95,7 @@ impl fmt::Display for ErrorKind {
             MainShouldReturnInt => write!(f, "'main' function should return int value"),
             TypeMismatch { ref lhs, ref rhs } => write!(f, "type mismatch {} and {}", lhs, rhs),
             CannotIndex { ref lhs } => write!(f, "cannot index type {}", lhs),
+            CannotLoad { ref lhs } => write!(f, "cannot load type {}", lhs),
             AssignToConstant { ref name } => {
                 write!(f, "cannot assign to constant variable '{}'", name)
             }
