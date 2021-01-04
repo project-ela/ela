@@ -189,6 +189,15 @@ impl Emulator {
                 let value = self.get_operand(&opr2);
                 self.set_operand(&opr1, value);
             }
+            Mnemonic::Movsx => match opr2 {
+                Operand::Memory(mem) => {
+                    let addr = self.calc_address(&mem);
+                    let value = self.mmu.get_memory8(addr).unwrap();
+                    // TODO
+                    self.set_operand(&opr1, value as i8 as i64 as u64);
+                }
+                _ => panic!(),
+            },
             Mnemonic::Or => {
                 let lhs = self.get_operand(&opr1);
                 let rhs = self.get_operand(&opr2);
