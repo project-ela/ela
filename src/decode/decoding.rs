@@ -54,6 +54,13 @@ impl Decoder {
         Instruction::new_binary(mnemonic, opr1, Operand::Immediate(opr2))
     }
 
+    pub fn decode_mr8(&mut self, mnemonic: Mnemonic) -> Instruction {
+        let modrm = ModRM::from_byte(self.consume_u8());
+        let opr1 = self.decode_modrm(&modrm);
+        let opr2 = self.decode_register_reg8(modrm.reg);
+        Instruction::new_binary(mnemonic, opr1, Operand::Register(opr2))
+    }
+
     pub fn decode_mr(&mut self, mnemonic: Mnemonic) -> Instruction {
         let modrm = ModRM::from_byte(self.consume_u8());
         let opr1 = self.decode_modrm(&modrm);
