@@ -68,6 +68,8 @@ impl Emulator {
                     let value = buf_bytes[i];
                     self.mmu.set_memory8(addr, value).unwrap();
                 }
+
+                self.cpu.set_register64(&Register::Rax, buf_len as u64);
             }
             1 => {
                 let fd = self.cpu.get_register64(&Register::Rdi);
@@ -86,6 +88,8 @@ impl Emulator {
                     2 => eprint!("{}", buf),
                     _ => unimplemented!(),
                 }
+
+                self.cpu.set_register64(&Register::Rax, count as u64);
             }
             60 => {
                 let exit_code = self.cpu.get_register(&Register::Rdi) as u8;
