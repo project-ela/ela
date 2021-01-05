@@ -150,7 +150,7 @@ impl IRGen {
                     Some(value) => {
                         let dst = self.next_reg();
                         func.push(IR::Addr { dst, src: addr });
-                        self.gen_assign(dst, *value, func)?;
+                        self.gen_assign(dst, &typ, *value, func)?;
                     }
                     None => match typ {
                         Type::Array { elm_type, len } => {
@@ -169,7 +169,7 @@ impl IRGen {
                                     ExpressionKind::Integer { value: 0 },
                                     stmt.pos.clone(),
                                 );
-                                self.gen_assign(dst, zero, func)?;
+                                self.gen_assign(dst, &elm_type, zero, func)?;
                             }
                         }
                         _ => {
@@ -177,14 +177,14 @@ impl IRGen {
                             func.push(IR::Addr { dst, src: addr });
                             let zero =
                                 Expression::new(ExpressionKind::Integer { value: 0 }, stmt.pos);
-                            self.gen_assign(dst, zero, func)?;
+                            self.gen_assign(dst, &typ, zero, func)?;
                         }
                     },
                 }
             }
             StatementKind::Assign { dst, value } => {
-                let (dst, _) = self.gen_lvalue(*dst, func)?;
-                self.gen_assign(dst, *value, func)?;
+                let (dst, typ) = self.gen_lvalue(*dst, func)?;
+                self.gen_assign(dst, &typ.elm_typ(), *value, func)?;
             }
             StatementKind::Return { value } => {
                 let src = match value {
@@ -379,11 +379,12 @@ impl IRGen {
     fn gen_assign(
         &mut self,
         dst: Operand,
+        dst_typ: &Type,
         src: Expression,
         func: &mut IRFunction,
     ) -> Result<(), Error> {
-        let (src, typ) = self.gen_expression(src, func)?;
-        let size = RegSize::from(typ);
+        let (src, _) = self.gen_expression(src, func)?;
+        let size = RegSize::from(dst_typ);
         func.push(IR::Store { dst, src, size });
         Ok(())
     }
