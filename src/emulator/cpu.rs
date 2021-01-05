@@ -1,5 +1,7 @@
 use x86asm::instruction::operand::register::{self, Register};
 
+use super::value::Value;
+
 #[derive(Debug, Default)]
 pub struct Cpu {
     regs: [u64; 16],
@@ -22,19 +24,23 @@ impl Cpu {
         Default::default()
     }
 
-    pub fn get_register(&self, reg: &Register) -> u64 {
+    pub fn get_register(&self, reg: &Register) -> Value {
         match reg.size() {
-            register::Size::QWord | register::Size::DWord => self.get_register64(reg),
-            register::Size::Byte => self.get_register8(reg) as u64,
+            register::Size::Byte => Value::Value8(self.get_register8(reg)),
+            register::Size::DWord => Value::Value32(self.get_register64(reg) as u32),
+            register::Size::QWord => Value::Value64(self.get_register64(reg)),
             _ => unimplemented!(),
         }
     }
 
-    pub fn set_register(&mut self, reg: &Register, value: u64) {
-        match reg.size() {
-            register::Size::QWord | register::Size::DWord => self.set_register64(reg, value),
-            register::Size::Byte => self.set_register8(reg, value as u8),
-            _ => unimplemented!(),
+    pub fn set_register(&mut self, reg: &Register, value: Value) {
+        if reg.size() != value.size() {
+            panic!("operand type mismatch");
+        }
+        match value {
+            Value::Value8(value) => self.set_register8(reg, value),
+            Value::Value32(value) => self.set_register64(reg, value as u64),
+            Value::Value64(value) => self.set_register64(reg, value),
         }
     }
 
