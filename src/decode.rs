@@ -114,7 +114,7 @@ impl Decoder {
                     _ => panic!(),
                 }
             }
-            0x88 => self.decode_rm(Mnemonic::Mov),
+            0x88 => self.decode_mr8(Mnemonic::Mov),
             0x89 => self.decode_mr(Mnemonic::Mov),
             0x8b => self.decode_rm(Mnemonic::Mov),
             0x8d => self.decode_rm(Mnemonic::Lea),
@@ -155,6 +155,12 @@ impl Decoder {
 
     pub fn pos(&self) -> &usize {
         &self.pos
+    }
+
+    fn decode_register_reg8(&mut self, num: u8) -> Register {
+        let size = register::Size::Byte;
+        let extend = self.rex.as_ref().map_or(false, |rex| rex.r);
+        self.decode_register(num, size, extend)
     }
 
     fn decode_register_reg(&mut self, num: u8) -> Register {

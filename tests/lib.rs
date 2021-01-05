@@ -206,6 +206,16 @@ fn binary_mr() {
         Operand::Memory(Memory::new_disp(Displacement::Disp32(2))),
         Operand::Register(Register::Rax),
     ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Mov,
+        Operand::Memory(Memory::new(Register::Rax, None)),
+        Operand::Register(Register::R8b),
+    ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Mov,
+        Operand::Memory(Memory::new(Register::R8, None)),
+        Operand::Register(Register::Sil),
+    ));
 }
 
 #[test]
