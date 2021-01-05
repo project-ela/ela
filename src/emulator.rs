@@ -3,6 +3,7 @@ pub mod decode;
 pub mod execute;
 pub mod flags;
 pub mod mmu;
+pub mod value;
 
 use std::fs;
 
@@ -26,7 +27,7 @@ impl Emulator {
             dump_state: false,
         };
         emu.cpu.set_rip(rip);
-        emu.cpu.set_register(&Register::Rsp, rsp);
+        emu.cpu.set_register64(&Register::Rsp, rsp);
         emu.mmu.add_segment(0, vec![0; rsp as usize]);
 
         return emu;
@@ -73,15 +74,15 @@ impl Emulator {
     }
 
     pub fn push64(&mut self, value: u64) -> Result<(), String> {
-        let new_rsp = self.cpu.get_register(&Register::Rsp) - 8;
+        let new_rsp = self.cpu.get_register64(&Register::Rsp) - 8;
         self.mmu.set_memory64(new_rsp as usize, value)?;
-        self.cpu.set_register(&Register::Rsp, new_rsp);
+        self.cpu.set_register64(&Register::Rsp, new_rsp);
         Ok(())
     }
 
     pub fn pop64(&mut self) -> Result<u64, String> {
-        let rsp = self.cpu.get_register(&Register::Rsp);
-        self.cpu.set_register(&Register::Rsp, rsp + 8);
+        let rsp = self.cpu.get_register64(&Register::Rsp);
+        self.cpu.set_register64(&Register::Rsp, rsp + 8);
         self.mmu.get_memory64(rsp as usize)
     }
 
@@ -108,28 +109,28 @@ impl Emulator {
     }
 
     pub fn dump_registers(&self) {
-        print!("RAX: {:016X}, ", self.cpu.get_register(&Register::Rax));
-        print!("RCX: {:016X}, ", self.cpu.get_register(&Register::Rcx));
-        print!("RDX: {:016X}, ", self.cpu.get_register(&Register::Rdx));
-        println!("RBX: {:016X}, ", self.cpu.get_register(&Register::Rbx));
-        print!("RSP: {:016X}, ", self.cpu.get_register(&Register::Rsp));
-        print!("RBP: {:016X}, ", self.cpu.get_register(&Register::Rbp));
-        print!("RSI: {:016X}, ", self.cpu.get_register(&Register::Rsi));
-        println!("RDI: {:016X}, ", self.cpu.get_register(&Register::Rdi));
-        print!("R8 : {:016X}, ", self.cpu.get_register(&Register::R8));
-        print!("R9 : {:016X}, ", self.cpu.get_register(&Register::R9));
-        print!("R10: {:016X}, ", self.cpu.get_register(&Register::R10));
-        println!("R11: {:016X}, ", self.cpu.get_register(&Register::R11));
-        print!("R12: {:016X}, ", self.cpu.get_register(&Register::R12));
-        print!("R13: {:016X}, ", self.cpu.get_register(&Register::R13));
-        print!("R14: {:016X}, ", self.cpu.get_register(&Register::R14));
-        println!("R15: {:016X}, ", self.cpu.get_register(&Register::R15));
+        print!("RAX: {:016X}, ", self.cpu.get_register64(&Register::Rax));
+        print!("RCX: {:016X}, ", self.cpu.get_register64(&Register::Rcx));
+        print!("RDX: {:016X}, ", self.cpu.get_register64(&Register::Rdx));
+        println!("RBX: {:016X}, ", self.cpu.get_register64(&Register::Rbx));
+        print!("RSP: {:016X}, ", self.cpu.get_register64(&Register::Rsp));
+        print!("RBP: {:016X}, ", self.cpu.get_register64(&Register::Rbp));
+        print!("RSI: {:016X}, ", self.cpu.get_register64(&Register::Rsi));
+        println!("RDI: {:016X}, ", self.cpu.get_register64(&Register::Rdi));
+        print!("R8 : {:016X}, ", self.cpu.get_register64(&Register::R8));
+        print!("R9 : {:016X}, ", self.cpu.get_register64(&Register::R9));
+        print!("R10: {:016X}, ", self.cpu.get_register64(&Register::R10));
+        println!("R11: {:016X}, ", self.cpu.get_register64(&Register::R11));
+        print!("R12: {:016X}, ", self.cpu.get_register64(&Register::R12));
+        print!("R13: {:016X}, ", self.cpu.get_register64(&Register::R13));
+        print!("R14: {:016X}, ", self.cpu.get_register64(&Register::R14));
+        println!("R15: {:016X}, ", self.cpu.get_register64(&Register::R15));
     }
 
     pub fn dump_stack(&self) {
         println!("----- stack -----");
         for i in 0..5 {
-            let rsp = self.cpu.get_register(&Register::Rsp) as usize;
+            let rsp = self.cpu.get_register64(&Register::Rsp) as usize;
             let addr = rsp + 8 * i;
             match self.mmu.get_memory64(addr) {
                 Ok(value) => println!("0x{:016X}: {:016X}", addr, value),
