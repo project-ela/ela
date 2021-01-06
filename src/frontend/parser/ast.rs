@@ -75,7 +75,7 @@ pub enum StatementKind {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Expression {
     pub kind: ExpressionKind,
     pub pos: Pos,
@@ -87,7 +87,7 @@ impl Expression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExpressionKind {
     Char {
         value: char,

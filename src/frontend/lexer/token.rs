@@ -31,6 +31,8 @@ pub enum TokenKind {
     While,
 
     Assign,
+    PlusAssign,
+    MinusAssign,
 
     And,
     Or,

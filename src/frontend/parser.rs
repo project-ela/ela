@@ -54,6 +54,28 @@ macro_rules! new_binop {
     }};
 }
 
+macro_rules! op_assign {
+    ($self: expr, $op: expr, $dst: expr) => {{
+        let pos = $dst.pos.clone();
+        $self.consume();
+        let value = $self.parse_expression()?;
+        Ok(Statement::new(
+            StatementKind::Assign {
+                dst: Box::new($dst.clone()),
+                value: Box::new(Expression::new(
+                    ExpressionKind::BinaryOp {
+                        op: $op,
+                        lhs: Box::new($dst),
+                        rhs: Box::new(value),
+                    },
+                    pos.clone(),
+                )),
+            },
+            pos,
+        ))
+    }};
+}
+
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
         Self { pos: 0, tokens }
@@ -134,6 +156,10 @@ impl Parser {
                 }
                 match self.peek().kind {
                     TokenKind::Assign => self.parse_assign_statement(expr, token.pos),
+                    TokenKind::PlusAssign => op_assign!(self, BinaryOperator::Add, expr),
+                    TokenKind::MinusAssign => {
+                        op_assign!(self, BinaryOperator::Sub, expr)
+                    }
                     x => Err(Error::new(
                         token.pos,
                         ErrorKind::UnexpectedToken {

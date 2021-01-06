@@ -78,8 +78,20 @@ impl Tokenizer {
         self.consume_char();
 
         match c {
-            '+' => Ok(TokenKind::Plus),
-            '-' => Ok(TokenKind::Minus),
+            '+' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::PlusAssign)
+                }
+                _ => Ok(TokenKind::Plus),
+            },
+            '-' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::MinusAssign)
+                }
+                _ => Ok(TokenKind::Minus),
+            },
             '*' => Ok(TokenKind::Asterisk),
             '&' => Ok(TokenKind::And),
             '|' => Ok(TokenKind::Or),
