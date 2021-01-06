@@ -286,6 +286,7 @@ func main(): int {
 
   asserti('a', 97)
   asserti('A', 65)
+  asserti('A' + 3, 68)
   assertb('A' == 'A', true)
   assertb('A' != 'A', false)
 
