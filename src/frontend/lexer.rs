@@ -172,7 +172,10 @@ impl Tokenizer {
 
     fn consume_char_literal(&mut self) -> Result<TokenKind, Error> {
         self.consume_char();
-        let value = self.consume_char();
+        let value = match self.consume_char() {
+            '\\' => self.consume_escape_char(),
+            x => x,
+        };
 
         match self.consume_char() {
             '\'' => Ok(TokenKind::CharLiteral { value }),
@@ -180,6 +183,17 @@ impl Tokenizer {
                 self.pos.clone(),
                 ErrorKind::UnexpectedChar { c: x },
             )),
+        }
+    }
+
+    fn consume_escape_char(&mut self) -> char {
+        match self.consume_char() {
+            'n' => '\n',
+            'r' => '\r',
+            't' => '\t',
+            '\\' => '\\',
+            '0' => '\0',
+            x => x,
         }
     }
 
