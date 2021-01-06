@@ -198,12 +198,24 @@ impl Tokenizer {
     }
 
     fn consume_number(&mut self) -> TokenKind {
+        let mut radix = 10;
+        if self.peek_char() == '0' {
+            self.consume_char();
+            match self.peek_char() {
+                'x' => {
+                    self.consume_char();
+                    radix = 16;
+                }
+                _ => return TokenKind::IntLiteral { value: 0 },
+            }
+        }
+
         let mut digits = String::new();
-        while !self.is_eof() && self.peek_char().is_digit(10) {
+        while !self.is_eof() && self.peek_char().is_digit(radix) {
             digits.push(self.consume_char());
         }
 
-        let value = digits.parse().unwrap();
+        let value = i32::from_str_radix(&digits, radix).unwrap();
         TokenKind::IntLiteral { value }
     }
 
