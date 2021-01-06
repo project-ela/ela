@@ -178,6 +178,7 @@ fn opt_binop_int(op: BinaryOperator, lhs: i32, rhs: i32) -> ExpressionKind {
         Sub => binop_int!(-),
         Mul => binop_int!(*),
         Div => binop_int!(/),
+        Mod => binop_int!(%),
         And => binop_int!(&),
         Or => binop_int!(|),
         Xor => binop_int!(^),

@@ -89,6 +89,7 @@ impl GenX86 {
                     BinaryOperator::Sub => self.gen_binop("sub", dst, rhs),
                     BinaryOperator::Mul => self.gen_binop("imul", dst, rhs),
                     BinaryOperator::Div => self.gen_div(dst, rhs),
+                    BinaryOperator::Mod => self.gen_mod(dst, rhs),
                     BinaryOperator::And => self.gen_binop("and", dst, rhs),
                     BinaryOperator::Or => self.gen_binop("or", dst, rhs),
                     BinaryOperator::Xor => self.gen_binop("xor", dst, rhs),
@@ -174,6 +175,14 @@ impl GenX86 {
         self.gen("  xor rdx, rdx");
         self.gen("  idiv rcx");
         self.gen(format!("  mov {}, rax", opr(lhs)).as_str());
+    }
+
+    fn gen_mod(&mut self, lhs: &Operand, rhs: &Operand) {
+        self.gen(format!("  mov rax, {}", opr(lhs)).as_str());
+        self.gen(format!("  mov rcx, {}", opr(rhs)).as_str());
+        self.gen("  xor rdx, rdx");
+        self.gen("  idiv rcx");
+        self.gen(format!("  mov {}, rdx", opr(lhs)).as_str());
     }
 
     fn gen_compare(&mut self, op: &str, lhs: &Operand, rhs: &Operand) {

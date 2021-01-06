@@ -99,6 +99,7 @@ impl Tokenizer {
                 }
                 _ => Ok(TokenKind::Asterisk),
             },
+            '%' => Ok(TokenKind::Percent),
             '&' => Ok(TokenKind::And),
             '|' => Ok(TokenKind::Or),
             '^' => Ok(TokenKind::Xor),

@@ -76,6 +76,9 @@ func main(): int {
   asserti(--2, 2)
   asserti(-3 * -1, 3)
 
+  asserti(3 % 2, 1)
+  asserti(6 % 3, 0)
+
   asserti(1 & 0, 0)
   asserti(1 & 1, 1)
   asserti(0 | 0, 0)
