@@ -59,6 +59,8 @@ func test4(arr: *int): int {
 func main(): int {
   asserti(0, 0)
   asserti(42, 42)
+  asserti(0x08, 8)
+  asserti(0xff, 255)
 
   asserti(1 + 2, 3)
   asserti(1 + 2 + 3, 6)
