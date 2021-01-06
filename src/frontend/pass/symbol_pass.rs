@@ -314,7 +314,7 @@ impl<'a> SymbolPass<'a> {
                 }
                 match op {
                     Equal | NotEqual | Lt | Lte | Gt | Gte => Some(Type::Bool),
-                    Add | Sub | Mul | Div | And | Or | Xor => match lhs_typ {
+                    Add | Sub | Mul | Div | Mod | And | Or | Xor => match lhs_typ {
                         Type::Byte => Some(Type::Byte),
                         Type::Int => Some(Type::Int),
                         _ => {

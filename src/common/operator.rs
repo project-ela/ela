@@ -11,6 +11,7 @@ pub enum BinaryOperator {
     Sub,
     Mul,
     Div,
+    Mod,
 
     And,
     Or,

@@ -371,6 +371,9 @@ impl Parser {
                 TokenKind::Slash => {
                     node = new_binop!(self, BinaryOperator::Div, node, self.parse_unary()?)
                 }
+                TokenKind::Percent => {
+                    node = new_binop!(self, BinaryOperator::Mod, node, self.parse_unary()?)
+                }
                 _ => break,
             }
         }

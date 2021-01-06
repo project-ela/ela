@@ -53,6 +53,7 @@ pub enum TokenKind {
     Minus,
     Asterisk,
     Slash,
+    Percent,
 
     LParen,
     RParen,
