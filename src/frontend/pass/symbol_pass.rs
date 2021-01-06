@@ -302,7 +302,7 @@ impl<'a> SymbolPass<'a> {
             ExpressionKind::BinaryOp { op, lhs, rhs } => {
                 let lhs_typ = self.apply_expression(&*lhs)?;
                 let rhs_typ = self.apply_expression(&*rhs)?;
-                if lhs_typ != rhs_typ {
+                if !lhs_typ.is_same(&rhs_typ) {
                     self.issue(Error::new(
                         expr.pos.clone(),
                         ErrorKind::TypeMismatch {
@@ -315,6 +315,7 @@ impl<'a> SymbolPass<'a> {
                 match op {
                     Equal | NotEqual | Lt | Lte | Gt | Gte => Some(Type::Bool),
                     Add | Sub | Mul | Div | And | Or | Xor => match lhs_typ {
+                        Type::Byte => Some(Type::Byte),
                         Type::Int => Some(Type::Int),
                         _ => {
                             self.issue(Error::new(
