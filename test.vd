@@ -294,12 +294,24 @@ func main(): int {
     var a: int = 0
     a += 2
     asserti(a, 2)
+    a -= 1
+    asserti(a, 1)
+    a *= 8
+    asserti(a, 8)
+    a /= 2
+    asserti(a, 4)
   }
 
   {
-    var arr: int[1]
-    arr[0] += 3
-    asserti(arr[0], 3)
+    var arr: int[2]
+    arr[0] += 2
+    asserti(arr[0], 2)
+    arr[0] -= 1
+    asserti(arr[0], 1)
+    arr[0] *= 8
+    asserti(arr[0], 8)
+    arr[0] /= 2
+    asserti(arr[0], 4)
   }
 
 

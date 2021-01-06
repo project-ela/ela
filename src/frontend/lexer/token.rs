@@ -33,6 +33,8 @@ pub enum TokenKind {
     Assign,
     PlusAssign,
     MinusAssign,
+    AsteriskAssign,
+    SlashAssign,
 
     And,
     Or,

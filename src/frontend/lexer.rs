@@ -92,7 +92,13 @@ impl Tokenizer {
                 }
                 _ => Ok(TokenKind::Minus),
             },
-            '*' => Ok(TokenKind::Asterisk),
+            '*' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::AsteriskAssign)
+                }
+                _ => Ok(TokenKind::Asterisk),
+            },
             '&' => Ok(TokenKind::And),
             '|' => Ok(TokenKind::Or),
             '^' => Ok(TokenKind::Xor),
@@ -112,6 +118,10 @@ impl Tokenizer {
                 '*' => {
                     self.consume_char();
                     Ok(self.consume_block_comment())
+                }
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::SlashAssign)
                 }
                 _ => Ok(TokenKind::Slash),
             },

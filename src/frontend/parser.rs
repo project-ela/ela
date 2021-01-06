@@ -157,9 +157,9 @@ impl Parser {
                 match self.peek().kind {
                     TokenKind::Assign => self.parse_assign_statement(expr, token.pos),
                     TokenKind::PlusAssign => op_assign!(self, BinaryOperator::Add, expr),
-                    TokenKind::MinusAssign => {
-                        op_assign!(self, BinaryOperator::Sub, expr)
-                    }
+                    TokenKind::MinusAssign => op_assign!(self, BinaryOperator::Sub, expr),
+                    TokenKind::AsteriskAssign => op_assign!(self, BinaryOperator::Mul, expr),
+                    TokenKind::SlashAssign => op_assign!(self, BinaryOperator::Div, expr),
                     x => Err(Error::new(
                         token.pos,
                         ErrorKind::UnexpectedToken {
