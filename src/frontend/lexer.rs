@@ -78,9 +78,27 @@ impl Tokenizer {
         self.consume_char();
 
         match c {
-            '+' => Ok(TokenKind::Plus),
-            '-' => Ok(TokenKind::Minus),
-            '*' => Ok(TokenKind::Asterisk),
+            '+' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::PlusAssign)
+                }
+                _ => Ok(TokenKind::Plus),
+            },
+            '-' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::MinusAssign)
+                }
+                _ => Ok(TokenKind::Minus),
+            },
+            '*' => match self.peek_char() {
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::AsteriskAssign)
+                }
+                _ => Ok(TokenKind::Asterisk),
+            },
             '&' => Ok(TokenKind::And),
             '|' => Ok(TokenKind::Or),
             '^' => Ok(TokenKind::Xor),
@@ -100,6 +118,10 @@ impl Tokenizer {
                 '*' => {
                     self.consume_char();
                     Ok(self.consume_block_comment())
+                }
+                '=' => {
+                    self.consume_char();
+                    Ok(TokenKind::SlashAssign)
                 }
                 _ => Ok(TokenKind::Slash),
             },

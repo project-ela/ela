@@ -31,6 +31,10 @@ pub enum TokenKind {
     While,
 
     Assign,
+    PlusAssign,
+    MinusAssign,
+    AsteriskAssign,
+    SlashAssign,
 
     And,
     Or,
