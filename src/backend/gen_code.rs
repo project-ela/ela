@@ -7,7 +7,10 @@ use x86asm::{
     instruction::operand::{immediate::Immediate, memory::Displacement, offset::Offset, Operand},
 };
 
-use crate::frontend::parser::node::{InstructionNode, OperandNode, PseudoOp};
+use crate::{
+    common::error::Error,
+    frontend::parser::node::{InstructionNode, OperandNode, PseudoOp},
+};
 
 #[derive(Default)]
 struct Generator {
@@ -36,7 +39,7 @@ pub struct GeneratedData {
     pub relas: Vec<Rela>,
 }
 
-pub fn generate(insts: Vec<InstructionNode>) -> Result<GeneratedData, String> {
+pub fn generate(insts: Vec<InstructionNode>) -> Result<GeneratedData, Error> {
     let mut generator = Generator::default();
 
     Ok(GeneratedData {
@@ -47,7 +50,7 @@ pub fn generate(insts: Vec<InstructionNode>) -> Result<GeneratedData, String> {
 }
 
 impl Generator {
-    fn generate(&mut self, insts: Vec<InstructionNode>) -> Result<Vec<u8>, String> {
+    fn generate(&mut self, insts: Vec<InstructionNode>) -> Result<Vec<u8>, Error> {
         self.process_symbols(&insts);
 
         for inst in insts {
@@ -135,7 +138,7 @@ impl Generator {
         }
     }
 
-    fn gen_inst(&mut self, inst: InstructionNode) -> Result<(), String> {
+    fn gen_inst(&mut self, inst: InstructionNode) -> Result<(), Error> {
         match inst {
             InstructionNode::PseudoOp { .. } => {}
             InstructionNode::Label { .. } => {}
@@ -155,7 +158,7 @@ impl Generator {
             Mnemonic::Je | Mnemonic::Jmp | Mnemonic::Call => {
                 let name = match opr1 {
                     OperandNode::Label { name } => name,
-                    _ => panic!(),
+                    _ => unimplemented!(),
                 };
 
                 self.output.push(Instruction::new_unary(
@@ -225,7 +228,7 @@ impl Generator {
                     }
                 }),
             )),
-            OperandNode::Label { .. } => panic!(),
+            OperandNode::Label { .. } => unimplemented!(),
         }
     }
 

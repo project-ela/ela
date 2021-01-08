@@ -1,7 +1,21 @@
 use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
 
+use crate::common::pos::Pos;
+
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub pos: Pos,
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, pos: Pos) -> Self {
+        Self { kind, pos }
+    }
+}
+
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub enum Token {
+pub enum TokenKind {
     Integer(u32),
     Ident(String),
     Symbol(Symbol),

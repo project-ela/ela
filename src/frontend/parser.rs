@@ -3,16 +3,19 @@ pub mod node;
 use node::{InstructionNode, MemoryNode, OperandNode, PseudoOp};
 use x86asm::instruction::mnemonic;
 
-use crate::frontend::lexer::token::{Symbol, Token};
+use crate::{
+    common::error::{Error, ErrorKind},
+    frontend::lexer::token::{Symbol, Token},
+};
 
-use super::lexer::token::Keyword;
+use super::lexer::token::{Keyword, TokenKind};
 
 struct Parser {
     pos: usize,
     tokens: Vec<Token>,
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<Vec<InstructionNode>, String> {
+pub fn parse(tokens: Vec<Token>) -> Result<Vec<InstructionNode>, Error> {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -22,47 +25,54 @@ impl Parser {
         Self { pos: 0, tokens }
     }
 
-    fn parse(&mut self) -> Result<Vec<InstructionNode>, String> {
+    fn parse(&mut self) -> Result<Vec<InstructionNode>, Error> {
         let mut insts = Vec::new();
         loop {
             if self.is_eof() {
                 break;
             }
 
-            if matches!(self.peek(), Token::Comment(_)) {
+            if matches!(self.peek().kind, TokenKind::Comment(_)) {
                 self.consume();
                 continue;
             }
 
-            if !matches!(self.peek(), Token::Ident(_)) {
+            if !matches!(self.peek().kind, TokenKind::Ident(_)) {
                 insts.push(self.parse_inst()?);
                 continue;
             }
 
+            let ident_token = self.peek().clone();
             let ident = self.consume_ident()?;
 
-            if self.peek() == &Token::Symbol(Symbol::Colon) {
+            if self.peek().kind == TokenKind::Symbol(Symbol::Colon) {
                 self.consume();
                 insts.push(InstructionNode::Label { name: ident });
                 continue;
             }
 
             if ident.starts_with('.') {
-                let op = find_pseudoop(&ident).ok_or(format!("unknown pseudo-op: {}", ident))?;
+                let op = find_pseudoop(ident_token)?;
                 let arg = self.consume_ident()?;
                 insts.push(InstructionNode::PseudoOp(op, arg));
                 continue;
             }
 
-            return Err(format!("unexpected token: {}", ident));
+            return Err(Error::new(
+                ident_token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: ident_token.kind,
+                },
+            ));
         }
         Ok(insts)
     }
 
-    fn parse_inst(&mut self) -> Result<InstructionNode, String> {
+    fn parse_inst(&mut self) -> Result<InstructionNode, Error> {
         let token = self.consume().clone();
-        match token {
-            Token::Mnemonic(mnemonic) => match mnemonic.typ() {
+        match token.kind {
+            TokenKind::Mnemonic(mnemonic) => match mnemonic.typ() {
                 mnemonic::Type::Nullary => Ok(InstructionNode::NullaryOp(mnemonic)),
                 mnemonic::Type::Unary => {
                     let operand1 = self.parse_operand()?;
@@ -70,103 +80,157 @@ impl Parser {
                 }
                 mnemonic::Type::Binary => {
                     let operand1 = self.parse_operand()?;
-                    self.expect(&Token::Symbol(Symbol::Comma))?;
+                    self.expect(TokenKind::Symbol(Symbol::Comma))?;
                     let operand2 = self.parse_operand()?;
                     Ok(InstructionNode::BinaryOp(mnemonic, operand1, operand2))
                 }
             },
-            x => Err(format!("unexpected token: {:?}", x)),
+            x => Err(Error::new(
+                token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
+            )),
         }
     }
 
-    fn parse_operand(&mut self) -> Result<OperandNode, String> {
-        match self.consume() {
-            Token::Integer(value) => Ok(OperandNode::Immidiate { value: *value }),
-            Token::Ident(name) => Ok(OperandNode::Label {
+    fn parse_operand(&mut self) -> Result<OperandNode, Error> {
+        let token = self.consume();
+        match token.kind {
+            TokenKind::Integer(value) => Ok(OperandNode::Immidiate { value }),
+            TokenKind::Ident(name) => Ok(OperandNode::Label {
                 name: name.to_owned(),
             }),
-            Token::Register(reg) => Ok(OperandNode::Register {
+            TokenKind::Register(reg) => Ok(OperandNode::Register {
                 reg: reg.to_owned(),
             }),
-            Token::Symbol(Symbol::LBracket) => self.parse_operand_address(),
+            TokenKind::Symbol(Symbol::LBracket) => self.parse_operand_address(),
             // TODO
-            Token::Keyword(Keyword::Byte) => {
-                self.expect(&Token::Keyword(Keyword::Ptr))?;
-                self.expect(&Token::Symbol(Symbol::LBracket))?;
+            TokenKind::Keyword(Keyword::Byte) => {
+                self.expect(TokenKind::Keyword(Keyword::Ptr))?;
+                self.expect(TokenKind::Symbol(Symbol::LBracket))?;
                 self.parse_operand_address()
             }
-            x => Err(format!("unexpected token: {:?}", x)),
+            x => Err(Error::new(
+                token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x.clone(),
+                },
+            )),
         }
     }
 
-    fn parse_operand_address(&mut self) -> Result<OperandNode, String> {
-        let base = match self.consume() {
-            Token::Register(reg) => reg.clone(),
-            x => return Err(format!("unexpected token: {:?}", x)),
+    fn parse_operand_address(&mut self) -> Result<OperandNode, Error> {
+        let token = self.consume();
+        let base = match token.kind {
+            TokenKind::Register(reg) => reg.clone(),
+            x => {
+                return Err(Error::new(
+                    token.pos,
+                    ErrorKind::UnexpectedToken {
+                        expected: None,
+                        actual: x.clone(),
+                    },
+                ))
+            }
         };
 
-        let disp = match self.peek() {
-            Token::Symbol(Symbol::Plus) => {
+        let disp = match self.peek().kind {
+            TokenKind::Symbol(Symbol::Plus) => {
                 self.consume();
                 Some(self.consume_integer()? as i32)
             }
-            Token::Symbol(Symbol::Minus) => {
+            TokenKind::Symbol(Symbol::Minus) => {
                 self.consume();
                 Some(-(self.consume_integer()? as i32))
             }
             _ => None,
         };
 
-        self.expect(&Token::Symbol(Symbol::RBracket))?;
+        self.expect(TokenKind::Symbol(Symbol::RBracket))?;
         Ok(OperandNode::Memory(MemoryNode { base, disp }))
     }
 
-    fn expect(&mut self, token: &Token) -> Result<&Token, String> {
+    fn expect(&mut self, token: TokenKind) -> Result<Token, Error> {
         let next_token = self.consume();
-        if next_token == token {
+        if next_token.kind == token {
             Ok(next_token)
         } else {
-            Err(format!("expected {:?}, but got {:?}", token, next_token))
+            Err(Error::new(
+                next_token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: Some(token),
+                    actual: next_token.kind,
+                },
+            ))
         }
     }
 
-    fn peek(&self) -> &Token {
-        self.tokens.get(self.pos).unwrap_or(&Token::EOF)
-    }
-
-    fn consume_integer(&mut self) -> Result<u32, String> {
+    fn consume_integer(&mut self) -> Result<u32, Error> {
         let next_token = self.consume();
-        if let Token::Integer(value) = next_token {
-            Ok(*value)
-        } else {
-            Err(format!("expected integer, but got {:?}", next_token))
+        match next_token.kind {
+            TokenKind::Integer(value) => Ok(value),
+            x => Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedInteger { actual: x },
+            )),
         }
     }
 
-    fn consume_ident(&mut self) -> Result<String, String> {
+    fn consume_ident(&mut self) -> Result<String, Error> {
         let next_token = self.consume();
-        if let Token::Ident(name) = next_token {
-            Ok(name.to_string())
-        } else {
-            Err(format!("expected identifier, but got {:?}", next_token))
+        match next_token.kind {
+            TokenKind::Ident(name) => Ok(name),
+            x => Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedIdent { actual: x },
+            )),
         }
     }
 
-    fn consume(&mut self) -> &Token {
-        let token = self.tokens.get(self.pos).unwrap_or(&Token::EOF);
-        self.pos += 1;
-        token
+    fn consume(&mut self) -> Token {
+        let token = self.tokens.get(self.pos).unwrap();
+
+        if self.pos < self.tokens.len() {
+            self.pos += 1;
+        }
+
+        token.clone()
+    }
+
+    fn peek(&self) -> Token {
+        self.tokens.get(self.pos).unwrap().clone()
     }
 
     fn is_eof(&mut self) -> bool {
-        self.peek() == &Token::EOF
+        self.peek().kind == TokenKind::EOF
     }
 }
 
-fn find_pseudoop(ident: &str) -> Option<PseudoOp> {
-    match ident {
-        ".global" => Some(PseudoOp::Global),
-        ".intel_syntax" => Some(PseudoOp::IntelSyntax),
-        _ => None,
+fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
+    let name = match ident.kind {
+        TokenKind::Ident(name) => name,
+        x => {
+            return Err(Error::new(
+                ident.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
+            ))
+        }
+    };
+
+    match name.as_str() {
+        ".global" => Ok(PseudoOp::Global),
+        ".intel_syntax" => Ok(PseudoOp::IntelSyntax),
+        x => Err(Error::new(
+            ident.pos,
+            ErrorKind::UnknownPseudoOp {
+                name: x.to_string(),
+            },
+        )),
     }
 }

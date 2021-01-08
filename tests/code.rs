@@ -1,5 +1,6 @@
 extern crate rota;
 
+use lexer::SourceFile;
 use rota::backend::gen_code;
 use rota::frontend::{lexer, parser};
 
@@ -299,7 +300,11 @@ fn lea() {
 }
 
 fn do_test(source: &str, expected_output: &str) {
-    let output = lexer::tokenize(source.to_string())
+    let source_file = SourceFile {
+        filename: "".to_string(),
+        content: source.to_string(),
+    };
+    let output = lexer::tokenize(source_file)
         .and_then(|tokens| parser::parse(tokens))
         .and_then(|insts| gen_code::generate(insts))
         .unwrap();

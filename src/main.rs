@@ -20,7 +20,7 @@ fn main() {
     };
 
     if let Err(err) = err {
-        println!("Failed to assemble: {}", err);
+        println!("Failed to assemble:\n{}", err);
         std::process::exit(1);
     }
 }

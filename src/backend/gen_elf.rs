@@ -9,6 +9,8 @@ use elfen::{
     symbol::{self, Symbol},
 };
 
+use crate::common::error::Error;
+
 use super::gen_code::GeneratedData;
 
 struct ElfGen {
@@ -18,7 +20,7 @@ struct ElfGen {
     symbols: HashMap<String, usize>,
 }
 
-pub fn generate(data: GeneratedData) -> Result<Elf, String> {
+pub fn generate(data: GeneratedData) -> Result<Elf, Error> {
     let elfgen = ElfGen::new(data);
     elfgen.generate()
 }
@@ -32,7 +34,7 @@ impl ElfGen {
         }
     }
 
-    fn generate(mut self) -> Result<Elf, String> {
+    fn generate(mut self) -> Result<Elf, Error> {
         self.gen_header();
         self.gen_sections();
         self.elf.update_section_headers();
