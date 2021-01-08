@@ -1,13 +1,16 @@
 use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
 
+use crate::common::pos::Pos;
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
+    pub pos: Pos,
 }
 
 impl Token {
-    pub fn new(kind: TokenKind) -> Self {
-        Self { kind }
+    pub fn new(kind: TokenKind, pos: Pos) -> Self {
+        Self { kind, pos }
     }
 }
 

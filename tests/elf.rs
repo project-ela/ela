@@ -2,11 +2,15 @@ extern crate rota;
 
 use std::fs;
 
-use rota::assembler;
+use rota::{assembler, frontend::lexer::SourceFile};
 
 #[test]
 fn simple() {
-    let source = fs::read_to_string("tests/testcases/simple.s").unwrap();
+    let filename = "tests/testcases/simple.s";
+    let source = SourceFile {
+        filename: filename.to_string(),
+        content: fs::read_to_string(filename).unwrap(),
+    };
     let actual_output = assembler::assemble(source).unwrap();
     let expected_output = fs::read("tests/testcases/simple.o").unwrap();
 

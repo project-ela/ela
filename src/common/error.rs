@@ -7,6 +7,8 @@ use x86asm::instruction::{
 
 use crate::frontend::lexer::token::TokenKind;
 
+use super::pos::Pos;
+
 #[derive(Debug)]
 pub enum ErrorKind {
     UnexpectedChar {
@@ -69,18 +71,19 @@ impl fmt::Display for ErrorKind {
 
 #[derive(Debug)]
 pub struct Error {
+    pub pos: Pos,
     pub kind: ErrorKind,
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind) -> Self {
-        Self { kind }
+    pub fn new(pos: Pos, kind: ErrorKind) -> Self {
+        Self { pos, kind }
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.kind)
+        write!(f, "{}:{}", self.pos, self.kind)
     }
 }
 

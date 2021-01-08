@@ -52,16 +52,19 @@ impl Parser {
             }
 
             if ident.starts_with('.') {
-                let op = find_pseudoop(&ident)?;
+                let op = find_pseudoop(ident_token)?;
                 let arg = self.consume_ident()?;
                 insts.push(InstructionNode::PseudoOp(op, arg));
                 continue;
             }
 
-            return Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: None,
-                actual: ident_token.kind,
-            }));
+            return Err(Error::new(
+                ident_token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: ident_token.kind,
+                },
+            ));
         }
         Ok(insts)
     }
@@ -82,15 +85,19 @@ impl Parser {
                     Ok(InstructionNode::BinaryOp(mnemonic, operand1, operand2))
                 }
             },
-            x => Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: None,
-                actual: x,
-            })),
+            x => Err(Error::new(
+                token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
+            )),
         }
     }
 
     fn parse_operand(&mut self) -> Result<OperandNode, Error> {
-        match self.consume().kind {
+        let token = self.consume();
+        match token.kind {
             TokenKind::Integer(value) => Ok(OperandNode::Immidiate { value }),
             TokenKind::Ident(name) => Ok(OperandNode::Label {
                 name: name.to_owned(),
@@ -105,21 +112,28 @@ impl Parser {
                 self.expect(TokenKind::Symbol(Symbol::LBracket))?;
                 self.parse_operand_address()
             }
-            x => Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: None,
-                actual: x.clone(),
-            })),
+            x => Err(Error::new(
+                token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x.clone(),
+                },
+            )),
         }
     }
 
     fn parse_operand_address(&mut self) -> Result<OperandNode, Error> {
-        let base = match self.consume().kind {
+        let token = self.consume();
+        let base = match token.kind {
             TokenKind::Register(reg) => reg.clone(),
             x => {
-                return Err(Error::new(ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: x.clone(),
-                }))
+                return Err(Error::new(
+                    token.pos,
+                    ErrorKind::UnexpectedToken {
+                        expected: None,
+                        actual: x.clone(),
+                    },
+                ))
             }
         };
 
@@ -144,10 +158,13 @@ impl Parser {
         if next_token.kind == token {
             Ok(next_token)
         } else {
-            Err(Error::new(ErrorKind::UnexpectedToken {
-                expected: Some(token),
-                actual: next_token.kind,
-            }))
+            Err(Error::new(
+                next_token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: Some(token),
+                    actual: next_token.kind,
+                },
+            ))
         }
     }
 
@@ -155,7 +172,10 @@ impl Parser {
         let next_token = self.consume();
         match next_token.kind {
             TokenKind::Integer(value) => Ok(value),
-            x => Err(Error::new(ErrorKind::ExpectedInteger { actual: x })),
+            x => Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedInteger { actual: x },
+            )),
         }
     }
 
@@ -163,7 +183,10 @@ impl Parser {
         let next_token = self.consume();
         match next_token.kind {
             TokenKind::Ident(name) => Ok(name),
-            x => Err(Error::new(ErrorKind::ExpectedIdent { actual: x })),
+            x => Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedIdent { actual: x },
+            )),
         }
     }
 
@@ -186,12 +209,28 @@ impl Parser {
     }
 }
 
-fn find_pseudoop(ident: &str) -> Result<PseudoOp, Error> {
-    match ident {
+fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
+    let name = match ident.kind {
+        TokenKind::Ident(name) => name,
+        x => {
+            return Err(Error::new(
+                ident.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
+            ))
+        }
+    };
+
+    match name.as_str() {
         ".global" => Ok(PseudoOp::Global),
         ".intel_syntax" => Ok(PseudoOp::IntelSyntax),
-        x => Err(Error::new(ErrorKind::UnknownPseudoOp {
-            name: x.to_string(),
-        })),
+        x => Err(Error::new(
+            ident.pos,
+            ErrorKind::UnknownPseudoOp {
+                name: x.to_string(),
+            },
+        )),
     }
 }

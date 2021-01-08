@@ -4,36 +4,60 @@ use token::TokenKind;
 use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
 
 use crate::{
-    common::error::{Error, ErrorKind},
+    common::{
+        error::{Error, ErrorKind},
+        pos::Pos,
+    },
     frontend::lexer::token::{Symbol, Token},
 };
 
 use self::token::Keyword;
 
 struct Lexer {
-    pos: usize,
-    source: String,
+    source: SourceFile,
+    source_index: usize,
+
+    pos: Pos,
 }
 
-pub fn tokenize(source: String) -> Result<Vec<Token>, Error> {
+pub struct SourceFile {
+    pub filename: String,
+    pub content: String,
+}
+
+pub fn tokenize(source: SourceFile) -> Result<Vec<Token>, Error> {
     let mut lexer = Lexer::new(source);
     lexer.tokenize()
 }
 
 impl Lexer {
-    fn new(source: String) -> Self {
-        Self { pos: 0, source }
+    fn new(source: SourceFile) -> Self {
+        let pos = Pos {
+            filename: source.filename.clone(),
+            line: 1,
+            column: 1,
+        };
+
+        Self {
+            source,
+            source_index: 0,
+            pos,
+        }
     }
 
     fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
         let mut tokens = Vec::new();
+
         while !self.is_eof() {
             self.consume_whitespace();
             tokens.push(self.next_token()?);
         }
+
         tokens.push(Token {
             kind: TokenKind::EOF,
+            pos: self.pos.clone(),
         });
+
         Ok(tokens)
     }
 
@@ -41,16 +65,18 @@ impl Lexer {
         if self.is_eof() {
             return Ok(Token {
                 kind: TokenKind::EOF,
+                pos: self.pos.clone(),
             });
         }
 
+        let pos = self.pos.clone();
         let kind = match self.peek_char() {
             x if x.is_digit(10) => self.consume_number(),
             x if is_ident(x) => find_keyword(self.consume_ident()),
             _ => self.consume_symbol()?,
         };
 
-        Ok(Token { kind })
+        Ok(Token { kind, pos })
     }
 
     fn consume_number(&mut self) -> TokenKind {
@@ -65,7 +91,7 @@ impl Lexer {
 
     fn consume_ident(&mut self) -> TokenKind {
         let mut name = String::new();
-        while !self.is_eof() && is_ident(self.peek_char()) || self.peek_char().is_digit(10) {
+        while !self.is_eof() && (is_ident(self.peek_char()) || self.peek_char().is_digit(10)) {
             name.push(self.consume_char());
         }
 
@@ -84,7 +110,12 @@ impl Lexer {
                 self.consume_char();
                 return Ok(self.consume_comment());
             }
-            x => return Err(Error::new(ErrorKind::UnexpectedChar { actual: x })),
+            x => {
+                return Err(Error::new(
+                    self.pos.clone(),
+                    ErrorKind::UnexpectedChar { actual: x },
+                ))
+            }
         };
 
         Ok(TokenKind::Symbol(symbol))
@@ -105,20 +136,30 @@ impl Lexer {
         }
     }
 
-    fn peek_char(&mut self) -> char {
-        self.source[self.pos..].chars().next().unwrap_or(' ')
+    fn peek_char(&self) -> char {
+        self.source.content[self.source_index..]
+            .chars()
+            .next()
+            .unwrap()
     }
 
     fn consume_char(&mut self) -> char {
-        let mut iter = self.source[self.pos..].char_indices();
+        let mut iter = self.source.content[self.source_index..].char_indices();
         let (_, cur_char) = iter.next().unwrap();
         let (next_pos, _) = iter.next().unwrap_or((1, ' '));
-        self.pos += next_pos;
+
+        self.source_index += next_pos;
+        self.pos.column += 1;
+        if cur_char == '\n' {
+            self.pos.line += 1;
+            self.pos.column = 1;
+        }
+
         cur_char
     }
 
     fn is_eof(&self) -> bool {
-        self.pos >= self.source.len()
+        self.source_index >= self.source.content.len()
     }
 }
 
