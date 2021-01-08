@@ -5,9 +5,7 @@ use x86asm::instruction::{
     operand::{register::Register, Operand},
 };
 
-use crate::frontend::lexer::token::TokenKind;
-
-use super::pos::Pos;
+use crate::{common::pos::Pos, frontend::lexer::token::TokenKind};
 
 #[derive(Debug)]
 pub enum ErrorKind {

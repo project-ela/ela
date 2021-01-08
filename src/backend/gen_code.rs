@@ -1,10 +1,17 @@
 use std::collections::HashMap;
 
-use x86asm::instruction::mnemonic::Mnemonic;
-use x86asm::instruction::{operand::memory::Memory, Instruction};
 use x86asm::{
     encode,
-    instruction::operand::{immediate::Immediate, memory::Displacement, offset::Offset, Operand},
+    instruction::{
+        mnemonic::Mnemonic,
+        operand::{
+            immediate::Immediate,
+            memory::{Displacement, Memory},
+            offset::Offset,
+            Operand,
+        },
+        Instruction,
+    },
 };
 
 use crate::{

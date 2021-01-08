@@ -1,14 +1,14 @@
 pub mod node;
 
-use node::{InstructionNode, MemoryNode, OperandNode, PseudoOp};
 use x86asm::instruction::mnemonic;
 
 use crate::{
     common::error::{Error, ErrorKind},
-    frontend::lexer::token::{Symbol, Token},
+    frontend::{
+        lexer::token::{Keyword, Symbol, Token, TokenKind},
+        parser::node::{InstructionNode, MemoryNode, OperandNode, PseudoOp},
+    },
 };
-
-use super::lexer::token::{Keyword, TokenKind};
 
 struct Parser {
     pos: usize,
