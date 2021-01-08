@@ -114,6 +114,7 @@ impl Emulator {
                 let rhs = self.get_operand64(&opr1);
                 let result = self.calc_div(lhs, rhs);
                 self.cpu.set_register64(&Register::Rax, result);
+                self.cpu.set_register64(&Register::Rdx, lhs % rhs);
             }
             Mnemonic::Je => {
                 if self.cpu.get_flag(Flags::ZF) {
