@@ -1,11 +1,14 @@
 pub mod token;
 
+use token::TokenKind;
 use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
 
 use crate::{
     common::error::{Error, ErrorKind},
     frontend::lexer::token::{Symbol, Token},
 };
+
+use self::token::Keyword;
 
 struct Lexer {
     pos: usize,
@@ -25,87 +28,80 @@ impl Lexer {
     fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
         let mut tokens = Vec::new();
         while !self.is_eof() {
+            self.consume_whitespace();
             tokens.push(self.next_token()?);
         }
+        tokens.push(Token {
+            kind: TokenKind::EOF,
+        });
         Ok(tokens)
     }
 
     fn next_token(&mut self) -> Result<Token, Error> {
-        self.consume_whitespace();
         if self.is_eof() {
-            return Ok(Token::EOF);
+            return Ok(Token {
+                kind: TokenKind::EOF,
+            });
         }
 
-        let token = match self.peek_char() {
-            ',' => Token::Symbol(Symbol::Comma),
-            ':' => Token::Symbol(Symbol::Colon),
+        let kind = match self.peek_char() {
+            x if x.is_digit(10) => self.consume_number(),
+            x if is_ident(x) => find_keyword(self.consume_ident()),
+            _ => self.consume_symbol()?,
+        };
+
+        Ok(Token { kind })
+    }
+
+    fn consume_number(&mut self) -> TokenKind {
+        let mut result = String::new();
+        while !self.is_eof() && self.peek_char().is_digit(10) {
+            result.push(self.consume_char());
+        }
+
+        let value = result.parse().unwrap();
+        TokenKind::Integer(value)
+    }
+
+    fn consume_ident(&mut self) -> TokenKind {
+        let mut name = String::new();
+        while !self.is_eof() && is_ident(self.peek_char()) || self.peek_char().is_digit(10) {
+            name.push(self.consume_char());
+        }
+
+        TokenKind::Ident(name)
+    }
+
+    fn consume_symbol(&mut self) -> Result<TokenKind, Error> {
+        let symbol = match self.consume_char() {
+            ',' => Symbol::Comma,
+            ':' => Symbol::Colon,
+            '[' => Symbol::LBracket,
+            ']' => Symbol::RBracket,
+            '+' => Symbol::Plus,
+            '-' => Symbol::Minus,
             ';' => {
                 self.consume_char();
-                return Ok(Token::Comment(self.consume_comment()));
-            }
-            '[' => Token::Symbol(Symbol::LBracket),
-            ']' => Token::Symbol(Symbol::RBracket),
-            '+' => Token::Symbol(Symbol::Plus),
-            '-' => Token::Symbol(Symbol::Minus),
-            x if x.is_digit(10) => {
-                let value = self.consume_number();
-                return Ok(Token::Integer(value));
-            }
-            x if self.is_ident(x) => {
-                let name = self.consume_ident();
-                return match find_keyword(&name) {
-                    Some(token) => Ok(token),
-                    None => Ok(Token::Ident(name)),
-                };
+                return Ok(self.consume_comment());
             }
             x => return Err(Error::new(ErrorKind::UnexpectedChar { actual: x })),
         };
-        self.consume_char();
-        Ok(token)
+
+        Ok(TokenKind::Symbol(symbol))
     }
 
-    fn consume_comment(&mut self) -> String {
-        let mut result = String::new();
+    fn consume_comment(&mut self) -> TokenKind {
+        let mut content = String::new();
         while !self.is_eof() && self.peek_char() != '\n' {
-            result.push(self.consume_char());
+            content.push(self.consume_char());
         }
-        result
+
+        TokenKind::Comment(content)
     }
 
     fn consume_whitespace(&mut self) {
         while !self.is_eof() && self.peek_char().is_whitespace() {
             self.consume_char();
-        }
-    }
-
-    fn consume_number(&mut self) -> u32 {
-        let mut result = String::new();
-        while !self.is_eof() && self.peek_char().is_digit(10) {
-            result.push(self.consume_char());
-        }
-        result.parse().unwrap()
-    }
-
-    fn consume_ident(&mut self) -> String {
-        let mut result = String::new();
-        loop {
-            let cur_char = self.peek_char();
-            if self.is_eof() {
-                break;
-            }
-            if !(self.is_ident(cur_char) || cur_char.is_digit(10)) {
-                break;
-            }
-            result.push(self.consume_char());
-        }
-        result
-    }
-
-    fn is_ident(&self, c: char) -> bool {
-        match c {
-            '.' | '_' => true,
-            x if x.is_alphabetic() => true,
-            _ => false,
         }
     }
 
@@ -126,80 +122,93 @@ impl Lexer {
     }
 }
 
-fn find_keyword(ident: &str) -> Option<Token> {
-    match ident {
-        "byte" => Some(Token::Keyword(token::Keyword::Byte)),
-        "ptr" => Some(Token::Keyword(token::Keyword::Ptr)),
+fn is_ident(c: char) -> bool {
+    match c {
+        '.' | '_' => true,
+        x if x.is_alphabetic() => true,
+        _ => false,
+    }
+}
 
-        "add" => Some(Token::Mnemonic(Mnemonic::Add)),
-        "and" => Some(Token::Mnemonic(Mnemonic::And)),
-        "call" => Some(Token::Mnemonic(Mnemonic::Call)),
-        "cmp" => Some(Token::Mnemonic(Mnemonic::Cmp)),
-        "hlt" => Some(Token::Mnemonic(Mnemonic::Hlt)),
-        "idiv" => Some(Token::Mnemonic(Mnemonic::IDiv)),
-        "imul" => Some(Token::Mnemonic(Mnemonic::IMul)),
-        "je" => Some(Token::Mnemonic(Mnemonic::Je)),
-        "jmp" => Some(Token::Mnemonic(Mnemonic::Jmp)),
-        "lea" => Some(Token::Mnemonic(Mnemonic::Lea)),
-        "mov" => Some(Token::Mnemonic(Mnemonic::Mov)),
-        "movsx" => Some(Token::Mnemonic(Mnemonic::Movsx)),
-        "or" => Some(Token::Mnemonic(Mnemonic::Or)),
-        "pop" => Some(Token::Mnemonic(Mnemonic::Pop)),
-        "push" => Some(Token::Mnemonic(Mnemonic::Push)),
-        "ret" => Some(Token::Mnemonic(Mnemonic::Ret)),
-        "sete" => Some(Token::Mnemonic(Mnemonic::Sete)),
-        "setg" => Some(Token::Mnemonic(Mnemonic::Setg)),
-        "setge" => Some(Token::Mnemonic(Mnemonic::Setge)),
-        "setl" => Some(Token::Mnemonic(Mnemonic::Setl)),
-        "setle" => Some(Token::Mnemonic(Mnemonic::Setle)),
-        "setne" => Some(Token::Mnemonic(Mnemonic::Setne)),
-        "sub" => Some(Token::Mnemonic(Mnemonic::Sub)),
-        "syscall" => Some(Token::Mnemonic(Mnemonic::Syscall)),
-        "xor" => Some(Token::Mnemonic(Mnemonic::Xor)),
+fn find_keyword(ident: TokenKind) -> TokenKind {
+    let name = match ident {
+        TokenKind::Ident(ref name) => name,
+        x => return x,
+    };
 
-        "rax" => Some(Token::Register(Register::Rax)),
-        "rcx" => Some(Token::Register(Register::Rcx)),
-        "rdx" => Some(Token::Register(Register::Rdx)),
-        "rbx" => Some(Token::Register(Register::Rbx)),
-        "rsp" => Some(Token::Register(Register::Rsp)),
-        "rbp" => Some(Token::Register(Register::Rbp)),
-        "rsi" => Some(Token::Register(Register::Rsi)),
-        "rdi" => Some(Token::Register(Register::Rdi)),
-        "r8" => Some(Token::Register(Register::R8)),
-        "r9" => Some(Token::Register(Register::R9)),
-        "r10" => Some(Token::Register(Register::R10)),
-        "r11" => Some(Token::Register(Register::R11)),
-        "r12" => Some(Token::Register(Register::R12)),
-        "r13" => Some(Token::Register(Register::R13)),
-        "r14" => Some(Token::Register(Register::R14)),
-        "r15" => Some(Token::Register(Register::R15)),
+    match name.as_str() {
+        "byte" => TokenKind::Keyword(Keyword::Byte),
+        "ptr" => TokenKind::Keyword(Keyword::Ptr),
 
-        "eax" => Some(Token::Register(Register::Eax)),
-        "ecx" => Some(Token::Register(Register::Ecx)),
-        "edx" => Some(Token::Register(Register::Edx)),
-        "ebx" => Some(Token::Register(Register::Ebx)),
-        "esp" => Some(Token::Register(Register::Esp)),
-        "ebp" => Some(Token::Register(Register::Ebp)),
-        "esi" => Some(Token::Register(Register::Esi)),
-        "edi" => Some(Token::Register(Register::Edi)),
+        "add" => TokenKind::Mnemonic(Mnemonic::Add),
+        "and" => TokenKind::Mnemonic(Mnemonic::And),
+        "call" => TokenKind::Mnemonic(Mnemonic::Call),
+        "cmp" => TokenKind::Mnemonic(Mnemonic::Cmp),
+        "hlt" => TokenKind::Mnemonic(Mnemonic::Hlt),
+        "idiv" => TokenKind::Mnemonic(Mnemonic::IDiv),
+        "imul" => TokenKind::Mnemonic(Mnemonic::IMul),
+        "je" => TokenKind::Mnemonic(Mnemonic::Je),
+        "jmp" => TokenKind::Mnemonic(Mnemonic::Jmp),
+        "lea" => TokenKind::Mnemonic(Mnemonic::Lea),
+        "mov" => TokenKind::Mnemonic(Mnemonic::Mov),
+        "movsx" => TokenKind::Mnemonic(Mnemonic::Movsx),
+        "or" => TokenKind::Mnemonic(Mnemonic::Or),
+        "pop" => TokenKind::Mnemonic(Mnemonic::Pop),
+        "push" => TokenKind::Mnemonic(Mnemonic::Push),
+        "ret" => TokenKind::Mnemonic(Mnemonic::Ret),
+        "sete" => TokenKind::Mnemonic(Mnemonic::Sete),
+        "setg" => TokenKind::Mnemonic(Mnemonic::Setg),
+        "setge" => TokenKind::Mnemonic(Mnemonic::Setge),
+        "setl" => TokenKind::Mnemonic(Mnemonic::Setl),
+        "setle" => TokenKind::Mnemonic(Mnemonic::Setle),
+        "setne" => TokenKind::Mnemonic(Mnemonic::Setne),
+        "sub" => TokenKind::Mnemonic(Mnemonic::Sub),
+        "syscall" => TokenKind::Mnemonic(Mnemonic::Syscall),
+        "xor" => TokenKind::Mnemonic(Mnemonic::Xor),
 
-        "al" => Some(Token::Register(Register::Al)),
-        "cl" => Some(Token::Register(Register::Cl)),
-        "dl" => Some(Token::Register(Register::Dl)),
-        "bl" => Some(Token::Register(Register::Bl)),
-        "sil" => Some(Token::Register(Register::Sil)),
-        "dil" => Some(Token::Register(Register::Dil)),
-        "spl" => Some(Token::Register(Register::Spl)),
-        "bpl" => Some(Token::Register(Register::Bpl)),
-        "r8b" => Some(Token::Register(Register::R8b)),
-        "r9b" => Some(Token::Register(Register::R9b)),
-        "r10b" => Some(Token::Register(Register::R10b)),
-        "r11b" => Some(Token::Register(Register::R11b)),
-        "r12b" => Some(Token::Register(Register::R12b)),
-        "r13b" => Some(Token::Register(Register::R13b)),
-        "r14b" => Some(Token::Register(Register::R14b)),
-        "r15b" => Some(Token::Register(Register::R15b)),
+        "rax" => TokenKind::Register(Register::Rax),
+        "rcx" => TokenKind::Register(Register::Rcx),
+        "rdx" => TokenKind::Register(Register::Rdx),
+        "rbx" => TokenKind::Register(Register::Rbx),
+        "rsp" => TokenKind::Register(Register::Rsp),
+        "rbp" => TokenKind::Register(Register::Rbp),
+        "rsi" => TokenKind::Register(Register::Rsi),
+        "rdi" => TokenKind::Register(Register::Rdi),
+        "r8" => TokenKind::Register(Register::R8),
+        "r9" => TokenKind::Register(Register::R9),
+        "r10" => TokenKind::Register(Register::R10),
+        "r11" => TokenKind::Register(Register::R11),
+        "r12" => TokenKind::Register(Register::R12),
+        "r13" => TokenKind::Register(Register::R13),
+        "r14" => TokenKind::Register(Register::R14),
+        "r15" => TokenKind::Register(Register::R15),
 
-        _ => None,
+        "eax" => TokenKind::Register(Register::Eax),
+        "ecx" => TokenKind::Register(Register::Ecx),
+        "edx" => TokenKind::Register(Register::Edx),
+        "ebx" => TokenKind::Register(Register::Ebx),
+        "esp" => TokenKind::Register(Register::Esp),
+        "ebp" => TokenKind::Register(Register::Ebp),
+        "esi" => TokenKind::Register(Register::Esi),
+        "edi" => TokenKind::Register(Register::Edi),
+
+        "al" => TokenKind::Register(Register::Al),
+        "cl" => TokenKind::Register(Register::Cl),
+        "dl" => TokenKind::Register(Register::Dl),
+        "bl" => TokenKind::Register(Register::Bl),
+        "sil" => TokenKind::Register(Register::Sil),
+        "dil" => TokenKind::Register(Register::Dil),
+        "spl" => TokenKind::Register(Register::Spl),
+        "bpl" => TokenKind::Register(Register::Bpl),
+        "r8b" => TokenKind::Register(Register::R8b),
+        "r9b" => TokenKind::Register(Register::R9b),
+        "r10b" => TokenKind::Register(Register::R10b),
+        "r11b" => TokenKind::Register(Register::R11b),
+        "r12b" => TokenKind::Register(Register::R12b),
+        "r13b" => TokenKind::Register(Register::R13b),
+        "r14b" => TokenKind::Register(Register::R14b),
+        "r15b" => TokenKind::Register(Register::R15b),
+
+        _ => ident,
     }
 }

@@ -5,7 +5,7 @@ use x86asm::instruction::{
     operand::{register::Register, Operand},
 };
 
-use crate::frontend::lexer::token::Token;
+use crate::frontend::lexer::token::TokenKind;
 
 #[derive(Debug)]
 pub enum ErrorKind {
@@ -13,14 +13,14 @@ pub enum ErrorKind {
         actual: char,
     },
     UnexpectedToken {
-        expected: Option<Token>,
-        actual: Token,
+        expected: Option<TokenKind>,
+        actual: TokenKind,
     },
     ExpectedInteger {
-        actual: Token,
+        actual: TokenKind,
     },
     ExpectedIdent {
-        actual: Token,
+        actual: TokenKind,
     },
     UnknownPseudoOp {
         name: String,
