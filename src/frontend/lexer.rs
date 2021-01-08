@@ -1,6 +1,5 @@
 pub mod token;
 
-use token::TokenKind;
 use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
 
 use crate::{
@@ -8,7 +7,7 @@ use crate::{
         error::{Error, ErrorKind},
         pos::Pos,
     },
-    frontend::lexer::token::{Symbol, Token},
+    frontend::lexer::token::{Symbol, Token, TokenKind},
 };
 
 use self::token::Keyword;

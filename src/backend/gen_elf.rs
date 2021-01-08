@@ -9,9 +9,7 @@ use elfen::{
     symbol::{self, Symbol},
 };
 
-use crate::common::error::Error;
-
-use super::gen_code::GeneratedData;
+use crate::{backend::gen_code::GeneratedData, common::error::Error};
 
 struct ElfGen {
     elf: Elf,

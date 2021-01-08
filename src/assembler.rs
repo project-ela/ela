@@ -1,8 +1,13 @@
-use lexer::SourceFile;
-
-use crate::{backend::gen_code, common::error::Error, frontend::lexer};
-use crate::{backend::gen_elf, frontend::parser};
 use std::{error, fs};
+
+use crate::{
+    backend::{gen_code, gen_elf},
+    common::error::Error,
+    frontend::{
+        lexer::{self, SourceFile},
+        parser,
+    },
+};
 
 pub fn assemble_to_file(
     input_file: String,
