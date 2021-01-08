@@ -1,5 +1,7 @@
 pub mod token;
 
+use token::Keyword;
+
 use crate::{
     common::{
         error::{Error, ErrorKind},
@@ -7,6 +9,8 @@ use crate::{
     },
     frontend::lexer::token::{Token, TokenKind},
 };
+
+use self::token::Symbol;
 
 struct Tokenizer {
     source: SourceFile,
@@ -45,12 +49,7 @@ impl Tokenizer {
 
         while !self.is_eof() {
             self.consume_whitespace();
-
-            let pos = self.pos.clone();
-            tokens.push(Token {
-                kind: self.next_token()?,
-                pos,
-            });
+            tokens.push(self.next_token()?);
         }
 
         tokens.push(Token {
@@ -61,104 +60,112 @@ impl Tokenizer {
         Ok(tokens)
     }
 
-    fn next_token(&mut self) -> Result<TokenKind, Error> {
+    fn next_token(&mut self) -> Result<Token, Error> {
         if self.is_eof() {
-            return Ok(TokenKind::EOF);
+            return Ok(Token {
+                kind: TokenKind::EOF,
+                pos: self.pos.clone(),
+            });
         }
 
-        match self.peek_char() {
-            '\'' => self.consume_char_literal(),
-            x if x.is_digit(10) => Ok(self.consume_number()),
-            x if x.is_alphabetic() => Ok(find_keyword(self.consume_ident())),
-            x => self.consume_symbol(x),
-        }
+        let pos = self.pos.clone();
+        let kind = match self.peek_char() {
+            '\'' => self.consume_char_literal()?,
+            x if x.is_digit(10) => self.consume_number(),
+            x if x.is_alphabetic() => find_keyword(self.consume_ident()),
+            _ => self.consume_symbol()?,
+        };
+
+        Ok(Token { kind, pos })
     }
 
-    fn consume_symbol(&mut self, c: char) -> Result<TokenKind, Error> {
-        self.consume_char();
-
-        match c {
+    fn consume_symbol(&mut self) -> Result<TokenKind, Error> {
+        let symbol = match self.consume_char() {
             '+' => match self.peek_char() {
                 '=' => {
                     self.consume_char();
-                    Ok(TokenKind::PlusAssign)
+                    Symbol::PlusAssign
                 }
-                _ => Ok(TokenKind::Plus),
+                _ => Symbol::Plus,
             },
             '-' => match self.peek_char() {
                 '=' => {
                     self.consume_char();
-                    Ok(TokenKind::MinusAssign)
+                    Symbol::MinusAssign
                 }
-                _ => Ok(TokenKind::Minus),
+                _ => Symbol::Minus,
             },
             '*' => match self.peek_char() {
                 '=' => {
                     self.consume_char();
-                    Ok(TokenKind::AsteriskAssign)
+                    Symbol::AsteriskAssign
                 }
-                _ => Ok(TokenKind::Asterisk),
+                _ => Symbol::Asterisk,
             },
-            '%' => Ok(TokenKind::Percent),
-            '&' => Ok(TokenKind::And),
-            '|' => Ok(TokenKind::Or),
-            '^' => Ok(TokenKind::Xor),
-            ':' => Ok(TokenKind::Colon),
-            '(' => Ok(TokenKind::LParen),
-            ')' => Ok(TokenKind::RParen),
-            '{' => Ok(TokenKind::LBrace),
-            '}' => Ok(TokenKind::RBrace),
-            '[' => Ok(TokenKind::LBracket),
-            ']' => Ok(TokenKind::RBracket),
-            ',' => Ok(TokenKind::Comma),
+            '%' => Symbol::Percent,
+            '&' => Symbol::And,
+            '|' => Symbol::Or,
+            '^' => Symbol::Xor,
+            ':' => Symbol::Colon,
+            '(' => Symbol::LParen,
+            ')' => Symbol::RParen,
+            '{' => Symbol::LBrace,
+            '}' => Symbol::RBrace,
+            '[' => Symbol::LBracket,
+            ']' => Symbol::RBracket,
+            ',' => Symbol::Comma,
             '/' => match self.peek_char() {
                 '/' => {
                     self.consume_char();
-                    Ok(self.consume_line_comment())
+                    return Ok(self.consume_line_comment());
                 }
                 '*' => {
                     self.consume_char();
-                    Ok(self.consume_block_comment())
+                    return Ok(self.consume_block_comment());
                 }
                 '=' => {
                     self.consume_char();
-                    Ok(TokenKind::SlashAssign)
+                    Symbol::SlashAssign
                 }
-                _ => Ok(TokenKind::Slash),
+                _ => Symbol::Slash,
             },
             '=' => match self.peek_char() {
                 '=' => {
                     self.consume_char();
-                    Ok(TokenKind::Equal)
+                    Symbol::Equal
                 }
-                _ => Ok(TokenKind::Assign),
+                _ => Symbol::Assign,
             },
             '!' => match self.peek_char() {
                 '=' => {
                     self.consume_char();
-                    Ok(TokenKind::NotEqual)
+                    Symbol::NotEqual
                 }
-                _ => Ok(TokenKind::Not),
+                _ => Symbol::Not,
             },
             '<' => match self.peek_char() {
                 '=' => {
                     self.consume_char();
-                    Ok(TokenKind::Lte)
+                    Symbol::Lte
                 }
-                _ => Ok(TokenKind::Lt),
+                _ => Symbol::Lt,
             },
             '>' => match self.peek_char() {
                 '=' => {
                     self.consume_char();
-                    Ok(TokenKind::Gte)
+                    Symbol::Gte
                 }
-                _ => Ok(TokenKind::Gt),
+                _ => Symbol::Gt,
             },
-            x => Err(Error::new(
-                self.pos.clone(),
-                ErrorKind::UnexpectedChar { c: x },
-            )),
-        }
+            x => {
+                return Err(Error::new(
+                    self.pos.clone(),
+                    ErrorKind::UnexpectedChar { c: x },
+                ))
+            }
+        };
+
+        Ok(TokenKind::Symbol(symbol))
     }
 
     fn consume_ident(&mut self) -> TokenKind {
@@ -167,7 +174,7 @@ impl Tokenizer {
             name.push(self.consume_char());
         }
 
-        TokenKind::Ident { name }
+        TokenKind::Ident(name)
     }
 
     fn consume_char_literal(&mut self) -> Result<TokenKind, Error> {
@@ -178,7 +185,7 @@ impl Tokenizer {
         };
 
         match self.consume_char() {
-            '\'' => Ok(TokenKind::CharLiteral { value }),
+            '\'' => Ok(TokenKind::Char(value)),
             x => Err(Error::new(
                 self.pos.clone(),
                 ErrorKind::UnexpectedChar { c: x },
@@ -206,7 +213,7 @@ impl Tokenizer {
                     self.consume_char();
                     radix = 16;
                 }
-                _ => return TokenKind::IntLiteral { value: 0 },
+                _ => return TokenKind::Integer(0),
             }
         }
 
@@ -216,7 +223,7 @@ impl Tokenizer {
         }
 
         let value = i32::from_str_radix(&digits, radix).unwrap();
-        TokenKind::IntLiteral { value }
+        TokenKind::Integer(value)
     }
 
     fn consume_whitespace(&mut self) {
@@ -231,22 +238,27 @@ impl Tokenizer {
             content.push(self.consume_char());
         }
 
-        TokenKind::Comment { content }
+        TokenKind::Comment(content)
     }
 
     fn consume_block_comment(&mut self) -> TokenKind {
         let mut content = String::new();
         while !self.is_eof() {
-            match (self.consume_char(), self.consume_char()) {
-                ('*', '/') => break,
-                (cur_char, next_char) => {
-                    content.push(cur_char);
-                    content.push(next_char);
-                }
+            match self.consume_char() {
+                '*' => match self.peek_char() {
+                    '/' => {
+                        self.consume_char();
+                        break;
+                    }
+                    _ => {
+                        content.push('*');
+                    }
+                },
+                x => content.push(x),
             }
         }
 
-        TokenKind::Comment { content }
+        TokenKind::Comment(content)
     }
 
     fn peek_char(&mut self) -> char {
@@ -277,20 +289,23 @@ impl Tokenizer {
 }
 
 fn find_keyword(ident: TokenKind) -> TokenKind {
-    if let TokenKind::Ident { name } = &ident {
-        match name.as_str() {
-            "func" => TokenKind::Func,
-            "var" => TokenKind::Var,
-            "val" => TokenKind::Val,
-            "return" => TokenKind::Return,
-            "if" => TokenKind::If,
-            "else" => TokenKind::Else,
-            "false" => TokenKind::False,
-            "true" => TokenKind::True,
-            "while" => TokenKind::While,
-            _ => ident,
-        }
-    } else {
-        ident
-    }
+    let name = match ident {
+        TokenKind::Ident(ref name) => name,
+        x => return x,
+    };
+
+    let keyword = match name.as_str() {
+        "func" => Keyword::Func,
+        "var" => Keyword::Var,
+        "val" => Keyword::Val,
+        "return" => Keyword::Return,
+        "if" => Keyword::If,
+        "else" => Keyword::Else,
+        "false" => Keyword::False,
+        "true" => Keyword::True,
+        "while" => Keyword::While,
+        _ => return ident,
+    };
+
+    TokenKind::Keyword(keyword)
 }
