@@ -2,14 +2,17 @@ pub mod token;
 
 use x86asm::instruction::{mnemonic::Mnemonic, operand::register::Register};
 
-use crate::frontend::lexer::token::{Symbol, Token};
+use crate::{
+    common::error::{Error, ErrorKind},
+    frontend::lexer::token::{Symbol, Token},
+};
 
 struct Lexer {
     pos: usize,
     source: String,
 }
 
-pub fn tokenize(source: String) -> Result<Vec<Token>, String> {
+pub fn tokenize(source: String) -> Result<Vec<Token>, Error> {
     let mut lexer = Lexer::new(source);
     lexer.tokenize()
 }
@@ -19,7 +22,7 @@ impl Lexer {
         Self { pos: 0, source }
     }
 
-    fn tokenize(&mut self) -> Result<Vec<Token>, String> {
+    fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
         let mut tokens = Vec::new();
         while !self.is_eof() {
             tokens.push(self.next_token()?);
@@ -27,7 +30,7 @@ impl Lexer {
         Ok(tokens)
     }
 
-    fn next_token(&mut self) -> Result<Token, String> {
+    fn next_token(&mut self) -> Result<Token, Error> {
         self.consume_whitespace();
         if self.is_eof() {
             return Ok(Token::EOF);
@@ -55,7 +58,7 @@ impl Lexer {
                     None => Ok(Token::Ident(name)),
                 };
             }
-            x => return Err(format!("unexpected char: {}", x)),
+            x => return Err(Error::new(ErrorKind::UnexpectedChar { actual: x })),
         };
         self.consume_char();
         Ok(token)

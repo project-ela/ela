@@ -3,7 +3,10 @@ pub mod node;
 use node::{InstructionNode, MemoryNode, OperandNode, PseudoOp};
 use x86asm::instruction::mnemonic;
 
-use crate::frontend::lexer::token::{Symbol, Token};
+use crate::{
+    common::error::{Error, ErrorKind},
+    frontend::lexer::token::{Symbol, Token},
+};
 
 use super::lexer::token::Keyword;
 
@@ -12,7 +15,7 @@ struct Parser {
     tokens: Vec<Token>,
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<Vec<InstructionNode>, String> {
+pub fn parse(tokens: Vec<Token>) -> Result<Vec<InstructionNode>, Error> {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -22,7 +25,7 @@ impl Parser {
         Self { pos: 0, tokens }
     }
 
-    fn parse(&mut self) -> Result<Vec<InstructionNode>, String> {
+    fn parse(&mut self) -> Result<Vec<InstructionNode>, Error> {
         let mut insts = Vec::new();
         loop {
             if self.is_eof() {
@@ -39,6 +42,7 @@ impl Parser {
                 continue;
             }
 
+            let ident_token = self.peek().clone();
             let ident = self.consume_ident()?;
 
             if self.peek() == &Token::Symbol(Symbol::Colon) {
@@ -48,18 +52,21 @@ impl Parser {
             }
 
             if ident.starts_with('.') {
-                let op = find_pseudoop(&ident).ok_or(format!("unknown pseudo-op: {}", ident))?;
+                let op = find_pseudoop(&ident)?;
                 let arg = self.consume_ident()?;
                 insts.push(InstructionNode::PseudoOp(op, arg));
                 continue;
             }
 
-            return Err(format!("unexpected token: {}", ident));
+            return Err(Error::new(ErrorKind::UnexpectedToken {
+                expected: None,
+                actual: ident_token,
+            }));
         }
         Ok(insts)
     }
 
-    fn parse_inst(&mut self) -> Result<InstructionNode, String> {
+    fn parse_inst(&mut self) -> Result<InstructionNode, Error> {
         let token = self.consume().clone();
         match token {
             Token::Mnemonic(mnemonic) => match mnemonic.typ() {
@@ -75,11 +82,14 @@ impl Parser {
                     Ok(InstructionNode::BinaryOp(mnemonic, operand1, operand2))
                 }
             },
-            x => Err(format!("unexpected token: {:?}", x)),
+            x => Err(Error::new(ErrorKind::UnexpectedToken {
+                expected: None,
+                actual: x,
+            })),
         }
     }
 
-    fn parse_operand(&mut self) -> Result<OperandNode, String> {
+    fn parse_operand(&mut self) -> Result<OperandNode, Error> {
         match self.consume() {
             Token::Integer(value) => Ok(OperandNode::Immidiate { value: *value }),
             Token::Ident(name) => Ok(OperandNode::Label {
@@ -95,14 +105,22 @@ impl Parser {
                 self.expect(&Token::Symbol(Symbol::LBracket))?;
                 self.parse_operand_address()
             }
-            x => Err(format!("unexpected token: {:?}", x)),
+            x => Err(Error::new(ErrorKind::UnexpectedToken {
+                expected: None,
+                actual: x.clone(),
+            })),
         }
     }
 
-    fn parse_operand_address(&mut self) -> Result<OperandNode, String> {
+    fn parse_operand_address(&mut self) -> Result<OperandNode, Error> {
         let base = match self.consume() {
             Token::Register(reg) => reg.clone(),
-            x => return Err(format!("unexpected token: {:?}", x)),
+            x => {
+                return Err(Error::new(ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x.clone(),
+                }))
+            }
         };
 
         let disp = match self.peek() {
@@ -121,12 +139,15 @@ impl Parser {
         Ok(OperandNode::Memory(MemoryNode { base, disp }))
     }
 
-    fn expect(&mut self, token: &Token) -> Result<&Token, String> {
+    fn expect(&mut self, token: &Token) -> Result<&Token, Error> {
         let next_token = self.consume();
         if next_token == token {
             Ok(next_token)
         } else {
-            Err(format!("expected {:?}, but got {:?}", token, next_token))
+            Err(Error::new(ErrorKind::UnexpectedToken {
+                expected: Some(token.clone()),
+                actual: next_token.clone(),
+            }))
         }
     }
 
@@ -134,21 +155,25 @@ impl Parser {
         self.tokens.get(self.pos).unwrap_or(&Token::EOF)
     }
 
-    fn consume_integer(&mut self) -> Result<u32, String> {
+    fn consume_integer(&mut self) -> Result<u32, Error> {
         let next_token = self.consume();
         if let Token::Integer(value) = next_token {
             Ok(*value)
         } else {
-            Err(format!("expected integer, but got {:?}", next_token))
+            Err(Error::new(ErrorKind::ExpectedInteger {
+                actual: next_token.clone(),
+            }))
         }
     }
 
-    fn consume_ident(&mut self) -> Result<String, String> {
+    fn consume_ident(&mut self) -> Result<String, Error> {
         let next_token = self.consume();
         if let Token::Ident(name) = next_token {
             Ok(name.to_string())
         } else {
-            Err(format!("expected identifier, but got {:?}", next_token))
+            Err(Error::new(ErrorKind::ExpectedIdent {
+                actual: next_token.clone(),
+            }))
         }
     }
 
@@ -163,10 +188,12 @@ impl Parser {
     }
 }
 
-fn find_pseudoop(ident: &str) -> Option<PseudoOp> {
+fn find_pseudoop(ident: &str) -> Result<PseudoOp, Error> {
     match ident {
-        ".global" => Some(PseudoOp::Global),
-        ".intel_syntax" => Some(PseudoOp::IntelSyntax),
-        _ => None,
+        ".global" => Ok(PseudoOp::Global),
+        ".intel_syntax" => Ok(PseudoOp::IntelSyntax),
+        x => Err(Error::new(ErrorKind::UnknownPseudoOp {
+            name: x.to_string(),
+        })),
     }
 }
