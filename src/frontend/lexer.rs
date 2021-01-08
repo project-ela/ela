@@ -244,12 +244,17 @@ impl Tokenizer {
     fn consume_block_comment(&mut self) -> TokenKind {
         let mut content = String::new();
         while !self.is_eof() {
-            match (self.consume_char(), self.consume_char()) {
-                ('*', '/') => break,
-                (cur_char, next_char) => {
-                    content.push(cur_char);
-                    content.push(next_char);
-                }
+            match self.consume_char() {
+                '*' => match self.peek_char() {
+                    '/' => {
+                        self.consume_char();
+                        break;
+                    }
+                    _ => {
+                        content.push('*');
+                    }
+                },
+                x => content.push(x),
             }
         }
 
