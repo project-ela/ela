@@ -56,6 +56,9 @@ func test4(arr: *int): int {
   return arr[2]
 }
 
+var global1: int
+var global2: byte[2]
+
 func main(): int {
   asserti(0, 0)
   asserti(42, 42)
@@ -324,6 +327,22 @@ func main(): int {
     asserti(arr[0], 4)
   }
 
+  {
+    asserti(global1, 0)
+    global1 = 10
+    asserti(global1, 10)
+  }
+
+  {
+    asserti(global2[0], 0)
+    asserti(global2[1], 0)
+
+    global2[0] = 2
+    global2[1] = 4
+
+    asserti(global2[0], 2)
+    asserti(global2[1], 4)
+  }
 
   return 0
 }

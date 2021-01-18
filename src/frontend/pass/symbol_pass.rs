@@ -116,6 +116,14 @@ impl<'a> SymbolPass<'a> {
             self.issue(Error::new(Pos::default(), ErrorKind::MainNotFound));
         }
 
+        for global_def in &program.global_defs {
+            self.ctx.add_variable(
+                global_def.name.clone(),
+                global_def.typ.clone(),
+                global_def.is_const,
+            );
+        }
+
         for function in &program.functions {
             if function.name == "main" && function.ret_typ != Type::Int {
                 self.issue(Error::new(

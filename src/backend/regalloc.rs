@@ -66,6 +66,9 @@ impl RegAlloc {
                 IR::Addr { dst, src: _ } => {
                     self.alloc_operand(dst)?;
                 }
+                IR::AddrLabel { dst, src: _ } => {
+                    self.alloc_operand(dst)?;
+                }
                 IR::Load { dst, src, size: _ } => {
                     self.get_operand(src, true);
                     self.alloc_operand(dst)?;

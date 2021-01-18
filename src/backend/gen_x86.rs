@@ -33,10 +33,28 @@ impl GenX86 {
 
     fn generate(&mut self, program: IRProgram) -> Result<String, Error> {
         self.gen(".intel_syntax noprefix");
-        for function in program.functions {
+        self.gen_data(program.global_defs)?;
+        self.gen_code(program.functions)?;
+        Ok(self.output.to_owned())
+    }
+
+    fn gen_data(&mut self, global_defs: Vec<IRGlobalDef>) -> Result<(), Error> {
+        self.gen(".data");
+        for global_def in global_defs {
+            self.gen(&format!(".global {}", global_def.name));
+            self.gen(&format!("{}:", global_def.name));
+            self.gen(&format!(".zero {}", global_def.typ.size()));
+        }
+
+        Ok(())
+    }
+
+    fn gen_code(&mut self, functions: Vec<IRFunction>) -> Result<(), Error> {
+        self.gen(".text");
+        for function in functions {
             self.gen_function(function)?;
         }
-        Ok(self.output.to_owned())
+        Ok(())
     }
 
     fn gen_function(&mut self, function: IRFunction) -> Result<(), Error> {
@@ -114,7 +132,8 @@ impl GenX86 {
                     self.gen(format!("  mov {}, rax", opr(&dst.unwrap())).as_str());
                 }
             }
-            IR::Addr { dst, src } => self.gen(&format!("  lea {}, {}", opr(dst), addr(src))),
+            IR::Addr { dst, src } => self.gen(&format!("  lea {}, [rbp{:+}]", opr(dst), src)),
+            IR::AddrLabel { dst, src } => self.gen(&format!("  lea {}, [rip+{}]", opr(dst), src)),
             IR::Move { dst, src } => self.gen(format!("  mov {}, {}", opr(dst), opr(src)).as_str()),
             IR::Load { dst, src, size } => match size {
                 RegSize::Byte => {
@@ -135,9 +154,11 @@ impl GenX86 {
             } => {
                 let param_reg = PARAM_REGS[*param_index];
                 match size {
-                    RegSize::Byte => self.gen(&format!("  mov {}, {}", addr(dst), reg8(param_reg))),
+                    RegSize::Byte => {
+                        self.gen(&format!("  mov [rbp{:+}], {}", dst, reg8(param_reg)))
+                    }
                     RegSize::QWord => {
-                        self.gen(&format!("  mov {}, {}", addr(dst), reg(&param_reg)))
+                        self.gen(&format!("  mov [rbp{:+}], {}", dst, reg(&param_reg)))
                     }
                     _ => unimplemented!(),
                 }
@@ -212,10 +233,6 @@ fn opr8(operand: &Operand) -> String {
         Operand::Reg(reg) => reg8(reg.physical_index.unwrap()).to_owned(),
         _ => unreachable!(),
     }
-}
-
-fn addr(addr: &MemoryAddr) -> String {
-    format!("[{}{:+}]", reg(&addr.base), addr.offset)
 }
 
 fn reg(reg: &Register) -> &'static str {
