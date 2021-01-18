@@ -5,7 +5,14 @@ use crate::common::{
 
 #[derive(Debug, Default)]
 pub struct IRProgram {
+    pub global_defs: Vec<IRGlobalDef>,
     pub functions: Vec<IRFunction>,
+}
+
+#[derive(Debug)]
+pub struct IRGlobalDef {
+    pub name: String,
+    pub typ: Type,
 }
 
 #[derive(Debug)]
@@ -70,7 +77,11 @@ pub enum IR {
     },
     Addr {
         dst: Operand,
-        src: MemoryAddr,
+        src: i32,
+    },
+    AddrLabel {
+        dst: Operand,
+        src: String,
     },
     Load {
         dst: Operand,
@@ -83,7 +94,7 @@ pub enum IR {
         size: RegSize,
     },
     StoreArg {
-        dst: MemoryAddr,
+        dst: i32,
         src: usize, // index of argument
         size: RegSize,
     },
@@ -121,12 +132,6 @@ impl Operand {
             _ => false,
         }
     }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct MemoryAddr {
-    pub base: Register,
-    pub offset: i32,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -254,10 +259,11 @@ impl IR {
                 }
             }
             IR::Move { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
-            IR::Addr { dst, src } => format!("  {} = {}", dst.dump(), src.dump()),
+            IR::Addr { dst, src } => format!("  {} = {}", dst.dump(), src),
+            IR::AddrLabel { dst, src } => format!("  {} = {}", dst.dump(), src),
             IR::Load { dst, src, size: _ } => format!("  {} = [{}]", dst.dump(), src.dump()),
             IR::Store { dst, src, size: _ } => format!("  [{}] = {}", dst.dump(), src.dump()),
-            IR::StoreArg { dst, src, size: _ } => format!("  {} = param({})", dst.dump(), src),
+            IR::StoreArg { dst, src, size: _ } => format!("  {} = param({})", dst, src),
             IR::Jump { label } => format!("  jmp label {}", label),
             IR::JumpIfNot { label, cond } => format!("  jmpifnot {}, label {}", cond.dump(), label),
             IR::Ret { src } => match src {
@@ -278,12 +284,6 @@ impl Operand {
             ),
             Operand::Const(value) => format!("{}", value),
         }
-    }
-}
-
-impl MemoryAddr {
-    pub fn dump(&self) -> String {
-        format!("addr({}{:+})", self.base.dump(), self.offset)
     }
 }
 

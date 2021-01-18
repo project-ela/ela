@@ -32,7 +32,13 @@ struct ContextData {
 }
 
 #[derive(Debug, Clone)]
-struct Variable(MemoryAddr, Type);
+struct Variable(VarKind, Type);
+
+#[derive(Debug, Clone)]
+enum VarKind {
+    Global(String),
+    Local(i32),
+}
 
 impl Context {
     fn new() -> Self {
@@ -54,12 +60,20 @@ impl Context {
         panic!()
     }
 
-    fn add_variable(&mut self, name: String, addr: MemoryAddr, typ: Type) {
+    fn add_local_variable(&mut self, name: String, off: i32, typ: Type) {
         self.0
             .last_mut()
             .unwrap()
             .variables
-            .insert(name, Variable(addr, typ));
+            .insert(name, Variable(VarKind::Local(off), typ));
+    }
+
+    fn add_global_variable(&mut self, name: String, typ: Type) {
+        self.0
+            .first_mut()
+            .unwrap()
+            .variables
+            .insert(name.clone(), Variable(VarKind::Global(name), typ));
     }
 
     fn find_variable(&self, name: &str) -> Variable {
@@ -98,6 +112,14 @@ impl IRGen {
 
     fn generate(&mut self, program: Program) -> Result<IRProgram, Error> {
         let mut ir_program = IRProgram::default();
+        for global_def in program.global_defs {
+            ir_program.global_defs.push(IRGlobalDef {
+                name: global_def.name.clone(),
+                typ: global_def.typ.clone(),
+            });
+            self.ctx
+                .add_global_variable(global_def.name, global_def.typ);
+        }
         for function in program.functions {
             if let Some(func) = self.gen_function(function)? {
                 ir_program.functions.push(func);
@@ -120,7 +142,7 @@ impl IRGen {
             let addr = self.alloc_stack_local(&param.typ);
             let size = RegSize::from(&param.typ);
             self.ctx
-                .add_variable(param.name.to_owned(), addr, param.typ.clone());
+                .add_local_variable(param.name.to_owned(), addr, param.typ.clone());
             ir_func.push(IR::StoreArg {
                 dst: addr,
                 src: index,
@@ -144,7 +166,7 @@ impl IRGen {
             }
             StatementKind::Var { name, typ, value } | StatementKind::Val { name, typ, value } => {
                 let addr = self.alloc_stack_local(&typ);
-                self.ctx.add_variable(name, addr, typ.clone());
+                self.ctx.add_local_variable(name, addr, typ.clone());
 
                 match value {
                     Some(value) => {
@@ -337,11 +359,18 @@ impl IRGen {
         match expr.kind {
             ExpressionKind::Ident { name } => {
                 let reg = self.next_reg();
-                let Variable(addr, typ) = self.ctx.find_variable(&name);
-                func.push(IR::Addr {
-                    dst: reg,
-                    src: addr,
-                });
+                let Variable(kind, typ) = self.ctx.find_variable(&name);
+                let ir = match kind {
+                    VarKind::Global(name) => IR::AddrLabel {
+                        dst: reg,
+                        src: name,
+                    },
+                    VarKind::Local(offset) => IR::Addr {
+                        dst: reg,
+                        src: offset,
+                    },
+                };
+                func.push(ir);
                 Ok((reg, typ.pointer_to()))
             }
             ExpressionKind::Index { lhs, index } => {
@@ -430,13 +459,10 @@ impl IRGen {
         format!(".L.{}.{}", self.cur_funcname, cur_label)
     }
 
-    fn alloc_stack_local(&mut self, typ: &Type) -> MemoryAddr {
+    fn alloc_stack_local(&mut self, typ: &Type) -> i32 {
         self.stack_offset_local += typ.size();
         self.stack_offset_local = align_to(self.stack_offset_local, typ.size());
-        MemoryAddr {
-            base: Register::Rbp,
-            offset: -(self.stack_offset_local as i32),
-        }
+        -(self.stack_offset_local as i32)
     }
 }
 

@@ -7,6 +7,14 @@ use crate::common::{
 #[derive(Debug, Default)]
 pub struct Program {
     pub functions: Vec<Function>,
+    pub global_defs: Vec<GlobalDef>,
+}
+
+#[derive(Debug)]
+pub struct GlobalDef {
+    pub name: String,
+    pub typ: Type,
+    pub is_const: bool,
 }
 
 #[derive(Debug)]

@@ -10,7 +10,8 @@ use crate::{
     frontend::{
         lexer::token::{Token, TokenKind},
         parser::ast::{
-            Expression, ExpressionKind, Function, Parameter, Program, Statement, StatementKind,
+            Expression, ExpressionKind, Function, GlobalDef, Parameter, Program, Statement,
+            StatementKind,
         },
     },
 };
@@ -86,9 +87,51 @@ impl Parser {
     fn parse(&mut self) -> Result<Program, Error> {
         let mut program = Program::default();
         while !self.is_eof() {
-            program.functions.push(self.parse_function()?);
+            self.parse_toplevel(&mut program)?;
         }
         Ok(program)
+    }
+
+    fn parse_toplevel(&mut self, program: &mut Program) -> Result<(), Error> {
+        let token = self.peek();
+        match token.kind {
+            TokenKind::Keyword(Keyword::Func) => program.functions.push(self.parse_function()?),
+            TokenKind::Keyword(Keyword::Var) => {
+                self.consume();
+                if let StatementKind::Var { name, typ, .. } =
+                    self.parse_var_statement(token.pos)?.kind
+                {
+                    program.global_defs.push(GlobalDef {
+                        name,
+                        typ,
+                        is_const: false,
+                    })
+                }
+            }
+            TokenKind::Keyword(Keyword::Val) => {
+                self.consume();
+                if let StatementKind::Val { name, typ, .. } =
+                    self.parse_val_statement(token.pos)?.kind
+                {
+                    program.global_defs.push(GlobalDef {
+                        name,
+                        typ,
+                        is_const: true,
+                    })
+                }
+            }
+            x => {
+                return Err(Error::new(
+                    token.pos,
+                    ErrorKind::UnexpectedToken {
+                        expected: None,
+                        actual: x,
+                    },
+                ))
+            }
+        }
+
+        Ok(())
     }
 
     fn parse_function(&mut self) -> Result<Function, Error> {
