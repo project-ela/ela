@@ -7,7 +7,7 @@ use std::{
 use elfen::{
     elf::Elf,
     header::{self, Header},
-    rel::Rela,
+    rel::{self, Rela},
     section::{self, SectionData, SectionHeader},
     segment::{self, ProgramHeader},
     strtab::Strtab,
@@ -50,6 +50,7 @@ const PAGE_SIZE: u64 = 0x1000;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct SectionPlace {
+    // elf_index = 0 is reserved for output_elf
     elf_index: usize,
     section_index: usize,
 }
@@ -136,7 +137,7 @@ impl Linker {
 
                     self.relas.push(RelaSignature { symbol_name, rela });
                     let place = SectionPlace {
-                        elf_index,
+                        elf_index: elf_index + 1,
                         section_index,
                     };
                     self.rela_map
@@ -182,7 +183,7 @@ impl Linker {
                 );
 
                 let place = SectionPlace {
-                    elf_index,
+                    elf_index: elf_index + 1,
                     section_index: symbol.section_index as usize,
                 };
                 self.symbol_map
@@ -212,7 +213,7 @@ impl Linker {
                 linked_data.extend(section_data);
 
                 let place = SectionPlace {
-                    elf_index,
+                    elf_index: elf_index + 1,
                     section_index,
                 };
                 let new_place = SectionPlace {
@@ -224,6 +225,7 @@ impl Linker {
                 if let Some(symbol_names) = self.symbol_map.remove(&place) {
                     for symbol_name in &symbol_names {
                         let symbol_sig = self.global_symbols.get_mut(symbol_name).unwrap();
+                        symbol_sig.symbol.section_index = new_section_index as u16;
                         symbol_sig.symbol.value += offset;
                     }
                     self.symbol_map
@@ -258,7 +260,7 @@ impl Linker {
         }
     }
 
-    fn list_sections_to_alloc(&self) -> HashSet<String> {
+    fn list_sections_to_alloc(&self) -> Vec<String> {
         let mut section_names = HashSet::new();
         for elf in &self.input_elfs {
             for section in &elf.sections {
@@ -267,7 +269,9 @@ impl Linker {
                 }
             }
         }
-        section_names
+        let mut symbol_names: Vec<String> = section_names.into_iter().collect();
+        symbol_names.sort();
+        symbol_names
     }
 
     fn layout(&mut self) {
@@ -321,15 +325,29 @@ impl Linker {
 
             for rela_index in rela_indices {
                 let rela_sig = self.relas.get_mut(*rela_index).unwrap();
-                let addr_from = rela_sig.rela.offset as i32;
-                let addr_to = self
+                let target_symbol = self
                     .global_symbols
                     .get(&rela_sig.symbol_name)
                     .unwrap()
-                    .symbol
-                    .value as i32;
+                    .symbol;
+
+                let addr_from = rela_sig.rela.offset as i32;
+                let addr_to = target_symbol.value as i32;
+
+                let mut diff = match rela_sig.rela.get_type() {
+                    rel::Type::Pc32 => {
+                        let offset_from = *self.section_offsets.get(&section_index).unwrap() as i32;
+                        let sym_idx: u16 = target_symbol.get_index_type().into();
+                        let offset_to = *self.section_offsets.get(&sym_idx.into()).unwrap() as i32;
+
+                        (addr_to + offset_to) - (addr_from + offset_from)
+                    }
+                    rel::Type::Plt32 => addr_to - addr_from,
+                    _ => panic!(),
+                };
+                diff += rela_sig.rela.addend as i32;
+
                 let code_index = addr_from as usize;
-                let diff = addr_to - addr_from + rela_sig.rela.addend as i32;
                 let section_data = section.data.as_raw_mut().unwrap();
                 for (i, value) in diff.to_le_bytes().iter().enumerate() {
                     section_data[(code_index + i)] = *value;
