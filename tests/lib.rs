@@ -255,6 +255,11 @@ fn binary_rm() {
         Operand::Register(Register::Rax),
         Operand::Memory(Memory::new_disp(Displacement::Disp32(2))),
     ));
+    do_test(Instruction::new_binary(
+        Mnemonic::Add,
+        Operand::Register(Register::Rax),
+        Operand::Memory(Memory::new(Register::Rip, Some(Displacement::Disp32(0)))),
+    ));
 }
 
 #[test]

@@ -267,6 +267,10 @@ impl Decoder {
                         _ => panic!(),
                     }
                 }
+                0b101 => Operand::Memory(Memory::new(
+                    Register::Rip,
+                    Some(Displacement::Disp32(self.consume_i32())),
+                )),
                 _ => Operand::Memory(Memory::new(self.decode_register_rm(modrm.rm), None)),
             },
             0b01 => Operand::Memory(Memory::new(

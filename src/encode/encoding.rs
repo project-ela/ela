@@ -153,7 +153,10 @@ fn encode_modrm(rm: &RM) -> ModRM {
                     _ => ModRM::new(0b00, 0, base.number()),
                 },
                 Some(Displacement::Disp8(_)) => ModRM::new(0b01, 0, base.number()),
-                Some(Displacement::Disp32(_)) => ModRM::new(0b10, 0, base.number()),
+                Some(Displacement::Disp32(_)) => match base {
+                    Register::Rip => ModRM::new(0b00, 0, base.number()),
+                    _ => ModRM::new(0b10, 0, base.number()),
+                },
             },
             None => match mem.disp {
                 None => panic!(),
