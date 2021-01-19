@@ -60,6 +60,7 @@ impl CodeGen {
                 PseudoOp::Data => self.current_section = SectionName::Data,
                 PseudoOp::Text => self.current_section = SectionName::Text,
                 PseudoOp::Zero => self.gen_zero(*arg.as_integer()),
+                PseudoOp::Ascii => self.gen_ascii(arg.as_string()),
                 _ => {}
             },
             _ => {}
@@ -87,6 +88,12 @@ impl CodeGen {
         }
 
         self.add_item(CodeItem::Raw(vec![0; arg as usize]));
+    }
+
+    fn gen_ascii(&mut self, arg: &str) {
+        let arg_content = arg.trim_start_matches('"').trim_end_matches('"');
+
+        self.add_item(CodeItem::Raw(arg_content.as_bytes().to_vec()));
     }
 
     fn opr2opr(&mut self, opr: OperandNode) -> Operand {

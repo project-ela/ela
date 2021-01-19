@@ -60,6 +60,7 @@ impl Parser {
                         PseudoOpParam::String(self.consume_ident()?)
                     }
                     PseudoOp::Zero => PseudoOpParam::Integer(self.consume_integer()?),
+                    PseudoOp::Ascii => PseudoOpParam::String(self.consume_string()?),
                     _ => PseudoOpParam::None,
                 };
 
@@ -170,6 +171,17 @@ impl Parser {
         }
     }
 
+    fn consume_string(&mut self) -> Result<String, Error> {
+        let next_token = self.consume();
+        match next_token.kind {
+            TokenKind::String(value) => Ok(value),
+            x => Err(Error::new(
+                next_token.pos,
+                ErrorKind::ExpectedString { actual: x },
+            )),
+        }
+    }
+
     fn consume_ident(&mut self) -> Result<String, Error> {
         let next_token = self.consume();
         match next_token.kind {
@@ -212,6 +224,7 @@ fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
         ".data" => Ok(PseudoOp::Data),
         ".text" => Ok(PseudoOp::Text),
         ".zero" => Ok(PseudoOp::Zero),
+        ".ascii" => Ok(PseudoOp::Ascii),
         x => Err(Error::new(
             ident.pos,
             ErrorKind::UnknownPseudoOp {

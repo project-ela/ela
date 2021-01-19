@@ -17,6 +17,7 @@ impl Token {
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum TokenKind {
     Integer(i32),
+    String(String),
     Ident(String),
     Symbol(Symbol),
     Keyword(Keyword),
