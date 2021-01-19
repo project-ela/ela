@@ -11,9 +11,9 @@ dependencies = [
 [[package]]
 name = "elfen"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/elfen#5e042414c7178b3c8faf0b0588ee6343eab46f01"
+source = "git+https://github.com/Project-Norn/elfen#0518aa9d5a1546c64c75361dd0b92f7d19c75973"
 
 [[package]]
 name = "x86asm"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/x86asm#c21da7f105c4086c05d1e93d6198147aea4bc109"
+source = "git+https://github.com/Project-Norn/x86asm#f45eeb5baf352562b6f4704279919d63a0521483"
