@@ -13,6 +13,7 @@ pub struct IRProgram {
 pub struct IRGlobalDef {
     pub name: String,
     pub typ: Type,
+    pub init_value: Option<String>,
 }
 
 #[derive(Debug)]

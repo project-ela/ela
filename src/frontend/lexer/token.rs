@@ -16,6 +16,7 @@ impl Token {
 pub enum TokenKind {
     Char(char),
     Integer(i32),
+    String(String),
     Ident(String),
     Comment(String),
     Keyword(Keyword),
