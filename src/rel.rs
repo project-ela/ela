@@ -13,6 +13,7 @@ pub struct Rela {
 #[derive(Eq, PartialEq)]
 pub enum Type {
     None,
+    Pc32,
     Plt32,
     Unknown(u64),
 }
