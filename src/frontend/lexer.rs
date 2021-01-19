@@ -250,6 +250,8 @@ fn find_keyword(ident: TokenKind) -> TokenKind {
         "r14b" => TokenKind::Register(Register::R14b),
         "r15b" => TokenKind::Register(Register::R15b),
 
+        "rip" => TokenKind::Register(Register::Rip),
+
         _ => ident,
     }
 }

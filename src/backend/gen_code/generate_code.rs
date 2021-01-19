@@ -12,8 +12,8 @@ use x86asm::instruction::{
 };
 
 use crate::{
-    backend::gen_code::{Code, CodeItem, Codes, SectionName, UnresolvedJump},
-    frontend::parser::node::{InstructionNode, OperandNode, Program, PseudoOp},
+    backend::gen_code::{Code, CodeItem, Codes, SectionName, SymbolType, UnresolvedSymbol},
+    frontend::parser::node::{DispNode, InstructionNode, OperandNode, Program, PseudoOp},
 };
 
 pub struct CodeGen {
@@ -101,19 +101,33 @@ impl CodeGen {
             OperandNode::Register(reg) => Operand::Register(reg),
             OperandNode::Memory(mem) => Operand::Memory(Memory::new(
                 mem.base,
-                mem.disp.map(|disp| {
-                    if disp >= -0x80 && disp < 0x80 {
-                        Displacement::Disp8(disp as i8)
-                    } else {
-                        Displacement::Disp32(disp as i32)
+                mem.disp.map(|disp| match disp {
+                    DispNode::Immediate(disp) => {
+                        if disp >= -0x80 && disp < 0x80 {
+                            Displacement::Disp8(disp as i8)
+                        } else {
+                            Displacement::Disp32(disp as i32)
+                        }
+                    }
+                    DispNode::Label(symbol_name) => {
+                        let cur_section = self.cur_section();
+                        let item_index = cur_section.items.len();
+                        cur_section.unresolved_symbols.push(UnresolvedSymbol {
+                            symbol_name,
+                            typ: SymbolType::Addr,
+                            item_index,
+                        });
+
+                        Displacement::Disp32(0)
                     }
                 }),
             )),
-            OperandNode::Label(label_name) => {
+            OperandNode::Label(symbol_name) => {
                 let cur_section = self.cur_section();
                 let item_index = cur_section.items.len();
-                cur_section.unresolved_jumps.push(UnresolvedJump {
-                    label_name,
+                cur_section.unresolved_symbols.push(UnresolvedSymbol {
+                    symbol_name,
+                    typ: SymbolType::Jump,
                     item_index,
                 });
 
