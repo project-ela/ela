@@ -91,14 +91,14 @@ impl CodeGen {
 
     fn opr2opr(&mut self, opr: OperandNode) -> Operand {
         match opr {
-            OperandNode::Immidiate { value } => {
+            OperandNode::Immidiate(value) => {
                 if value < 0x80 {
                     Operand::Immediate(Immediate::Imm8(value as i8))
                 } else {
                     Operand::Immediate(Immediate::Imm32(value as i32))
                 }
             }
-            OperandNode::Register { reg } => Operand::Register(reg),
+            OperandNode::Register(reg) => Operand::Register(reg),
             OperandNode::Memory(mem) => Operand::Memory(Memory::new(
                 mem.base,
                 mem.disp.map(|disp| {
@@ -109,7 +109,7 @@ impl CodeGen {
                     }
                 }),
             )),
-            OperandNode::Label { name: label_name } => {
+            OperandNode::Label(label_name) => {
                 let cur_section = self.cur_section();
                 let item_index = cur_section.items.len();
                 cur_section.unresolved_jumps.push(UnresolvedJump {

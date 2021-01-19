@@ -49,7 +49,7 @@ impl Parser {
 
             if self.peek().kind == TokenKind::Symbol(Symbol::Colon) {
                 self.consume();
-                insts.push(InstructionNode::Label { name: ident });
+                insts.push(InstructionNode::Label(ident));
                 continue;
             }
 
@@ -107,13 +107,9 @@ impl Parser {
     fn parse_operand(&mut self) -> Result<OperandNode, Error> {
         let token = self.consume();
         match token.kind {
-            TokenKind::Integer(value) => Ok(OperandNode::Immidiate { value }),
-            TokenKind::Ident(name) => Ok(OperandNode::Label {
-                name: name.to_owned(),
-            }),
-            TokenKind::Register(reg) => Ok(OperandNode::Register {
-                reg: reg.to_owned(),
-            }),
+            TokenKind::Integer(value) => Ok(OperandNode::Immidiate(value)),
+            TokenKind::Ident(name) => Ok(OperandNode::Label(name.to_owned())),
+            TokenKind::Register(reg) => Ok(OperandNode::Register(reg.to_owned())),
             TokenKind::Symbol(Symbol::LBracket) => self.parse_operand_address(),
             // TODO
             TokenKind::Keyword(Keyword::Byte) => {

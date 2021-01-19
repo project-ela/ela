@@ -7,7 +7,7 @@ pub struct Program {
 #[derive(Debug)]
 pub enum InstructionNode {
     PseudoOp(PseudoOp, PseudoOpParam),
-    Label { name: String },
+    Label(String),
     NullaryOp(Mnemonic),
     UnaryOp(Mnemonic, OperandNode),
     BinaryOp(Mnemonic, OperandNode, OperandNode),
@@ -47,9 +47,9 @@ impl PseudoOpParam {
 
 #[derive(Debug, Clone)]
 pub enum OperandNode {
-    Immidiate { value: i32 },
-    Register { reg: Register },
-    Label { name: String },
+    Immidiate(i32),
+    Register(Register),
+    Label(String),
     Memory(MemoryNode),
 }
 
