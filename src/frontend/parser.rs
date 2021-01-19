@@ -107,6 +107,10 @@ impl Parser {
     fn parse_operand(&mut self) -> Result<OperandNode, Error> {
         let token = self.consume();
         match token.kind {
+            TokenKind::Symbol(Symbol::Plus) => Ok(OperandNode::Immidiate(self.consume_integer()?)),
+            TokenKind::Symbol(Symbol::Minus) => {
+                Ok(OperandNode::Immidiate(-self.consume_integer()?))
+            }
             TokenKind::Integer(value) => Ok(OperandNode::Immidiate(value)),
             TokenKind::Ident(name) => Ok(OperandNode::Label(name.to_owned())),
             TokenKind::Register(reg) => Ok(OperandNode::Register(reg.to_owned())),
