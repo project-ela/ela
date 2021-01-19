@@ -90,6 +90,7 @@ fn opt_expression(expression: Expression) -> Expression {
     match expression.kind {
         ExpressionKind::Char { .. } => expression,
         ExpressionKind::Integer { .. } => expression,
+        ExpressionKind::String { .. } => expression,
         ExpressionKind::Bool { .. } => expression,
         ExpressionKind::Ident { .. } => expression,
         ExpressionKind::UnaryOp { op, expr } => Expression {

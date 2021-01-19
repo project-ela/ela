@@ -43,7 +43,10 @@ impl GenX86 {
         for global_def in global_defs {
             self.gen(&format!(".global {}", global_def.name));
             self.gen(&format!("{}:", global_def.name));
-            self.gen(&format!(".zero {}", global_def.typ.size()));
+            match global_def.init_value {
+                Some(value) => self.gen(&format!(".ascii \"{}\"", value)),
+                None => self.gen(&format!(".zero {}", global_def.typ.size())),
+            }
         }
 
         Ok(())

@@ -487,6 +487,7 @@ impl Parser {
         let kind = match token.kind {
             TokenKind::Char(value) => ExpressionKind::Char { value },
             TokenKind::Integer(value) => ExpressionKind::Integer { value },
+            TokenKind::String(value) => ExpressionKind::String { value },
             TokenKind::Keyword(Keyword::False) => ExpressionKind::Bool { value: false },
             TokenKind::Keyword(Keyword::True) => ExpressionKind::Bool { value: true },
             TokenKind::Ident(name) => match self.peek().kind {

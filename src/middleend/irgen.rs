@@ -13,13 +13,14 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 struct IRGen {
-    cur_funcname: String,
-    reg: u32,
-    label: u32,
-
-    stack_offset_local: u32,
-
     ctx: Context,
+    cur_funcname: String,
+    global_defs: Vec<IRGlobalDef>,
+
+    reg_index: u32,
+    label_index: u32,
+    string_index: u32,
+    stack_offset_local: u32,
 }
 
 #[derive(Debug)]
@@ -102,11 +103,14 @@ pub fn generate(program: Program) -> Result<IRProgram, Error> {
 impl IRGen {
     fn new() -> Self {
         Self {
-            cur_funcname: "".into(),
-            reg: 0,
-            label: 0,
-            stack_offset_local: 0,
             ctx: Context::new(),
+            cur_funcname: "".into(),
+            global_defs: Vec::new(),
+
+            reg_index: 0,
+            label_index: 0,
+            string_index: 0,
+            stack_offset_local: 0,
         }
     }
 
@@ -116,6 +120,7 @@ impl IRGen {
             ir_program.global_defs.push(IRGlobalDef {
                 name: global_def.name.clone(),
                 typ: global_def.typ.clone(),
+                init_value: None,
             });
             self.ctx
                 .add_global_variable(global_def.name, global_def.typ);
@@ -125,6 +130,11 @@ impl IRGen {
                 ir_program.functions.push(func);
             }
         }
+
+        ir_program
+            .global_defs
+            .extend(std::mem::take(&mut self.global_defs));
+
         Ok(ir_program)
     }
 
@@ -285,6 +295,18 @@ impl IRGen {
                 });
                 Ok((dst, Type::Int))
             }
+            ExpressionKind::String { value } => {
+                let name = self.next_string();
+                self.global_defs.push(IRGlobalDef {
+                    name: name.clone(),
+                    typ: Type::Byte.pointer_to(),
+                    init_value: Some(value),
+                });
+
+                let dst = self.next_reg();
+                func.push(IR::AddrLabel { dst, src: name });
+                Ok((dst, Type::Byte.pointer_to()))
+            }
             ExpressionKind::Bool { value } => {
                 let dst = self.next_reg();
                 func.push(IR::Move {
@@ -439,14 +461,14 @@ impl IRGen {
     }
 
     fn init(&mut self) {
-        self.reg = 0;
-        self.label = 0;
+        self.reg_index = 0;
+        self.label_index = 0;
         self.stack_offset_local = 0;
     }
 
     fn next_reg(&mut self) -> Operand {
-        let cur_reg = self.reg;
-        self.reg += 1;
+        let cur_reg = self.reg_index;
+        self.reg_index += 1;
         Operand::Reg(RegisterInfo {
             virtual_index: cur_reg,
             physical_index: None,
@@ -454,9 +476,15 @@ impl IRGen {
     }
 
     fn next_label(&mut self) -> String {
-        let cur_label = self.label;
-        self.label += 1;
+        let cur_label = self.label_index;
+        self.label_index += 1;
         format!(".L.{}.{}", self.cur_funcname, cur_label)
+    }
+
+    fn next_string(&mut self) -> String {
+        let cur_string = self.string_index;
+        self.string_index += 1;
+        format!(".str.{}", cur_string)
     }
 
     fn alloc_stack_local(&mut self, typ: &Type) -> i32 {

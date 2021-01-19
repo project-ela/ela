@@ -260,6 +260,7 @@ impl<'a> SymbolPass<'a> {
         match &expr.kind {
             ExpressionKind::Char { .. } => Some(Type::Byte),
             ExpressionKind::Integer { .. } => Some(Type::Int),
+            ExpressionKind::String { .. } => Some(Type::Byte.pointer_to()),
             ExpressionKind::Bool { .. } => Some(Type::Bool),
             ExpressionKind::Ident { name } => match self.ctx.find_variable(&name) {
                 Some(var) => Some(var.typ.clone()),

@@ -344,5 +344,16 @@ func main(): int {
     asserti(global2[1], 4)
   }
 
+  {
+    var str: *byte = "hoge\'\"\n"
+    asserti(str[0], 'h')
+    asserti(str[1], 'o')
+    asserti(str[2], 'g')
+    asserti(str[3], 'e')
+    asserti(str[4], '\'')
+    asserti(str[5], '\"')
+    asserti(str[6], '\n')
+  }
+
   return 0
 }

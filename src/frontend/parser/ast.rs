@@ -103,6 +103,9 @@ pub enum ExpressionKind {
     Integer {
         value: i32,
     },
+    String {
+        value: String,
+    },
     Bool {
         value: bool,
     },
