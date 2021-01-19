@@ -64,7 +64,7 @@ impl SymbolCollector {
                 let name = arg.as_string();
                 self.add_symbol(name).set_global();
             }
-            InstructionNode::Label { name } => {
+            InstructionNode::Label(name) => {
                 let addr = *self.cur_addr();
                 let cur_section = self.current_section.clone();
                 self.add_symbol(name)
@@ -72,7 +72,7 @@ impl SymbolCollector {
                     .set_section(cur_section);
             }
             // TODO
-            InstructionNode::UnaryOp(_, OperandNode::Label { name }) => {
+            InstructionNode::UnaryOp(_, OperandNode::Label(name)) => {
                 self.add_symbol(name);
             }
             _ => {}
