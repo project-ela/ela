@@ -19,6 +19,9 @@ pub enum ErrorKind {
     ExpectedInteger {
         actual: TokenKind,
     },
+    ExpectedString {
+        actual: TokenKind,
+    },
     ExpectedIdent {
         actual: TokenKind,
     },
@@ -54,6 +57,7 @@ impl fmt::Display for ErrorKind {
                 Ok(())
             }
             ExpectedInteger { actual } => write!(f, "expected integer, but got {:?}", actual),
+            ExpectedString { actual } => write!(f, "expected string, but got {:?}", actual),
             ExpectedIdent { actual } => write!(f, "expected identifier, but got {:?}", actual),
             UnknownPseudoOp { name } => write!(f, "unknown pseudo-op: '{}'", name),
 

@@ -109,5 +109,6 @@ fn is_inst(inst: &InstructionNode) -> bool {
         | InstructionNode::UnaryOp(_, _)
         | InstructionNode::BinaryOp(_, _, _)
         | InstructionNode::PseudoOp(PseudoOp::Zero, _)
+        | InstructionNode::PseudoOp(PseudoOp::Ascii, _)
     )
 }

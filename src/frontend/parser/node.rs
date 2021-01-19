@@ -20,6 +20,7 @@ pub enum PseudoOp {
     Data,
     Text,
     Zero,
+    Ascii,
 }
 
 #[derive(Debug)]

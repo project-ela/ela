@@ -70,12 +70,42 @@ impl Lexer {
 
         let pos = self.pos.clone();
         let kind = match self.peek_char() {
+            '"' => self.consume_string_literal(),
             x if x.is_digit(10) => self.consume_number(),
             x if is_ident(x) => find_keyword(self.consume_ident()),
             _ => self.consume_symbol()?,
         };
 
         Ok(Token { kind, pos })
+    }
+
+    fn consume_string_literal(&mut self) -> TokenKind {
+        self.consume_char();
+
+        let mut value = String::new();
+        while !self.is_eof() && self.peek_char() != '"' {
+            let c = match self.consume_char() {
+                '\\' => self.consume_escape_char(),
+                x => x,
+            };
+            value.push(c);
+        }
+        self.consume_char();
+
+        TokenKind::String(value)
+    }
+
+    fn consume_escape_char(&mut self) -> char {
+        match self.consume_char() {
+            'n' => '\n',
+            'r' => '\r',
+            't' => '\t',
+            '\\' => '\\',
+            '\'' => '\'',
+            '"' => '"',
+            '0' => '\0',
+            x => x,
+        }
     }
 
     fn consume_number(&mut self) -> TokenKind {
