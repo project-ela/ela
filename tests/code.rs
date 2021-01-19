@@ -1,8 +1,12 @@
 extern crate rota;
 
-use lexer::SourceFile;
-use rota::backend::gen_code;
-use rota::frontend::{lexer, parser};
+use rota::{
+    backend::gen_code::{self, SectionName},
+    frontend::{
+        lexer::{self, SourceFile},
+        parser,
+    },
+};
 
 #[test]
 fn ret() {
@@ -304,11 +308,18 @@ fn do_test(source: &str, expected_output: &str) {
         filename: "".to_string(),
         content: source.to_string(),
     };
-    let output = lexer::tokenize(source_file)
+    let obj = lexer::tokenize(source_file)
         .and_then(|tokens| parser::parse(tokens))
         .and_then(|insts| gen_code::generate(insts))
         .unwrap();
-    let actual_output = bytes_to_str(&output.program);
+
+    let text_section = obj
+        .sections
+        .into_iter()
+        .find(|section| section.name == SectionName::Text)
+        .unwrap();
+
+    let actual_output = bytes_to_str(&text_section.data);
 
     assert_eq!(expected_output, actual_output, "failed with '{}'", source);
 }

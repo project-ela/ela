@@ -9,25 +9,28 @@ use elfen::{
     symbol::{self, Symbol},
 };
 
-use crate::{backend::gen_code::GeneratedData, common::error::Error};
+use crate::{
+    backend::gen_code::{Object, Section, SectionName},
+    common::error::Error,
+};
 
 struct ElfGen {
     elf: Elf,
-    data: GeneratedData,
+    obj: Object,
     // holds symbol name and symbol index
     symbols: HashMap<String, usize>,
 }
 
-pub fn generate(data: GeneratedData) -> Result<Elf, Error> {
-    let elfgen = ElfGen::new(data);
+pub fn generate(obj: Object) -> Result<Elf, Error> {
+    let elfgen = ElfGen::new(obj);
     elfgen.generate()
 }
 
 impl ElfGen {
-    fn new(data: GeneratedData) -> Self {
+    fn new(obj: Object) -> Self {
         Self {
             elf: Elf::default(),
-            data,
+            obj,
             symbols: HashMap::new(),
         }
     }
@@ -54,23 +57,24 @@ impl ElfGen {
         self.elf
             .add_section("", SectionHeader::default(), SectionData::None);
 
-        self.gen_text();
+        self.gen_alloc_sections();
         self.gen_symtab_strtab();
-        self.gen_rela();
+        self.gen_rela_sections();
         self.gen_shstrtab();
     }
 
-    fn gen_text(&mut self) {
-        let mut header = SectionHeader::default();
-        header.set_type(section::Type::Progbits);
-        header.set_flags(section::Flags::Alloc);
-        header.set_flags(section::Flags::Execinstr);
-        header.alignment = 1;
+    fn gen_alloc_sections(&mut self) {
+        for section in self.obj.sections.iter_mut() {
+            let header = match section.name {
+                SectionName::Data => gen_data_header(),
+                SectionName::Text => gen_text_header(),
+            };
 
-        let program = std::mem::replace(&mut self.data.program, Vec::new());
-        let data = SectionData::Raw(program);
+            let data_raw = std::mem::replace(&mut section.data, Vec::new());
+            let data = SectionData::Raw(data_raw);
 
-        self.elf.add_section(".text", header, data);
+            self.elf.add_section(section.name.as_str(), header, data);
+        }
     }
 
     fn gen_symtab_strtab(&mut self) {
@@ -91,21 +95,27 @@ impl ElfGen {
         strtab.insert("".into());
 
         // add section symbol
-        let text_section_index = self.elf.find_section(".text").unwrap() as u16;
-        let mut symbol_text_section = Symbol::default();
-        symbol_text_section.set_type(symbol::Type::Section);
-        symbol_text_section.set_binding(symbol::Binding::Local);
-        symbol_text_section.set_index_type(symbol::IndexType::Index(text_section_index));
-        symbols.push(symbol_text_section);
+        for section in &self.obj.sections {
+            let section_name = section.name.as_str();
+            let section_index = self.elf.find_section(section_name).unwrap();
+
+            let mut symbol_text_section = Symbol::default();
+            symbol_text_section.set_type(symbol::Type::Section);
+            symbol_text_section.set_binding(symbol::Binding::Local);
+            symbol_text_section.set_index_type(symbol::IndexType::Index(section_index as u16));
+            symbols.push(symbol_text_section);
+        }
 
         // add symbols
-        for symbol_data in &self.data.symbols {
+        for symbol_data in &self.obj.global_symbols {
             let mut symbol = Symbol::default();
             symbol.name = strtab.insert(symbol_data.name.clone()) as u32;
             symbol.set_binding(symbol::Binding::Global);
             match symbol_data.addr {
                 Some(addr) => {
-                    symbol.set_index_type(symbol::IndexType::Index(text_section_index));
+                    let section_name = symbol_data.section.as_str();
+                    let section_index = self.elf.find_section(section_name).unwrap();
+                    symbol.set_index_type(symbol::IndexType::Index(section_index as u16));
                     symbol.value = addr as u64;
                 }
                 None => symbol.set_index_type(symbol::IndexType::Undef),
@@ -131,7 +141,14 @@ impl ElfGen {
         self.elf.add_section(".strtab", strtab_header, strtab_data);
     }
 
-    fn gen_rela(&mut self) {
+    fn gen_rela_sections(&mut self) {
+        let sections = std::mem::take(&mut self.obj.sections);
+        for section in sections {
+            self.gen_rela(section);
+        }
+    }
+
+    fn gen_rela(&mut self, section: Section) {
         let mut header = SectionHeader::default();
         header.set_type(section::Type::Rela);
         header.set_flags(section::Flags::InfoLink);
@@ -140,11 +157,11 @@ impl ElfGen {
 
         let symtab_section_index = self.elf.find_section(".symtab").unwrap();
         header.link = symtab_section_index as u32;
-        let text_section_index = self.elf.find_section(".text").unwrap();
+        let text_section_index = self.elf.find_section(section.name.as_str()).unwrap();
         header.info = text_section_index as u32;
 
         let mut relas = Vec::new();
-        for rela_data in &self.data.relas {
+        for rela_data in &section.relas {
             let mut rela = Rela::default();
             rela.offset = rela_data.offset as u64;
             let symbol_index = self
@@ -158,7 +175,8 @@ impl ElfGen {
 
         let data = SectionData::Rela(relas);
 
-        self.elf.add_section(".rela.text", header, data);
+        let name = format!(".rela{}", section.name.as_str());
+        self.elf.add_section(&name, header, data);
     }
 
     fn gen_shstrtab(&mut self) {
@@ -177,4 +195,22 @@ impl ElfGen {
 
         self.elf.add_section(".shstrtab", header, data);
     }
+}
+
+fn gen_data_header() -> SectionHeader {
+    let mut header = SectionHeader::default();
+    header.set_type(section::Type::Progbits);
+    header.set_flags(section::Flags::Alloc);
+    header.set_flags(section::Flags::Write);
+    header.alignment = 1;
+    header
+}
+
+fn gen_text_header() -> SectionHeader {
+    let mut header = SectionHeader::default();
+    header.set_type(section::Type::Progbits);
+    header.set_flags(section::Flags::Alloc);
+    header.set_flags(section::Flags::Execinstr);
+    header.alignment = 1;
+    header
 }

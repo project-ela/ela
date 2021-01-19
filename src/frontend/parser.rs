@@ -6,7 +6,9 @@ use crate::{
     common::error::{Error, ErrorKind},
     frontend::{
         lexer::token::{Keyword, Symbol, Token, TokenKind},
-        parser::node::{InstructionNode, MemoryNode, OperandNode, PseudoOp},
+        parser::node::{
+            InstructionNode, MemoryNode, OperandNode, Program, PseudoOp, PseudoOpParam,
+        },
     },
 };
 
@@ -15,7 +17,7 @@ struct Parser {
     tokens: Vec<Token>,
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<Vec<InstructionNode>, Error> {
+pub fn parse(tokens: Vec<Token>) -> Result<Program, Error> {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -25,7 +27,7 @@ impl Parser {
         Self { pos: 0, tokens }
     }
 
-    fn parse(&mut self) -> Result<Vec<InstructionNode>, Error> {
+    fn parse(&mut self) -> Result<Program, Error> {
         let mut insts = Vec::new();
         loop {
             if self.is_eof() {
@@ -53,7 +55,14 @@ impl Parser {
 
             if ident.starts_with('.') {
                 let op = find_pseudoop(ident_token)?;
-                let arg = self.consume_ident()?;
+                let arg = match op {
+                    PseudoOp::IntelSyntax | PseudoOp::Global => {
+                        PseudoOpParam::String(self.consume_ident()?)
+                    }
+                    PseudoOp::Zero => PseudoOpParam::Integer(self.consume_integer()?),
+                    _ => PseudoOpParam::None,
+                };
+
                 insts.push(InstructionNode::PseudoOp(op, arg));
                 continue;
             }
@@ -66,7 +75,7 @@ impl Parser {
                 },
             ));
         }
-        Ok(insts)
+        Ok(Program { insts })
     }
 
     fn parse_inst(&mut self) -> Result<InstructionNode, Error> {
@@ -226,6 +235,9 @@ fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
     match name.as_str() {
         ".global" => Ok(PseudoOp::Global),
         ".intel_syntax" => Ok(PseudoOp::IntelSyntax),
+        ".data" => Ok(PseudoOp::Data),
+        ".text" => Ok(PseudoOp::Text),
+        ".zero" => Ok(PseudoOp::Zero),
         x => Err(Error::new(
             ident.pos,
             ErrorKind::UnknownPseudoOp {
