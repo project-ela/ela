@@ -7,7 +7,7 @@ use crate::{
     frontend::{
         lexer::token::{Keyword, Symbol, Token, TokenKind},
         parser::node::{
-            InstructionNode, MemoryNode, OperandNode, Program, PseudoOp, PseudoOpParam,
+            DispNode, InstructionNode, MemoryNode, OperandNode, Program, PseudoOp, PseudoOpParam,
         },
     },
 };
@@ -67,13 +67,7 @@ impl Parser {
                 continue;
             }
 
-            return Err(Error::new(
-                ident_token.pos,
-                ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: ident_token.kind,
-                },
-            ));
+            return Err(unexpected(ident_token));
         }
         Ok(Program { insts })
     }
@@ -94,19 +88,17 @@ impl Parser {
                     Ok(InstructionNode::BinaryOp(mnemonic, operand1, operand2))
                 }
             },
-            x => Err(Error::new(
-                token.pos,
-                ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: x,
-                },
-            )),
+            _ => Err(unexpected(token)),
         }
     }
 
     fn parse_operand(&mut self) -> Result<OperandNode, Error> {
         let token = self.consume();
         match token.kind {
+            TokenKind::Symbol(Symbol::Plus) => Ok(OperandNode::Immidiate(self.consume_integer()?)),
+            TokenKind::Symbol(Symbol::Minus) => {
+                Ok(OperandNode::Immidiate(-self.consume_integer()?))
+            }
             TokenKind::Integer(value) => Ok(OperandNode::Immidiate(value)),
             TokenKind::Ident(name) => Ok(OperandNode::Label(name.to_owned())),
             TokenKind::Register(reg) => Ok(OperandNode::Register(reg.to_owned())),
@@ -117,13 +109,7 @@ impl Parser {
                 self.expect(TokenKind::Symbol(Symbol::LBracket))?;
                 self.parse_operand_address()
             }
-            x => Err(Error::new(
-                token.pos,
-                ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: x.clone(),
-                },
-            )),
+            _ => Err(unexpected(token)),
         }
     }
 
@@ -131,20 +117,27 @@ impl Parser {
         let token = self.consume();
         let base = match token.kind {
             TokenKind::Register(reg) => reg.clone(),
-            x => {
-                return Err(Error::new(
-                    token.pos,
-                    ErrorKind::UnexpectedToken {
-                        expected: None,
-                        actual: x.clone(),
-                    },
-                ))
-            }
+            _ => return Err(unexpected(token)),
         };
 
-        let disp = match self.peek().kind {
+        // TODO
+        let token = self.peek();
+        let disp = match token.kind {
             TokenKind::Symbol(Symbol::RBracket) => None,
-            _ => Some(self.consume_integer()?),
+            TokenKind::Symbol(Symbol::Minus) => {
+                self.consume();
+                Some(DispNode::Immediate(-self.consume_integer()?))
+            }
+            TokenKind::Symbol(Symbol::Plus) => {
+                self.consume();
+                let token = self.consume();
+                match token.kind {
+                    TokenKind::Integer(value) => Some(DispNode::Immediate(value)),
+                    TokenKind::Ident(name) => Some(DispNode::Label(name)),
+                    _ => return Err(unexpected(token)),
+                }
+            }
+            _ => return Err(unexpected(token)),
         };
 
         self.expect(TokenKind::Symbol(Symbol::RBracket))?;
@@ -210,15 +203,7 @@ impl Parser {
 fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
     let name = match ident.kind {
         TokenKind::Ident(name) => name,
-        x => {
-            return Err(Error::new(
-                ident.pos,
-                ErrorKind::UnexpectedToken {
-                    expected: None,
-                    actual: x,
-                },
-            ))
-        }
+        _ => return Err(unexpected(ident)),
     };
 
     match name.as_str() {
@@ -234,4 +219,14 @@ fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
             },
         )),
     }
+}
+
+fn unexpected(token: Token) -> Error {
+    Error::new(
+        token.pos,
+        ErrorKind::UnexpectedToken {
+            expected: None,
+            actual: token.kind,
+        },
+    )
 }

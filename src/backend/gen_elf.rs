@@ -10,7 +10,7 @@ use elfen::{
 };
 
 use crate::{
-    backend::gen_code::{Object, Section, SectionName},
+    backend::gen_code::{Object, RelaType, Section, SectionName},
     common::error::Error,
 };
 
@@ -168,7 +168,10 @@ impl ElfGen {
                 .symbols
                 .get(&rela_data.name)
                 .expect(&format!("cannot find symbol '{}'", rela_data.name));
-            rela.set_info(*symbol_index as u64, rel::Type::Plt32);
+            match rela_data.typ {
+                RelaType::Pc32 => rela.set_info(*symbol_index as u64, rel::Type::Pc32),
+                RelaType::Plt32 => rela.set_info(*symbol_index as u64, rel::Type::Plt32),
+            }
             rela.addend = -4;
             relas.push(rela);
         }

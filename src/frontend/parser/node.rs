@@ -56,5 +56,11 @@ pub enum OperandNode {
 #[derive(Debug, Clone)]
 pub struct MemoryNode {
     pub base: Register,
-    pub disp: Option<i32>,
+    pub disp: Option<DispNode>,
+}
+
+#[derive(Debug, Clone)]
+pub enum DispNode {
+    Immediate(i32),
+    Label(String),
 }

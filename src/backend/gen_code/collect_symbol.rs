@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     backend::gen_code::{SectionName, Symbol, Symbols},
-    frontend::parser::node::{InstructionNode, OperandNode, Program, PseudoOp},
+    frontend::parser::node::{DispNode, InstructionNode, OperandNode, Program, PseudoOp},
 };
 
 pub struct SymbolCollector {
@@ -74,6 +74,11 @@ impl SymbolCollector {
             // TODO
             InstructionNode::UnaryOp(_, OperandNode::Label(name)) => {
                 self.add_symbol(name);
+            }
+            InstructionNode::BinaryOp(_, _, OperandNode::Memory(mem)) => {
+                if let Some(DispNode::Label(ref name)) = mem.disp {
+                    self.add_symbol(name);
+                }
             }
             _ => {}
         }

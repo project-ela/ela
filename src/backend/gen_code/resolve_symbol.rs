@@ -1,36 +1,53 @@
 use x86asm::instruction::operand::{offset::Offset, Operand};
 
-use crate::backend::gen_code::{encode_item, Code, CodeItem, Codes, Rela, Symbol, Symbols};
+use crate::backend::gen_code::{
+    encode_item, Code, CodeItem, Codes, Rela, RelaType, Symbol, SymbolType, Symbols,
+};
 
 pub fn resolve_symbol(symbols: &Symbols, code: &mut Code) -> Vec<Rela> {
     let mut relas = Vec::new();
-    for unresolved_jump in &code.unresolved_jumps {
-        let symbol = symbols.get(&unresolved_jump.label_name).unwrap();
+    for unresolved_symbol in &code.unresolved_symbols {
+        let symbol = symbols.get(&unresolved_symbol.symbol_name).unwrap();
+        match unresolved_symbol.typ {
+            SymbolType::Addr => {
+                let item_index = unresolved_symbol.item_index + 1;
+                let rela_offset = calc_offset(&code.items, 0, item_index) as u32 - 4;
 
-        let offset = if symbol.is_global || symbol.addr.is_none() {
-            0
-        } else {
-            let item_index = unresolved_jump.item_index + 1;
-            let symbol_addr = symbol.addr.unwrap();
-            calc_offset(&code.items, item_index, symbol_addr)
-        };
-
-        let item = code.items.get_mut(unresolved_jump.item_index).unwrap();
-        match item {
-            CodeItem::Inst(inst) => {
-                inst.operand1 = Some(Operand::Offset(Offset::Off32(offset)));
+                relas.push(Rela {
+                    name: symbol.name.to_string(),
+                    typ: RelaType::Pc32,
+                    offset: rela_offset,
+                });
             }
-            _ => panic!(),
-        }
+            SymbolType::Jump => {
+                let is_global = symbol.is_global || symbol.addr.is_none();
 
-        if symbol.is_global || symbol.addr.is_none() {
-            let item_index = unresolved_jump.item_index + 1;
-            let rela_offset = calc_offset(&code.items, 0, item_index) as u32 - 4;
+                let offset = if is_global {
+                    0
+                } else {
+                    let item_index = unresolved_symbol.item_index + 1;
+                    let symbol_addr = symbol.addr.unwrap();
+                    calc_offset(&code.items, item_index, symbol_addr)
+                };
 
-            relas.push(Rela {
-                name: symbol.name.to_string(),
-                offset: rela_offset,
-            });
+                let item = code.items.get_mut(unresolved_symbol.item_index).unwrap();
+                match item {
+                    CodeItem::Inst(inst) => {
+                        inst.operand1 = Some(Operand::Offset(Offset::Off32(offset)));
+                    }
+                    _ => panic!(),
+                }
+                if is_global {
+                    let item_index = unresolved_symbol.item_index + 1;
+                    let rela_offset = calc_offset(&code.items, 0, item_index) as u32 - 4;
+
+                    relas.push(Rela {
+                        name: symbol.name.to_string(),
+                        typ: RelaType::Plt32,
+                        offset: rela_offset,
+                    });
+                }
+            }
         }
     }
     relas

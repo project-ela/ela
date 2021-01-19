@@ -83,7 +83,14 @@ pub struct Symbol {
 #[derive(Debug)]
 pub struct Rela {
     pub name: String,
+    pub typ: RelaType,
     pub offset: u32,
+}
+
+#[derive(Debug)]
+pub enum RelaType {
+    Pc32,
+    Plt32,
 }
 
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
@@ -104,7 +111,7 @@ impl SectionName {
 #[derive(Default, Debug)]
 pub struct Code {
     items: Vec<CodeItem>,
-    unresolved_jumps: Vec<UnresolvedJump>,
+    unresolved_symbols: Vec<UnresolvedSymbol>,
 }
 
 #[derive(Debug)]
@@ -114,7 +121,14 @@ enum CodeItem {
 }
 
 #[derive(Debug)]
-struct UnresolvedJump {
-    label_name: String,
+struct UnresolvedSymbol {
+    symbol_name: String,
+    typ: SymbolType,
     item_index: usize,
+}
+
+#[derive(Debug)]
+enum SymbolType {
+    Addr,
+    Jump,
 }

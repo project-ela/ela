@@ -70,7 +70,6 @@ impl Lexer {
 
         let pos = self.pos.clone();
         let kind = match self.peek_char() {
-            '+' | '-' => self.consume_number(),
             x if x.is_digit(10) => self.consume_number(),
             x if is_ident(x) => find_keyword(self.consume_ident()),
             _ => self.consume_symbol()?,
@@ -81,10 +80,6 @@ impl Lexer {
 
     fn consume_number(&mut self) -> TokenKind {
         let mut result = String::new();
-
-        if matches!(self.peek_char(), '+' | '-') {
-            result.push(self.consume_char());
-        }
 
         while !self.is_eof() && self.peek_char().is_digit(10) {
             result.push(self.consume_char());
@@ -254,6 +249,8 @@ fn find_keyword(ident: TokenKind) -> TokenKind {
         "r13b" => TokenKind::Register(Register::R13b),
         "r14b" => TokenKind::Register(Register::R14b),
         "r15b" => TokenKind::Register(Register::R15b),
+
+        "rip" => TokenKind::Register(Register::Rip),
 
         _ => ident,
     }
