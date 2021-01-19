@@ -42,6 +42,8 @@ pub enum Register {
     R13b,
     R14b,
     R15b,
+
+    Rip,
 }
 
 #[derive(PartialEq, Eq)]
@@ -57,7 +59,7 @@ impl Register {
         use self::Register::*;
         match self {
             Rax | Rcx | Rdx | Rbx | Rsp | Rbp | Rsi | Rdi | R8 | R9 | R10 | R11 | R12 | R13
-            | R14 | R15 => Size::QWord,
+            | R14 | R15 | Rip => Size::QWord,
             Eax | Ecx | Edx | Ebx | Esp | Ebp | Esi | Edi => Size::DWord,
             Al | Cl | Dl | Bl | Spl | Bpl | Sil | Dil | R8b | R9b | R10b | R11b | R12b | R13b
             | R14b | R15b => Size::Byte,
@@ -72,7 +74,7 @@ impl Register {
             Rdx | R10 | Edx | Dl | R10b => 2,
             Rbx | R11 | Ebx | Bl | R11b => 3,
             Rsp | R12 | Esp | Spl | R12b => 4,
-            Rbp | R13 | Ebp | Bpl | R13b => 5,
+            Rbp | R13 | Ebp | Bpl | R13b | Rip => 5,
             Rsi | R14 | Esi | Sil | R14b => 6,
             Rdi | R15 | Edi | Dil | R15b => 7,
         }
