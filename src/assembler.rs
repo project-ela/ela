@@ -1,7 +1,10 @@
 use std::{error, fs};
 
 use crate::{
-    backend::{gen_code, gen_elf},
+    backend::{
+        gen_code::{self, SectionName},
+        gen_elf,
+    },
     common::error::Error,
     frontend::{
         lexer::{self, SourceFile},
@@ -44,8 +47,15 @@ pub fn assemble(source: SourceFile) -> Result<Vec<u8>, Error> {
 }
 
 pub fn assemble_raw(source: SourceFile) -> Result<Vec<u8>, Error> {
-    lexer::tokenize(source)
+    let obj = lexer::tokenize(source)
         .and_then(parser::parse)
-        .and_then(gen_code::generate)
-        .map(|data| data.program)
+        .and_then(gen_code::generate)?;
+
+    let text_section = obj
+        .sections
+        .into_iter()
+        .find(|section| section.name == SectionName::Text)
+        .unwrap();
+
+    Ok(text_section.data)
 }
