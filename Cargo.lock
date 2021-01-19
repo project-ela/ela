@@ -3,7 +3,7 @@
 [[package]]
 name = "elfen"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/elfen#5e042414c7178b3c8faf0b0588ee6343eab46f01"
+source = "git+https://github.com/Project-Norn/elfen#0518aa9d5a1546c64c75361dd0b92f7d19c75973"
 
 [[package]]
 name = "rota"
@@ -16,4 +16,4 @@ dependencies = [
 [[package]]
 name = "x86asm"
 version = "0.1.0"
-source = "git+https://github.com/Project-Norn/x86asm#99556058b26b668223045bd6762b81d90bf0dc5c"
+source = "git+https://github.com/Project-Norn/x86asm#f45eeb5baf352562b6f4704279919d63a0521483"
