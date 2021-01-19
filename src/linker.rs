@@ -325,15 +325,29 @@ impl Linker {
 
             for rela_index in rela_indices {
                 let rela_sig = self.relas.get_mut(*rela_index).unwrap();
-                let addr_from = rela_sig.rela.offset as i32;
-                let addr_to = self
+                let target_symbol = self
                     .global_symbols
                     .get(&rela_sig.symbol_name)
                     .unwrap()
-                    .symbol
-                    .value as i32;
+                    .symbol;
+
+                let addr_from = rela_sig.rela.offset as i32;
+                let addr_to = target_symbol.value as i32;
+
+                let mut diff = match rela_sig.rela.get_type() {
+                    rel::Type::Pc32 => {
+                        let offset_from = *self.section_offsets.get(&section_index).unwrap() as i32;
+                        let sym_idx: u16 = target_symbol.get_index_type().into();
+                        let offset_to = *self.section_offsets.get(&sym_idx.into()).unwrap() as i32;
+
+                        (addr_to + offset_to) - (addr_from + offset_from)
+                    }
+                    rel::Type::Plt32 => addr_to - addr_from,
+                    _ => panic!(),
+                };
+                diff += rela_sig.rela.addend as i32;
+
                 let code_index = addr_from as usize;
-                let diff = addr_to - addr_from + rela_sig.rela.addend as i32;
                 let section_data = section.data.as_raw_mut().unwrap();
                 for (i, value) in diff.to_le_bytes().iter().enumerate() {
                     section_data[(code_index + i)] = *value;
