@@ -61,7 +61,7 @@ impl SymbolCollector {
     fn collect_symbols_in(&mut self, inst: &InstructionNode) {
         match inst {
             InstructionNode::PseudoOp(PseudoOp::Global, arg) => {
-                let name = arg.as_ref().unwrap();
+                let name = arg.as_string();
                 self.add_symbol(name).set_global();
             }
             InstructionNode::Label { name } => {
@@ -103,5 +103,6 @@ fn is_inst(inst: &InstructionNode) -> bool {
         InstructionNode::NullaryOp(_)
         | InstructionNode::UnaryOp(_, _)
         | InstructionNode::BinaryOp(_, _, _)
+        | InstructionNode::PseudoOp(PseudoOp::Zero, _)
     )
 }

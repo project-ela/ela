@@ -6,7 +6,9 @@ use crate::{
     common::error::{Error, ErrorKind},
     frontend::{
         lexer::token::{Keyword, Symbol, Token, TokenKind},
-        parser::node::{InstructionNode, MemoryNode, OperandNode, Program, PseudoOp},
+        parser::node::{
+            InstructionNode, MemoryNode, OperandNode, Program, PseudoOp, PseudoOpParam,
+        },
     },
 };
 
@@ -54,8 +56,11 @@ impl Parser {
             if ident.starts_with('.') {
                 let op = find_pseudoop(ident_token)?;
                 let arg = match op {
-                    PseudoOp::IntelSyntax | PseudoOp::Global => Some(self.consume_ident()?),
-                    _ => None,
+                    PseudoOp::IntelSyntax | PseudoOp::Global => {
+                        PseudoOpParam::String(self.consume_ident()?)
+                    }
+                    PseudoOp::Zero => PseudoOpParam::Integer(self.consume_integer()?),
+                    _ => PseudoOpParam::None,
                 };
 
                 insts.push(InstructionNode::PseudoOp(op, arg));
@@ -232,6 +237,7 @@ fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
         ".intel_syntax" => Ok(PseudoOp::IntelSyntax),
         ".data" => Ok(PseudoOp::Data),
         ".text" => Ok(PseudoOp::Text),
+        ".zero" => Ok(PseudoOp::Zero),
         x => Err(Error::new(
             ident.pos,
             ErrorKind::UnknownPseudoOp {

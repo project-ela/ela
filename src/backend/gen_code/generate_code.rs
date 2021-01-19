@@ -56,9 +56,10 @@ impl CodeGen {
                 let opr2 = self.opr2opr(opr2);
                 self.add_item(CodeItem::Inst(Instruction::new_binary(op, opr1, opr2)));
             }
-            InstructionNode::PseudoOp(op, _) => match op {
+            InstructionNode::PseudoOp(op, arg) => match op {
                 PseudoOp::Data => self.current_section = SectionName::Data,
                 PseudoOp::Text => self.current_section = SectionName::Text,
+                PseudoOp::Zero => self.gen_zero(*arg.as_integer()),
                 _ => {}
             },
             _ => {}
@@ -78,6 +79,10 @@ impl CodeGen {
             opr1,
             opr2,
         )));
+    }
+
+    fn gen_zero(&mut self, arg: u32) {
+        self.add_item(CodeItem::Raw(vec![0; arg as usize]));
     }
 
     fn opr2opr(&mut self, opr: OperandNode) -> Operand {
