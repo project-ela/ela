@@ -81,7 +81,11 @@ impl CodeGen {
         )));
     }
 
-    fn gen_zero(&mut self, arg: u32) {
+    fn gen_zero(&mut self, arg: i32) {
+        if arg.is_negative() {
+            return;
+        }
+
         self.add_item(CodeItem::Raw(vec![0; arg as usize]));
     }
 

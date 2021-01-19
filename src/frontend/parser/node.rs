@@ -25,7 +25,7 @@ pub enum PseudoOp {
 #[derive(Debug)]
 pub enum PseudoOpParam {
     String(String),
-    Integer(u32),
+    Integer(i32),
     None,
 }
 
@@ -37,7 +37,7 @@ impl PseudoOpParam {
         }
     }
 
-    pub fn as_integer(&self) -> &u32 {
+    pub fn as_integer(&self) -> &i32 {
         match self {
             PseudoOpParam::Integer(i) => i,
             _ => panic!(),
@@ -47,7 +47,7 @@ impl PseudoOpParam {
 
 #[derive(Debug, Clone)]
 pub enum OperandNode {
-    Immidiate { value: u32 },
+    Immidiate { value: i32 },
     Register { reg: Register },
     Label { name: String },
     Memory(MemoryNode),

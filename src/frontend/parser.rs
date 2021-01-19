@@ -147,15 +147,8 @@ impl Parser {
         };
 
         let disp = match self.peek().kind {
-            TokenKind::Symbol(Symbol::Plus) => {
-                self.consume();
-                Some(self.consume_integer()? as i32)
-            }
-            TokenKind::Symbol(Symbol::Minus) => {
-                self.consume();
-                Some(-(self.consume_integer()? as i32))
-            }
-            _ => None,
+            TokenKind::Symbol(Symbol::RBracket) => None,
+            _ => Some(self.consume_integer()?),
         };
 
         self.expect(TokenKind::Symbol(Symbol::RBracket))?;
@@ -177,7 +170,7 @@ impl Parser {
         }
     }
 
-    fn consume_integer(&mut self) -> Result<u32, Error> {
+    fn consume_integer(&mut self) -> Result<i32, Error> {
         let next_token = self.consume();
         match next_token.kind {
             TokenKind::Integer(value) => Ok(value),
