@@ -3,7 +3,8 @@
 try() {
   option=$1
 
-  cargo run -- $option test.vd tmp.s
+  python3 test_preprocess.py
+  cargo run -- $option tmp.vd tmp.s
   if [ "$?" != "0" ]; then
     echo "compiling failed"
     exit 1
@@ -11,9 +12,7 @@ try() {
   gcc tmp.s -o tmp
   ./tmp
   actual=$?
-  if [ "$actual" != "0" ]; then
-    echo "test: FAILED"
-  else
+  if [ "$actual" == "0" ]; then
     echo "test: PASSED"
   fi
 }

@@ -73,7 +73,7 @@ impl Tokenizer {
             '\'' => self.consume_char_literal()?,
             '"' => self.consume_string_literal()?,
             x if x.is_digit(10) => self.consume_number(),
-            x if x.is_alphabetic() => find_keyword(self.consume_ident()),
+            x if is_ident(x) => find_keyword(self.consume_ident()),
             _ => self.consume_symbol()?,
         };
 
@@ -171,7 +171,7 @@ impl Tokenizer {
 
     fn consume_ident(&mut self) -> TokenKind {
         let mut name = String::new();
-        while !self.is_eof() && self.peek_char().is_alphabetic() || self.peek_char().is_digit(10) {
+        while !self.is_eof() && is_ident(self.peek_char()) || self.peek_char().is_digit(10) {
             name.push(self.consume_char());
         }
 
@@ -304,6 +304,14 @@ impl Tokenizer {
 
     fn is_eof(&self) -> bool {
         self.source_index >= self.source.content.len()
+    }
+}
+
+fn is_ident(c: char) -> bool {
+    match c {
+        '_' => true,
+        x if x.is_alphabetic() => true,
+        _ => false,
     }
 }
 
