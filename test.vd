@@ -56,6 +56,10 @@ func test4(arr: *int): int {
   return arr[2]
 }
 
+func _test5_(_x_: int): int {
+  return _x_
+}
+
 var global1: int
 var global2: byte[2]
 
@@ -353,6 +357,12 @@ func main(): int {
     asserti(str[4], '\'')
     asserti(str[5], '\"')
     asserti(str[6], '\n')
+  }
+
+  {
+    var _a_: int = 10
+    asserti(_a_, 10)
+    asserti(_test5_(5), 5)
   }
 
   return 0
