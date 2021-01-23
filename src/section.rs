@@ -7,6 +7,7 @@ use std::mem::size_of;
 use rel::Rela;
 use strtab::Strtab;
 use symbol::Symbol;
+use tse::Tse;
 
 use crate::*;
 
@@ -76,6 +77,7 @@ pub enum SectionData {
     Rela(Vec<Rela>),
     Strtab(Strtab),
     Symbols(Vec<Symbol>),
+    Tse(Vec<Tse>),
 }
 
 impl SectionData {
@@ -86,6 +88,7 @@ impl SectionData {
             SectionData::Rela(relas) => size_of::<Rela>() * relas.len(),
             SectionData::Strtab(strtab) => strtab.data.len(),
             SectionData::Symbols(symbols) => size_of::<Symbol>() * symbols.len(),
+            SectionData::Tse(tses) => size_of::<Tse>() * tses.len(),
         }
     }
 
@@ -102,6 +105,11 @@ impl SectionData {
             SectionData::Symbols(symbols) => {
                 for sym in symbols {
                     sym.write_to(buf);
+                }
+            }
+            SectionData::Tse(tses) => {
+                for tse in tses {
+                    tse.write_to(buf);
                 }
             }
         }
@@ -159,6 +167,20 @@ impl SectionData {
     pub fn as_symbols_mut(&mut self) -> Option<&mut Vec<Symbol>> {
         if let SectionData::Symbols(symbols) = self {
             return Some(symbols);
+        }
+        None
+    }
+
+    pub fn as_tse(&self) -> Option<&Vec<Tse>> {
+        if let SectionData::Tse(tse) = self {
+            return Some(tse);
+        }
+        None
+    }
+
+    pub fn as_tse_mut(&mut self) -> Option<&mut Vec<Tse>> {
+        if let SectionData::Tse(tse) = self {
+            return Some(tse);
         }
         None
     }

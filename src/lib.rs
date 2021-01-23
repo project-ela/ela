@@ -6,6 +6,7 @@ pub mod section;
 pub mod segment;
 pub mod strtab;
 pub mod symbol;
+pub mod tse;
 
 type ElfHalf = u16;
 type ElfWord = u32;
