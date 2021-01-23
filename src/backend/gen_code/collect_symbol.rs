@@ -60,8 +60,8 @@ impl SymbolCollector {
 
     fn collect_symbols_in(&mut self, inst: &InstructionNode) {
         match inst {
-            InstructionNode::PseudoOp(PseudoOp::Global, arg) => {
-                let name = arg.as_string();
+            InstructionNode::PseudoOp(PseudoOp::Global, args) => {
+                let name = args[0].as_string();
                 self.add_symbol(name).set_global();
             }
             InstructionNode::Label(name) => {

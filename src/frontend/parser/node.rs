@@ -6,7 +6,7 @@ pub struct Program {
 
 #[derive(Debug)]
 pub enum InstructionNode {
-    PseudoOp(PseudoOp, PseudoOpArg),
+    PseudoOp(PseudoOp, Vec<PseudoOpArg>),
     Label(String),
     NullaryOp(Mnemonic),
     UnaryOp(Mnemonic, OperandNode),
@@ -27,7 +27,6 @@ pub enum PseudoOp {
 pub enum PseudoOpArg {
     String(String),
     Integer(i32),
-    None,
 }
 
 impl PseudoOpArg {

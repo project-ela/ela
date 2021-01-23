@@ -54,17 +54,7 @@ impl Parser {
             }
 
             if ident.starts_with('.') {
-                let op = find_pseudoop(ident_token)?;
-                let arg = match op {
-                    PseudoOp::IntelSyntax | PseudoOp::Global => {
-                        PseudoOpArg::String(self.consume_ident()?)
-                    }
-                    PseudoOp::Zero => PseudoOpArg::Integer(self.consume_integer()?),
-                    PseudoOp::Ascii => PseudoOpArg::String(self.consume_string()?),
-                    _ => PseudoOpArg::None,
-                };
-
-                insts.push(InstructionNode::PseudoOp(op, arg));
+                insts.push(self.parse_pseudop(ident_token)?);
                 continue;
             }
 
@@ -143,6 +133,20 @@ impl Parser {
 
         self.expect(TokenKind::Symbol(Symbol::RBracket))?;
         Ok(OperandNode::Memory(MemoryNode { base, disp }))
+    }
+
+    fn parse_pseudop(&mut self, ident_token: Token) -> Result<InstructionNode, Error> {
+        let op = find_pseudoop(ident_token)?;
+        let args = match op {
+            PseudoOp::IntelSyntax | PseudoOp::Global => {
+                vec![PseudoOpArg::String(self.consume_ident()?)]
+            }
+            PseudoOp::Zero => vec![PseudoOpArg::Integer(self.consume_integer()?)],
+            PseudoOp::Ascii => vec![PseudoOpArg::String(self.consume_string()?)],
+            _ => vec![],
+        };
+
+        Ok(InstructionNode::PseudoOp(op, args))
     }
 
     fn expect(&mut self, token: TokenKind) -> Result<Token, Error> {
