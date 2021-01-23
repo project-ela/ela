@@ -7,7 +7,7 @@ use crate::{
     frontend::{
         lexer::token::{Keyword, Symbol, Token, TokenKind},
         parser::node::{
-            DispNode, InstructionNode, MemoryNode, OperandNode, Program, PseudoOp, PseudoOpParam,
+            DispNode, InstructionNode, MemoryNode, OperandNode, Program, PseudoOp, PseudoOpArg,
         },
     },
 };
@@ -57,11 +57,11 @@ impl Parser {
                 let op = find_pseudoop(ident_token)?;
                 let arg = match op {
                     PseudoOp::IntelSyntax | PseudoOp::Global => {
-                        PseudoOpParam::String(self.consume_ident()?)
+                        PseudoOpArg::String(self.consume_ident()?)
                     }
-                    PseudoOp::Zero => PseudoOpParam::Integer(self.consume_integer()?),
-                    PseudoOp::Ascii => PseudoOpParam::String(self.consume_string()?),
-                    _ => PseudoOpParam::None,
+                    PseudoOp::Zero => PseudoOpArg::Integer(self.consume_integer()?),
+                    PseudoOp::Ascii => PseudoOpArg::String(self.consume_string()?),
+                    _ => PseudoOpArg::None,
                 };
 
                 insts.push(InstructionNode::PseudoOp(op, arg));
