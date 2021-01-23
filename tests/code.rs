@@ -303,6 +303,20 @@ fn lea() {
     do_test("lea rax,[r9-129]", "49 8d 81 7f ff ff ff");
 }
 
+#[test]
+fn zero() {
+    do_test(".zero 0", ""); // skip
+    do_test(".zero 4", "00 00 00 00"); // skip
+    do_test(".zero 8", "00 00 00 00 00 00 00 00"); // skip
+}
+
+#[test]
+fn ascii() {
+    do_test(r#".ascii """#, ""); // skip
+    do_test(r#".ascii "Hi!""#, "48 69 21"); // skip
+    do_test(r#".ascii "\r\n""#, "0d 0a"); // skip
+}
+
 fn do_test(source: &str, expected_output: &str) {
     let source_file = SourceFile {
         filename: "".to_string(),
