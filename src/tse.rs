@@ -1,7 +1,7 @@
 #[repr(C)]
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Tse {
-    pub symbol_index: u32,
+    pub symbol_index: u64,
     pub offset: i64,
     pub size: u64,
     pub align: u64,
