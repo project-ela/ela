@@ -6,7 +6,7 @@ pub struct Program {
 
 #[derive(Debug)]
 pub enum InstructionNode {
-    PseudoOp(PseudoOp, PseudoOpParam),
+    PseudoOp(PseudoOp, Vec<PseudoOpArg>),
     Label(String),
     NullaryOp(Mnemonic),
     UnaryOp(Mnemonic, OperandNode),
@@ -21,26 +21,26 @@ pub enum PseudoOp {
     Text,
     Zero,
     Ascii,
+    Tse,
 }
 
 #[derive(Debug)]
-pub enum PseudoOpParam {
+pub enum PseudoOpArg {
     String(String),
     Integer(i32),
-    None,
 }
 
-impl PseudoOpParam {
+impl PseudoOpArg {
     pub fn as_string(&self) -> &String {
         match self {
-            PseudoOpParam::String(s) => s,
+            PseudoOpArg::String(s) => s,
             _ => panic!(),
         }
     }
 
     pub fn as_integer(&self) -> &i32 {
         match self {
-            PseudoOpParam::Integer(i) => i,
+            PseudoOpArg::Integer(i) => i,
             _ => panic!(),
         }
     }

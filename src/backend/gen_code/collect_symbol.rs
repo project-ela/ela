@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 
 use crate::{
-    backend::gen_code::{SectionName, Symbol, Symbols},
+    backend::gen_code::{SectionName, Symbol, Symbols, Tse},
     frontend::parser::node::{DispNode, InstructionNode, OperandNode, Program, PseudoOp},
 };
 
 pub struct SymbolCollector {
     symbols: Symbols,
+    tses: Vec<Tse>,
     current_section: SectionName,
+    current_symbol: String,
 
     current_addr: HashMap<SectionName, usize>,
 }
@@ -33,12 +35,14 @@ impl SymbolCollector {
     pub fn new() -> Self {
         Self {
             symbols: HashMap::new(),
+            tses: Vec::new(),
             current_section: SectionName::Text,
+            current_symbol: String::new(),
             current_addr: HashMap::new(),
         }
     }
 
-    pub fn collect_symbols(mut self, program: &Program) -> Symbols {
+    pub fn collect_symbols(mut self, program: &Program) -> (Symbols, Vec<Tse>) {
         for inst in &program.insts {
             self.collect_symbols_in(inst);
 
@@ -55,14 +59,23 @@ impl SymbolCollector {
             }
         }
 
-        self.symbols
+        (self.symbols, self.tses)
     }
 
     fn collect_symbols_in(&mut self, inst: &InstructionNode) {
         match inst {
-            InstructionNode::PseudoOp(PseudoOp::Global, arg) => {
-                let name = arg.as_string();
+            InstructionNode::PseudoOp(PseudoOp::Global, args) => {
+                let name = args[0].as_string();
                 self.add_symbol(name).set_global();
+                self.current_symbol = name.clone();
+            }
+            InstructionNode::PseudoOp(PseudoOp::Tse, args) => {
+                self.tses.push(Tse {
+                    symbol_name: self.current_symbol.clone(),
+                    offset: *args[0].as_integer() as i64,
+                    size: *args[1].as_integer() as u64,
+                    align: *args[2].as_integer() as u64,
+                });
             }
             InstructionNode::Label(name) => {
                 let addr = *self.cur_addr();

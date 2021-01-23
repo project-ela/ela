@@ -56,11 +56,11 @@ impl CodeGen {
                 let opr2 = self.opr2opr(opr2);
                 self.add_item(CodeItem::Inst(Instruction::new_binary(op, opr1, opr2)));
             }
-            InstructionNode::PseudoOp(op, arg) => match op {
+            InstructionNode::PseudoOp(op, args) => match op {
                 PseudoOp::Data => self.current_section = SectionName::Data,
                 PseudoOp::Text => self.current_section = SectionName::Text,
-                PseudoOp::Zero => self.gen_zero(*arg.as_integer()),
-                PseudoOp::Ascii => self.gen_ascii(arg.as_string()),
+                PseudoOp::Zero => self.gen_zero(*args[0].as_integer()),
+                PseudoOp::Ascii => self.gen_ascii(args[0].as_string()),
                 _ => {}
             },
             _ => {}

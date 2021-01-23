@@ -7,6 +7,7 @@ use elfen::{
     section::{self, SectionData, SectionHeader},
     strtab::Strtab,
     symbol::{self, Symbol},
+    tse::Tse,
 };
 
 use crate::{
@@ -60,6 +61,7 @@ impl ElfGen {
         self.gen_alloc_sections();
         self.gen_symtab_strtab();
         self.gen_rela_sections();
+        self.gen_tse_section();
         self.gen_shstrtab();
     }
 
@@ -180,6 +182,28 @@ impl ElfGen {
 
         let name = format!(".rela{}", section.name.as_str());
         self.elf.add_section(&name, header, data);
+    }
+
+    fn gen_tse_section(&mut self) {
+        let mut header = SectionHeader::default();
+        header.set_type(section::Type::Progbits);
+        header.entry_size = size_of::<Tse>() as u64;
+        header.alignment = 8;
+
+        let mut tses = Vec::new();
+        for tse in &self.obj.tses {
+            let symbol_index = *self.symbols.get(&tse.symbol_name).unwrap() as u64;
+            tses.push(Tse {
+                offset: tse.offset,
+                size: tse.size,
+                align: tse.align,
+                symbol_index,
+            });
+        }
+
+        let data = SectionData::Tse(tses);
+
+        self.elf.add_section(".tse_info", header, data);
     }
 
     fn gen_shstrtab(&mut self) {

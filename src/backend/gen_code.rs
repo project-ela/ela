@@ -18,7 +18,7 @@ use crate::{
 
 pub fn generate(program: Program) -> Result<Object, Error> {
     let collector = SymbolCollector::new();
-    let symbols = collector.collect_symbols(&program);
+    let (symbols, tses) = collector.collect_symbols(&program);
 
     let generator = CodeGen::new();
     let mut codes = generator.gen_program(program);
@@ -26,6 +26,7 @@ pub fn generate(program: Program) -> Result<Object, Error> {
     Ok(Object {
         sections: gen_sections(&symbols, &mut codes),
         global_symbols: list_global_symbols(symbols, &codes),
+        tses,
     })
 }
 
@@ -63,6 +64,7 @@ type Codes = HashMap<SectionName, Code>;
 pub struct Object {
     pub sections: Vec<Section>,
     pub global_symbols: Vec<Symbol>,
+    pub tses: Vec<Tse>,
 }
 
 #[derive(Debug)]
@@ -131,4 +133,12 @@ struct UnresolvedSymbol {
 enum SymbolType {
     Addr,
     Jump,
+}
+
+#[derive(Debug)]
+pub struct Tse {
+    pub symbol_name: String,
+    pub offset: i64,
+    pub size: u64,
+    pub align: u64,
 }

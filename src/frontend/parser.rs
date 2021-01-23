@@ -7,7 +7,7 @@ use crate::{
     frontend::{
         lexer::token::{Keyword, Symbol, Token, TokenKind},
         parser::node::{
-            DispNode, InstructionNode, MemoryNode, OperandNode, Program, PseudoOp, PseudoOpParam,
+            DispNode, InstructionNode, MemoryNode, OperandNode, Program, PseudoOp, PseudoOpArg,
         },
     },
 };
@@ -54,17 +54,7 @@ impl Parser {
             }
 
             if ident.starts_with('.') {
-                let op = find_pseudoop(ident_token)?;
-                let arg = match op {
-                    PseudoOp::IntelSyntax | PseudoOp::Global => {
-                        PseudoOpParam::String(self.consume_ident()?)
-                    }
-                    PseudoOp::Zero => PseudoOpParam::Integer(self.consume_integer()?),
-                    PseudoOp::Ascii => PseudoOpParam::String(self.consume_string()?),
-                    _ => PseudoOpParam::None,
-                };
-
-                insts.push(InstructionNode::PseudoOp(op, arg));
+                insts.push(self.parse_pseudop(ident_token)?);
                 continue;
             }
 
@@ -145,6 +135,29 @@ impl Parser {
         Ok(OperandNode::Memory(MemoryNode { base, disp }))
     }
 
+    fn parse_pseudop(&mut self, ident_token: Token) -> Result<InstructionNode, Error> {
+        let op = find_pseudoop(ident_token)?;
+        let args = match op {
+            PseudoOp::Tse => {
+                let mut args = Vec::new();
+                args.push(PseudoOpArg::Integer(self.consume_signed_integer()?));
+                self.expect(TokenKind::Symbol(Symbol::Comma))?;
+                args.push(PseudoOpArg::Integer(self.consume_signed_integer()?));
+                self.expect(TokenKind::Symbol(Symbol::Comma))?;
+                args.push(PseudoOpArg::Integer(self.consume_signed_integer()?));
+                args
+            }
+            PseudoOp::IntelSyntax | PseudoOp::Global => {
+                vec![PseudoOpArg::String(self.consume_ident()?)]
+            }
+            PseudoOp::Zero => vec![PseudoOpArg::Integer(self.consume_integer()?)],
+            PseudoOp::Ascii => vec![PseudoOpArg::String(self.consume_string()?)],
+            _ => vec![],
+        };
+
+        Ok(InstructionNode::PseudoOp(op, args))
+    }
+
     fn expect(&mut self, token: TokenKind) -> Result<Token, Error> {
         let next_token = self.consume();
         if next_token.kind == token {
@@ -167,6 +180,21 @@ impl Parser {
             x => Err(Error::new(
                 next_token.pos,
                 ErrorKind::ExpectedInteger { actual: x },
+            )),
+        }
+    }
+
+    fn consume_signed_integer(&mut self) -> Result<i32, Error> {
+        let next_token = self.consume();
+        match next_token.kind {
+            TokenKind::Symbol(Symbol::Minus) => Ok(-self.consume_integer()?),
+            TokenKind::Integer(value) => Ok(value),
+            x => Err(Error::new(
+                next_token.pos,
+                ErrorKind::UnexpectedToken {
+                    expected: None,
+                    actual: x,
+                },
             )),
         }
     }
@@ -225,6 +253,7 @@ fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
         ".text" => Ok(PseudoOp::Text),
         ".zero" => Ok(PseudoOp::Zero),
         ".ascii" => Ok(PseudoOp::Ascii),
+        ".tse" => Ok(PseudoOp::Tse),
         x => Err(Error::new(
             ident.pos,
             ErrorKind::UnknownPseudoOp {
