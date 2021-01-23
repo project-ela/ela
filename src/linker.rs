@@ -12,6 +12,7 @@ use elfen::{
     segment::{self, ProgramHeader},
     strtab::Strtab,
     symbol::{self, Symbol},
+    tse::Tse,
 };
 
 pub fn link_to_files(input_files: Vec<String>, output_file: String) -> Result<(), String> {
@@ -40,8 +41,13 @@ struct Linker {
 
     global_symbols: HashMap<String, SymbolSignature>,
     symbol_map: HashMap<SectionPlace, Vec<String>>,
+
     relas: Vec<RelaSignature>,
     rela_map: HashMap<SectionPlace, Vec<usize>>,
+
+    tses: Vec<TseSignature>,
+    symbol_indices: HashMap<String, usize>,
+
     section_offsets: HashMap<usize, u64>,
 }
 
@@ -67,6 +73,12 @@ struct RelaSignature {
     rela: Rela,
 }
 
+#[derive(Debug)]
+struct TseSignature {
+    symbol_name: String,
+    tse: Tse,
+}
+
 impl Linker {
     fn new(input_elfs: Vec<Elf>) -> Self {
         Self {
@@ -76,6 +88,8 @@ impl Linker {
             symbol_map: HashMap::new(),
             relas: Vec::new(),
             rela_map: HashMap::new(),
+            tses: Vec::new(),
+            symbol_indices: HashMap::new(),
             section_offsets: HashMap::new(),
         }
     }
@@ -83,6 +97,7 @@ impl Linker {
     fn link(mut self) -> Result<Elf, String> {
         self.init_elf();
 
+        self.load_tses();
         self.load_relas();
         self.load_symbols();
 
@@ -91,6 +106,7 @@ impl Linker {
         self.resolve_relas();
 
         self.gen_symtab_strtab();
+        self.gen_tse_info();
         self.gen_shstrtab();
 
         self.layout();
@@ -109,6 +125,28 @@ impl Linker {
 
         self.output_elf
             .add_section("", SectionHeader::default(), SectionData::None);
+    }
+
+    fn load_tses(&mut self) {
+        for elf in self.input_elfs.iter_mut() {
+            let tses = if let Some(section) = elf.get_section_mut(".tse_info") {
+                std::mem::take(section.data.as_tse_mut().unwrap())
+            } else {
+                continue;
+            };
+
+            let symtab_section = elf.get_section(".symtab").unwrap();
+            let symbols = symtab_section.data.as_symbols().unwrap();
+
+            let strtab_section = elf.get_section(".strtab").unwrap();
+            let strtab = strtab_section.data.as_strtab().unwrap();
+
+            for tse in tses {
+                let symbol = symbols.get(tse.symbol_index as usize).unwrap();
+                let symbol_name = strtab.get(symbol.name as usize);
+                self.tses.push(TseSignature { symbol_name, tse });
+            }
+        }
     }
 
     fn load_relas(&mut self) {
@@ -395,9 +433,10 @@ impl Linker {
 
             let symbol_section_index = symbol.section_index as usize;
             symbol.value += self.section_offsets.get(&symbol_section_index).unwrap();
-            symbol.name = strtab.insert(symbol_name) as u32;
+            symbol.name = strtab.insert(symbol_name.clone()) as u32;
 
             symbols.push(symbol);
+            self.symbol_indices.insert(symbol_name, symbols.len() - 1);
         }
 
         // generate symtab
@@ -428,6 +467,24 @@ impl Linker {
 
             self.output_elf.add_section(".strtab", header, data);
         }
+    }
+
+    fn gen_tse_info(&mut self) {
+        let mut header = SectionHeader::default();
+        header.set_type(section::Type::Progbits);
+        header.entry_size = size_of::<Tse>() as u64;
+        header.alignment = 8;
+
+        let mut tses = Vec::new();
+        for tse_sig in std::mem::take(&mut self.tses) {
+            let mut tse = tse_sig.tse;
+            tse.symbol_index = *self.symbol_indices.get(&tse_sig.symbol_name).unwrap() as u64;
+            tses.push(tse);
+        }
+
+        let data = SectionData::Tse(tses);
+
+        self.output_elf.add_section(".tse_info", header, data);
     }
 
     fn gen_shstrtab(&mut self) {
