@@ -185,6 +185,10 @@ impl ElfGen {
     }
 
     fn gen_tse_section(&mut self) {
+        if self.obj.tses.len() == 0 {
+            return;
+        }
+
         let mut header = SectionHeader::default();
         header.set_type(section::Type::Progbits);
         header.entry_size = size_of::<Tse>() as u64;
