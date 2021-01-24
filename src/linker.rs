@@ -470,6 +470,10 @@ impl Linker {
     }
 
     fn gen_tse_info(&mut self) {
+        if self.tses.len() == 0 {
+            return;
+        }
+
         let mut header = SectionHeader::default();
         header.set_type(section::Type::Progbits);
         header.entry_size = size_of::<Tse>() as u64;
