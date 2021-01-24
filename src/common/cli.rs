@@ -5,6 +5,7 @@ pub struct CompilerConfig {
     pub input_file: String,
     pub output_file: String,
     pub optimize: bool,
+    pub tse: bool,
     pub dump_token: bool,
     pub dump_ast: bool,
     pub dump_ir: bool,
@@ -16,6 +17,7 @@ pub fn parse_arguments() -> Result<CompilerConfig, ()> {
     for (i, arg) in args.iter().enumerate() {
         match arg.as_str() {
             "--optimize" => config.optimize = true,
+            "--tse" => config.tse = true,
             "--dump-token" => config.dump_token = true,
             "--dump-ast" => config.dump_ast = true,
             "--dump-ir" => config.dump_ir = true,
