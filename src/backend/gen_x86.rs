@@ -17,10 +17,13 @@ const PARAM_REGS: [Register; 6] = [
 
 struct GenX86 {
     output: String,
+
+    tse_enable: bool,
 }
 
-pub fn generate(program: IRProgram) -> Result<String, Error> {
+pub fn generate(program: IRProgram, tse_enable: bool) -> Result<String, Error> {
     let mut generator = GenX86::new();
+    generator.tse_enable = tse_enable;
     generator.generate(program)
 }
 
@@ -28,6 +31,7 @@ impl GenX86 {
     fn new() -> Self {
         Self {
             output: String::new(),
+            tse_enable: false,
         }
     }
 
@@ -62,6 +66,9 @@ impl GenX86 {
 
     fn gen_function(&mut self, function: IRFunction) -> Result<(), Error> {
         self.gen(format!(".global {}", function.name).as_str());
+        if self.tse_enable {
+            self.gen_tse(&function);
+        }
         self.gen(format!("{}:", function.name).as_str());
         self.gen("  push rbp");
         self.gen("  mov rbp, rsp");
@@ -88,6 +95,12 @@ impl GenX86 {
         self.gen("  pop rbp");
         self.gen("  ret");
         Ok(())
+    }
+
+    fn gen_tse(&mut self, function: &IRFunction) {
+        for tse in &function.tses {
+            self.gen(&format!(".tse {}, {}, {}", tse.offset, tse.size, tse.align));
+        }
     }
 
     fn gen_ir(&mut self, ir: &IR, func_name: &str) -> Result<(), Error> {

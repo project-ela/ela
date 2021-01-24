@@ -22,11 +22,19 @@ pub struct IRFunction {
     pub params: Vec<u32>,
     pub blocks: Vec<IRBlock>,
     pub stack_offset: u32,
+    pub tses: Vec<Tse>,
 }
 
 #[derive(Debug)]
 pub struct Parameter {
     pub offset: u32,
+}
+
+#[derive(Debug)]
+pub struct Tse {
+    pub offset: i64,
+    pub size: u64,
+    pub align: u64,
 }
 
 impl IRFunction {
@@ -36,6 +44,7 @@ impl IRFunction {
             params: Vec::new(),
             blocks: Vec::new(),
             stack_offset: 0,
+            tses: Vec::new(),
         }
     }
 }

@@ -149,7 +149,7 @@ impl IRGen {
         let mut ir_func = IRFunction::new(func.name.to_owned());
         ir_func.new_block(format!(".L.{}.entry", func.name));
         for (index, param) in func.params.iter().enumerate() {
-            let addr = self.alloc_stack_local(&param.typ);
+            let addr = self.alloc_stack_local(&param.typ, &mut ir_func);
             let size = RegSize::from(&param.typ);
             self.ctx
                 .add_local_variable(param.name.to_owned(), addr, param.typ.clone());
@@ -175,7 +175,7 @@ impl IRGen {
                 self.ctx.pop();
             }
             StatementKind::Var { name, typ, value } | StatementKind::Val { name, typ, value } => {
-                let addr = self.alloc_stack_local(&typ);
+                let addr = self.alloc_stack_local(&typ, func);
                 self.ctx.add_local_variable(name, addr, typ.clone());
 
                 match value {
@@ -487,10 +487,26 @@ impl IRGen {
         format!(".str.{}", cur_string)
     }
 
-    fn alloc_stack_local(&mut self, typ: &Type) -> i32 {
+    fn alloc_stack_local(&mut self, typ: &Type, func: &mut IRFunction) -> i32 {
         self.stack_offset_local += typ.size();
         self.stack_offset_local = align_to(self.stack_offset_local, typ.size());
-        -(self.stack_offset_local as i32)
+        let offset = -(self.stack_offset_local as i32);
+
+        // gen TSE
+        {
+            let size = typ.size();
+            let align = match typ {
+                Type::Pointer { .. } | Type::Array { .. } => typ.elm_typ().size(),
+                x => x.size(),
+            };
+            func.tses.push(Tse {
+                offset: offset as i64,
+                size: size as u64,
+                align: align as u64,
+            });
+        }
+
+        offset
     }
 }
 

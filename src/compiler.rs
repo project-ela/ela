@@ -43,6 +43,6 @@ pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String, Bo
         println!("{}", program.dump());
     }
 
-    let output = gen_x86::generate(program)?;
+    let output = gen_x86::generate(program, config.tse)?;
     Ok(output)
 }
