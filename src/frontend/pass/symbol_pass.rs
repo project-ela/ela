@@ -286,11 +286,7 @@ impl<'a> SymbolPass<'a> {
                         }
                     },
                     Addr => match expr.kind {
-                        ExpressionKind::Ident { .. }
-                        | ExpressionKind::UnaryOp {
-                            op: UnaryOperator::Addr,
-                            ..
-                        } => Some(expr_typ.pointer_to()),
+                        ExpressionKind::Ident { .. } => Some(expr_typ.pointer_to()),
                         _ => {
                             self.issue(Error::new(expr.pos.clone(), ErrorKind::LvalueRequired));
                             None
