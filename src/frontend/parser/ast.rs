@@ -17,6 +17,24 @@ pub struct GlobalDef {
     pub is_const: bool,
 }
 
+impl From<StatementKind> for GlobalDef {
+    fn from(kind: StatementKind) -> Self {
+        match kind {
+            StatementKind::Var { name, typ, .. } => GlobalDef {
+                name,
+                typ,
+                is_const: false,
+            },
+            StatementKind::Val { name, typ, .. } => GlobalDef {
+                name,
+                typ,
+                is_const: true,
+            },
+            _ => panic!(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Function {
     pub name: String,

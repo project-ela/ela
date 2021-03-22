@@ -5,7 +5,6 @@ use crate::{
     common::{
         error::Error,
         operator::{BinaryOperator, UnaryOperator},
-        pos::Pos,
         types::Type,
     },
     frontend::{
@@ -31,6 +30,7 @@ pub fn parse(tokens: Vec<Token>) -> Result<Program> {
 }
 
 type FuncCall = (String, Vec<Expression>);
+type VarDef = (String, Type, Option<Box<Expression>>);
 
 macro_rules! new_unop {
     ($self: expr, $op: expr, $expr: expr) => {{
@@ -59,28 +59,6 @@ macro_rules! new_binop {
     }};
 }
 
-macro_rules! op_assign {
-    ($self: expr, $op: expr, $dst: expr) => {{
-        let pos = $dst.pos.clone();
-        $self.consume();
-        let value = $self.parse_expression()?;
-        Ok(Statement::new(
-            StatementKind::Assign {
-                dst: Box::new($dst.clone()),
-                value: Box::new(Expression::new(
-                    ExpressionKind::BinaryOp {
-                        op: $op,
-                        lhs: Box::new($dst),
-                        rhs: Box::new(value),
-                    },
-                    pos.clone(),
-                )),
-            },
-            pos,
-        ))
-    }};
-}
-
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
         Self { pos: 0, tokens }
@@ -99,28 +77,14 @@ impl Parser {
         match token.kind {
             TokenKind::Keyword(Keyword::Func) => program.functions.push(self.parse_function()?),
             TokenKind::Keyword(Keyword::Var) => {
-                self.consume();
-                if let StatementKind::Var { name, typ, .. } =
-                    self.parse_var_statement(token.pos)?.kind
-                {
-                    program.global_defs.push(GlobalDef {
-                        name,
-                        typ,
-                        is_const: false,
-                    })
-                }
+                program
+                    .global_defs
+                    .push(GlobalDef::from(self.parse_var_statement()?.kind));
             }
             TokenKind::Keyword(Keyword::Val) => {
-                self.consume();
-                if let StatementKind::Val { name, typ, .. } =
-                    self.parse_val_statement(token.pos)?.kind
-                {
-                    program.global_defs.push(GlobalDef {
-                        name,
-                        typ,
-                        is_const: true,
-                    })
-                }
+                program
+                    .global_defs
+                    .push(GlobalDef::from(self.parse_val_statement()?.kind));
             }
             x => return Err(Error::new(token.pos, ParserError::UnexpectedToken(x)).into()),
         }
@@ -130,6 +94,7 @@ impl Parser {
 
     fn parse_function(&mut self) -> Result<Function> {
         let pos = self.expect(TokenKind::Keyword(Keyword::Func))?.pos;
+
         let name = self.consume_ident()?;
         self.expect(TokenKind::Symbol(Symbol::LParen))?;
         let params = self.parse_function_parameters()?;
@@ -141,10 +106,12 @@ impl Parser {
             }
             _ => Type::Void,
         };
-        let mut body = None;
-        if self.peek().kind == TokenKind::Symbol(Symbol::LBrace) {
-            body = Some(self.parse_statement()?);
-        }
+
+        let body = match self.peek().kind {
+            TokenKind::Symbol(Symbol::LBrace) => Some(self.parse_statement()?),
+            _ => None,
+        };
+
         Ok(Function {
             name,
             params,
@@ -178,79 +145,86 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Statement> {
-        let token = self.consume();
+        let token = self.peek();
         match token.kind {
-            TokenKind::Symbol(Symbol::LBrace) => self.parse_block_statement(token.pos),
-            TokenKind::Keyword(Keyword::Var) => self.parse_var_statement(token.pos),
-            TokenKind::Keyword(Keyword::Val) => self.parse_val_statement(token.pos),
-            TokenKind::Keyword(Keyword::Return) => self.parse_return_statement(token.pos),
-            TokenKind::Keyword(Keyword::If) => self.parse_if_statement(token.pos),
-            TokenKind::Keyword(Keyword::While) => self.parse_while_statement(token.pos),
-            TokenKind::Comment(_) => self.parse_statement(),
+            TokenKind::Symbol(Symbol::LBrace) => self.parse_block_statement(),
+            TokenKind::Keyword(Keyword::Var) => self.parse_var_statement(),
+            TokenKind::Keyword(Keyword::Val) => self.parse_val_statement(),
+            TokenKind::Keyword(Keyword::Return) => self.parse_return_statement(),
+            TokenKind::Keyword(Keyword::If) => self.parse_if_statement(),
+            TokenKind::Keyword(Keyword::While) => self.parse_while_statement(),
             _ => {
-                self.pos -= 1;
                 let expr = self.parse_unary()?;
-                if let ExpressionKind::Call { name, args } = expr.kind {
-                    return Ok(Statement::new(StatementKind::Call { name, args }, expr.pos));
-                }
-                match self.peek().kind {
-                    TokenKind::Symbol(Symbol::Assign) => {
-                        self.parse_assign_statement(expr, token.pos)
+                match expr.kind {
+                    ExpressionKind::Call { name, args } => {
+                        Ok(Statement::new(StatementKind::Call { name, args }, expr.pos))
                     }
-                    TokenKind::Symbol(Symbol::PlusAssign) => {
-                        op_assign!(self, BinaryOperator::Add, expr)
-                    }
-                    TokenKind::Symbol(Symbol::MinusAssign) => {
-                        op_assign!(self, BinaryOperator::Sub, expr)
-                    }
-                    TokenKind::Symbol(Symbol::AsteriskAssign) => {
-                        op_assign!(self, BinaryOperator::Mul, expr)
-                    }
-                    TokenKind::Symbol(Symbol::SlashAssign) => {
-                        op_assign!(self, BinaryOperator::Div, expr)
-                    }
-                    x => Err(Error::new(token.pos, ParserError::UnexpectedToken(x)).into()),
+                    _ => self.parse_assign_statement(expr),
                 }
             }
         }
     }
 
-    fn parse_block_statement(&mut self, pos: Pos) -> Result<Statement> {
+    fn parse_block_statement(&mut self) -> Result<Statement> {
+        let pos = self.expect(TokenKind::Symbol(Symbol::LBrace))?.pos;
         let mut stmts = Vec::new();
         while self.peek().kind != TokenKind::Symbol(Symbol::RBrace) {
             stmts.push(self.parse_statement()?);
         }
-        self.consume();
+        self.expect(TokenKind::Symbol(Symbol::RBrace))?;
         Ok(Statement::new(StatementKind::Block { stmts }, pos))
     }
 
-    fn parse_var_statement(&mut self, pos: Pos) -> Result<Statement> {
-        let name = self.consume_ident()?;
-        self.expect(TokenKind::Symbol(Symbol::Colon))?;
-        let typ = self.consume_type()?;
-        let mut value = None;
-        if self.peek().kind == TokenKind::Symbol(Symbol::Assign) {
-            self.consume();
-            value = Some(Box::new(self.parse_expression()?));
-        }
+    fn parse_var_statement(&mut self) -> Result<Statement> {
+        let pos = self.expect(TokenKind::Keyword(Keyword::Var))?.pos;
+        let (name, typ, value) = self.parse_variable_definition()?;
         Ok(Statement::new(StatementKind::Var { name, typ, value }, pos))
     }
 
-    fn parse_val_statement(&mut self, pos: Pos) -> Result<Statement> {
-        let name = self.consume_ident()?;
-        self.expect(TokenKind::Symbol(Symbol::Colon))?;
-        let typ = self.consume_type()?;
-        let mut value = None;
-        if self.peek().kind == TokenKind::Symbol(Symbol::Assign) {
-            self.consume();
-            value = Some(Box::new(self.parse_expression()?));
-        }
+    fn parse_val_statement(&mut self) -> Result<Statement> {
+        let pos = self.expect(TokenKind::Keyword(Keyword::Val))?.pos;
+        let (name, typ, value) = self.parse_variable_definition()?;
         Ok(Statement::new(StatementKind::Val { name, typ, value }, pos))
     }
 
-    fn parse_assign_statement(&mut self, dst: Expression, pos: Pos) -> Result<Statement> {
-        self.expect(TokenKind::Symbol(Symbol::Assign))?;
-        let value = self.parse_expression()?;
+    fn parse_variable_definition(&mut self) -> Result<VarDef> {
+        let name = self.consume_ident()?;
+        self.expect(TokenKind::Symbol(Symbol::Colon))?;
+        let typ = self.consume_type()?;
+        let value = match self.peek().kind {
+            TokenKind::Symbol(Symbol::Assign) => {
+                self.consume();
+                Some(Box::new(self.parse_expression()?))
+            }
+            _ => None,
+        };
+        Ok((name, typ, value))
+    }
+
+    fn parse_assign_statement(&mut self, dst: Expression) -> Result<Statement> {
+        macro_rules! assign {
+            ($op: expr) => {{
+                Expression::new(
+                    ExpressionKind::BinaryOp {
+                        op: $op,
+                        lhs: Box::new(dst.clone()),
+                        rhs: Box::new(self.parse_expression()?),
+                    },
+                    dst.pos.clone(),
+                )
+            }};
+        }
+
+        let value = match self.consume().kind {
+            TokenKind::Symbol(Symbol::Assign) => self.parse_expression()?,
+            TokenKind::Symbol(Symbol::PlusAssign) => assign!(BinaryOperator::Add),
+            TokenKind::Symbol(Symbol::MinusAssign) => assign!(BinaryOperator::Sub),
+            TokenKind::Symbol(Symbol::AsteriskAssign) => assign!(BinaryOperator::Mul),
+            TokenKind::Symbol(Symbol::SlashAssign) => assign!(BinaryOperator::Div),
+            x => return Err(Error::new(dst.pos, ParserError::UnexpectedToken(x)).into()),
+        };
+
+        let pos = dst.pos.clone();
         Ok(Statement::new(
             StatementKind::Assign {
                 dst: Box::new(dst),
@@ -260,32 +234,31 @@ impl Parser {
         ))
     }
 
-    fn parse_return_statement(&mut self, pos: Pos) -> Result<Statement> {
-        Ok(Statement::new(
-            StatementKind::Return {
-                value: match self.parse_expression() {
-                    Ok(expr) => Some(Box::new(expr)),
-                    Err(_) => {
-                        self.pos -= 1;
-                        None
-                    }
-                },
-            },
-            pos,
-        ))
+    fn parse_return_statement(&mut self) -> Result<Statement> {
+        let pos = self.expect(TokenKind::Keyword(Keyword::Return))?.pos;
+        let value = match self.parse_expression() {
+            Ok(expr) => Some(Box::new(expr)),
+            Err(_) => {
+                self.pos -= 1;
+                None
+            }
+        };
+
+        Ok(Statement::new(StatementKind::Return { value }, pos))
     }
 
-    fn parse_if_statement(&mut self, pos: Pos) -> Result<Statement> {
+    fn parse_if_statement(&mut self) -> Result<Statement> {
+        let pos = self.expect(TokenKind::Keyword(Keyword::If))?.pos;
         let cond = self.parse_expression()?;
         let then = self.parse_statement()?;
         let els = match self.peek().kind {
             TokenKind::Keyword(Keyword::Else) => {
                 self.consume();
-                let els = self.parse_statement()?;
-                Some(Box::new(els))
+                Some(Box::new(self.parse_statement()?))
             }
             _ => None,
         };
+
         Ok(Statement::new(
             StatementKind::If {
                 cond: Box::new(cond),
@@ -296,9 +269,11 @@ impl Parser {
         ))
     }
 
-    fn parse_while_statement(&mut self, pos: Pos) -> Result<Statement> {
+    fn parse_while_statement(&mut self) -> Result<Statement> {
+        let pos = self.expect(TokenKind::Keyword(Keyword::While))?.pos;
         let cond = self.parse_expression()?;
         let body = self.parse_statement()?;
+
         Ok(Statement::new(
             StatementKind::While {
                 cond: Box::new(cond),
@@ -591,11 +566,17 @@ impl Parser {
         token.clone()
     }
 
-    fn peek(&self) -> Token {
-        self.tokens.get(self.pos).unwrap().clone()
+    fn peek(&mut self) -> Token {
+        let token = self.tokens.get(self.pos).unwrap();
+        if let TokenKind::Comment { .. } = token.kind {
+            self.pos += 1;
+            return self.peek();
+        }
+
+        token.clone()
     }
 
-    fn is_eof(&self) -> bool {
+    fn is_eof(&mut self) -> bool {
         self.peek().kind == TokenKind::EOF
     }
 }
