@@ -1,10 +1,8 @@
 use crate::{
-    common::{
-        error::Error,
-        operator::{BinaryOperator, UnaryOperator},
-    },
+    common::operator::{BinaryOperator, UnaryOperator},
     middleend::irgen::ir::*,
 };
+use anyhow::Result;
 
 const PARAM_REGS: [Register; 6] = [
     Register::Rdi,
@@ -21,7 +19,7 @@ struct GenX86 {
     tse_enable: bool,
 }
 
-pub fn generate(program: IRProgram, tse_enable: bool) -> Result<String, Error> {
+pub fn generate(program: IRProgram, tse_enable: bool) -> Result<String> {
     let mut generator = GenX86::new();
     generator.tse_enable = tse_enable;
     generator.generate(program)
@@ -35,14 +33,14 @@ impl GenX86 {
         }
     }
 
-    fn generate(&mut self, program: IRProgram) -> Result<String, Error> {
+    fn generate(&mut self, program: IRProgram) -> Result<String> {
         self.gen(".intel_syntax noprefix");
         self.gen_data(program.global_defs)?;
         self.gen_code(program.functions)?;
         Ok(self.output.to_owned())
     }
 
-    fn gen_data(&mut self, global_defs: Vec<IRGlobalDef>) -> Result<(), Error> {
+    fn gen_data(&mut self, global_defs: Vec<IRGlobalDef>) -> Result<()> {
         self.gen(".data");
         for global_def in global_defs {
             self.gen(&format!(".global {}", global_def.name));
@@ -56,7 +54,7 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_code(&mut self, functions: Vec<IRFunction>) -> Result<(), Error> {
+    fn gen_code(&mut self, functions: Vec<IRFunction>) -> Result<()> {
         self.gen(".text");
         for function in functions {
             self.gen_function(function)?;
@@ -64,7 +62,7 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_function(&mut self, function: IRFunction) -> Result<(), Error> {
+    fn gen_function(&mut self, function: IRFunction) -> Result<()> {
         self.gen(format!(".global {}", function.name).as_str());
         if self.tse_enable {
             self.gen_tse(&function);
@@ -103,7 +101,7 @@ impl GenX86 {
         }
     }
 
-    fn gen_ir(&mut self, ir: &IR, func_name: &str) -> Result<(), Error> {
+    fn gen_ir(&mut self, ir: &IR, func_name: &str) -> Result<()> {
         match ir {
             IR::UnOp { op, src } => match op {
                 UnaryOperator::Not => {

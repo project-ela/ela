@@ -8,9 +8,10 @@ use crate::{
     },
     middleend::{irgen, optimize::constant_folding},
 };
-use std::{error::Error, fs};
+use anyhow::Result;
+use std::fs;
 
-pub fn compile_to_file(config: CompilerConfig) -> Result<(), Box<dyn Error>> {
+pub fn compile_to_file(config: CompilerConfig) -> Result<()> {
     let source = SourceFile {
         filename: config.input_file.to_owned(),
         content: fs::read_to_string(&config.input_file)?,
@@ -20,7 +21,7 @@ pub fn compile_to_file(config: CompilerConfig) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String, Box<dyn Error>> {
+pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String> {
     let tokens = lexer::tokenize(source)?;
     if config.dump_token {
         println!("{:#?}", tokens);

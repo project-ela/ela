@@ -2,13 +2,13 @@ pub mod ir;
 
 use crate::{
     common::{
-        error::Error,
         operator::{BinaryOperator, UnaryOperator},
         types::Type,
     },
     frontend::parser::ast::*,
     middleend::irgen::ir::*,
 };
+use anyhow::Result;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -95,7 +95,7 @@ impl Context {
     }
 }
 
-pub fn generate(program: Program) -> Result<IRProgram, Error> {
+pub fn generate(program: Program) -> Result<IRProgram> {
     let mut generator = IRGen::new();
     Ok(generator.generate(program)?)
 }
@@ -114,7 +114,7 @@ impl IRGen {
         }
     }
 
-    fn generate(&mut self, program: Program) -> Result<IRProgram, Error> {
+    fn generate(&mut self, program: Program) -> Result<IRProgram> {
         let mut ir_program = IRProgram::default();
         for global_def in program.global_defs {
             ir_program.global_defs.push(IRGlobalDef {
@@ -138,7 +138,7 @@ impl IRGen {
         Ok(ir_program)
     }
 
-    fn gen_function(&mut self, func: Function) -> Result<Option<IRFunction>, Error> {
+    fn gen_function(&mut self, func: Function) -> Result<Option<IRFunction>> {
         self.ctx.add_function(func.name.clone(), func.ret_typ);
         if func.body.is_none() {
             return Ok(None);
@@ -165,7 +165,7 @@ impl IRGen {
         Ok(Some(ir_func))
     }
 
-    fn gen_statement(&mut self, stmt: Statement, func: &mut IRFunction) -> Result<(), Error> {
+    fn gen_statement(&mut self, stmt: Statement, func: &mut IRFunction) -> Result<()> {
         match stmt.kind {
             StatementKind::Block { stmts } => {
                 self.ctx.push();
@@ -277,7 +277,7 @@ impl IRGen {
         &mut self,
         expr: Expression,
         func: &mut IRFunction,
-    ) -> Result<(Operand, Type), Error> {
+    ) -> Result<(Operand, Type)> {
         match expr.kind {
             ExpressionKind::Char { value } => {
                 let dst = self.next_reg();
@@ -373,11 +373,7 @@ impl IRGen {
         }
     }
 
-    fn gen_lvalue(
-        &mut self,
-        expr: Expression,
-        func: &mut IRFunction,
-    ) -> Result<(Operand, Type), Error> {
+    fn gen_lvalue(&mut self, expr: Expression, func: &mut IRFunction) -> Result<(Operand, Type)> {
         match expr.kind {
             ExpressionKind::Ident { name } => {
                 let reg = self.next_reg();
@@ -433,7 +429,7 @@ impl IRGen {
         dst_typ: &Type,
         src: Expression,
         func: &mut IRFunction,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let (src, _) = self.gen_expression(src, func)?;
         let size = RegSize::from(dst_typ);
         func.push(IR::Store { dst, src, size });
@@ -446,7 +442,7 @@ impl IRGen {
         name: String,
         args: Vec<Expression>,
         func: &mut IRFunction,
-    ) -> Result<Type, Error> {
+    ) -> Result<Type> {
         let mut arg_operands = Vec::new();
         for arg in args {
             arg_operands.push(self.gen_expression(arg, func)?.0);

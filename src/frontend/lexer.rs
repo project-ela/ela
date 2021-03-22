@@ -1,12 +1,13 @@
+pub mod error;
 pub mod token;
 
 use crate::{
-    common::{
-        error::{Error, ErrorKind},
-        pos::Pos,
-    },
+    common::{error::Error, pos::Pos},
     frontend::lexer::token::{Keyword, Symbol, Token, TokenKind},
 };
+use anyhow::Result;
+
+use self::error::LexerError;
 
 struct Tokenizer {
     source: SourceFile,
@@ -20,7 +21,7 @@ pub struct SourceFile {
     pub content: String,
 }
 
-pub fn tokenize(source: SourceFile) -> Result<Vec<Token>, Error> {
+pub fn tokenize(source: SourceFile) -> Result<Vec<Token>> {
     let mut tokenizer = Tokenizer::new(source);
     tokenizer.tokenize()
 }
@@ -40,7 +41,7 @@ impl Tokenizer {
         }
     }
 
-    fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
+    fn tokenize(&mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
 
         self.consume_whitespace();
@@ -57,7 +58,7 @@ impl Tokenizer {
         Ok(tokens)
     }
 
-    fn next_token(&mut self) -> Result<Token, Error> {
+    fn next_token(&mut self) -> Result<Token> {
         let pos = self.pos.clone();
         let kind = match self.peek_char() {
             '\'' => self.consume_char_literal()?,
@@ -70,7 +71,7 @@ impl Tokenizer {
         Ok(Token { kind, pos })
     }
 
-    fn consume_symbol(&mut self) -> Result<TokenKind, Error> {
+    fn consume_symbol(&mut self) -> Result<TokenKind> {
         let symbol = match self.consume_char() {
             '+' => match self.peek_char() {
                 '=' => {
@@ -148,12 +149,7 @@ impl Tokenizer {
                 }
                 _ => Symbol::Gt,
             },
-            x => {
-                return Err(Error::new(
-                    self.pos.clone(),
-                    ErrorKind::UnexpectedChar { c: x },
-                ))
-            }
+            x => return Err(Error::new(self.pos.clone(), LexerError::UnexpectedChar(x)).into()),
         };
 
         Ok(TokenKind::Symbol(symbol))
@@ -168,7 +164,7 @@ impl Tokenizer {
         TokenKind::Ident(name)
     }
 
-    fn consume_char_literal(&mut self) -> Result<TokenKind, Error> {
+    fn consume_char_literal(&mut self) -> Result<TokenKind> {
         self.consume_char();
         let value = match self.consume_char() {
             '\\' => self.consume_escape_char(),
@@ -177,14 +173,11 @@ impl Tokenizer {
 
         match self.consume_char() {
             '\'' => Ok(TokenKind::Char(value)),
-            x => Err(Error::new(
-                self.pos.clone(),
-                ErrorKind::UnexpectedChar { c: x },
-            )),
+            x => Err(Error::new(self.pos.clone(), LexerError::UnexpectedChar(x)).into()),
         }
     }
 
-    fn consume_string_literal(&mut self) -> Result<TokenKind, Error> {
+    fn consume_string_literal(&mut self) -> Result<TokenKind> {
         self.consume_char();
 
         let mut value = String::new();

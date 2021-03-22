@@ -1,6 +1,6 @@
 use crate::{
     common::{
-        error::{Error, ErrorKind, Errors},
+        error::{Error, Errors},
         operator::{BinaryOperator, UnaryOperator},
         pos::Pos,
         types::Type,
@@ -8,6 +8,8 @@ use crate::{
     frontend::parser::ast::*,
 };
 use std::collections::HashMap;
+
+use super::error::PassError;
 
 struct SymbolPass<'a> {
     ctx: Context<'a>,
@@ -113,7 +115,7 @@ impl<'a> SymbolPass<'a> {
 
     fn apply(&mut self, program: &'a Program) {
         if program.functions.iter().all(|f| f.name != "main") {
-            self.issue(Error::new(Pos::default(), ErrorKind::MainNotFound));
+            self.issue(Error::new(Pos::default(), PassError::MainNotFound));
         }
 
         for global_def in &program.global_defs {
@@ -128,7 +130,7 @@ impl<'a> SymbolPass<'a> {
             if function.name == "main" && function.ret_typ != Type::Int {
                 self.issue(Error::new(
                     function.pos.clone(),
-                    ErrorKind::MainShouldReturnInt,
+                    PassError::MainShouldReturnInt,
                 ));
             }
             self.apply_function(&function);
@@ -176,10 +178,7 @@ impl<'a> SymbolPass<'a> {
                         if !value_typ.is_same(ret_typ) {
                             self.issue(Error::new(
                                 stmt.pos.clone(),
-                                ErrorKind::TypeMismatch {
-                                    lhs: ret_typ.clone(),
-                                    rhs: value_typ,
-                                },
+                                PassError::TypeMismatch(ret_typ.clone(), value_typ),
                             ));
                         }
                     }
@@ -190,10 +189,7 @@ impl<'a> SymbolPass<'a> {
                     Some(Type::Bool) | None => {}
                     Some(x) => self.issue(Error::new(
                         stmt.pos.clone(),
-                        ErrorKind::TypeMismatch {
-                            lhs: x,
-                            rhs: Type::Bool,
-                        },
+                        PassError::TypeMismatch(x, Type::Bool),
                     )),
                 }
                 self.apply_statement(&*then, ret_typ);
@@ -206,10 +202,7 @@ impl<'a> SymbolPass<'a> {
                     Some(Type::Bool) | None => {}
                     Some(x) => self.issue(Error::new(
                         stmt.pos.clone(),
-                        ErrorKind::TypeMismatch {
-                            lhs: x,
-                            rhs: Type::Bool,
-                        },
+                        PassError::TypeMismatch(x, Type::Bool),
                     )),
                 }
                 self.apply_statement(&*body, ret_typ);
@@ -231,7 +224,7 @@ impl<'a> SymbolPass<'a> {
         if self.ctx.find_variable_scope(name).is_some() {
             self.issue(Error::new(
                 pos.clone(),
-                ErrorKind::RedefinitionOf { name: name.clone() },
+                PassError::RedefinitionOf(name.clone()),
             ));
         }
 
@@ -245,10 +238,7 @@ impl<'a> SymbolPass<'a> {
             if !value_typ.is_same(typ) {
                 self.issue(Error::new(
                     pos.clone(),
-                    ErrorKind::TypeMismatch {
-                        lhs: typ.clone(),
-                        rhs: value_typ,
-                    },
+                    PassError::TypeMismatch(typ.clone(), value_typ),
                 ));
             }
         }
@@ -267,7 +257,7 @@ impl<'a> SymbolPass<'a> {
                 None => {
                     self.issue(Error::new(
                         expr.pos.clone(),
-                        ErrorKind::NotDefinedVariable { name: name.into() },
+                        PassError::NotDefinedVariable(name.into()),
                     ));
                     None
                 }
@@ -280,7 +270,7 @@ impl<'a> SymbolPass<'a> {
                         typ => {
                             self.issue(Error::new(
                                 expr.pos.clone(),
-                                ErrorKind::UnaryOpErr { op: *op, expr: typ },
+                                PassError::UnaryOpErr(*op, typ),
                             ));
                             None
                         }
@@ -288,17 +278,14 @@ impl<'a> SymbolPass<'a> {
                     Addr => match expr.kind {
                         ExpressionKind::Ident { .. } => Some(expr_typ.pointer_to()),
                         _ => {
-                            self.issue(Error::new(expr.pos.clone(), ErrorKind::LvalueRequired));
+                            self.issue(Error::new(expr.pos.clone(), PassError::LvalueRequired));
                             None
                         }
                     },
                     Load => match expr_typ {
                         Type::Pointer { pointer_to } => Some(*pointer_to),
                         x => {
-                            self.issue(Error::new(
-                                expr.pos.clone(),
-                                ErrorKind::CannotLoad { lhs: x },
-                            ));
+                            self.issue(Error::new(expr.pos.clone(), PassError::CannotLoad(x)));
                             None
                         }
                     },
@@ -310,10 +297,7 @@ impl<'a> SymbolPass<'a> {
                 if !lhs_typ.is_same(&rhs_typ) {
                     self.issue(Error::new(
                         expr.pos.clone(),
-                        ErrorKind::TypeMismatch {
-                            lhs: lhs_typ,
-                            rhs: rhs_typ,
-                        },
+                        PassError::TypeMismatch(lhs_typ, rhs_typ),
                     ));
                     return None;
                 }
@@ -325,11 +309,7 @@ impl<'a> SymbolPass<'a> {
                         _ => {
                             self.issue(Error::new(
                                 expr.pos.clone(),
-                                ErrorKind::BinaryOpErr {
-                                    op: *op,
-                                    lhs: lhs_typ,
-                                    rhs: rhs_typ,
-                                },
+                                PassError::BinaryOpErr(*op, lhs_typ, rhs_typ),
                             ));
                             None
                         }
@@ -345,10 +325,7 @@ impl<'a> SymbolPass<'a> {
                         if index_typ != Type::Int {
                             self.issue(Error::new(
                                 expr.pos.clone(),
-                                ErrorKind::TypeMismatch {
-                                    lhs: index_typ,
-                                    rhs: Type::Int,
-                                },
+                                PassError::TypeMismatch(index_typ, Type::Int),
                             ));
                         }
                         Some(*typ)
@@ -356,7 +333,7 @@ impl<'a> SymbolPass<'a> {
                     _ => {
                         self.issue(Error::new(
                             expr.pos.clone(),
-                            ErrorKind::CannotIndex { lhs: lhs_typ },
+                            PassError::CannotIndex(lhs_typ),
                         ));
                         None
                     }
@@ -373,10 +350,7 @@ impl<'a> SymbolPass<'a> {
                 if !dst_typ.is_same(&value_typ) {
                     self.issue(Error::new(
                         pos.clone(),
-                        ErrorKind::TypeMismatch {
-                            lhs: dst_typ,
-                            rhs: value_typ,
-                        },
+                        PassError::TypeMismatch(dst_typ, value_typ),
                     ));
                 }
             }
@@ -387,10 +361,7 @@ impl<'a> SymbolPass<'a> {
             ExpressionKind::Ident { name } => {
                 let var = self.ctx.find_variable(name).unwrap();
                 if var.is_const {
-                    self.issue(Error::new(
-                        pos,
-                        ErrorKind::AssignToConstant { name: name.into() },
-                    ));
+                    self.issue(Error::new(pos, PassError::AssignToConstant(name.into())));
                 }
             }
             ExpressionKind::Index { .. } => {}
@@ -398,7 +369,7 @@ impl<'a> SymbolPass<'a> {
                 op: UnaryOperator::Load,
                 ..
             } => {}
-            _ => self.issue(Error::new(pos, ErrorKind::LvalueRequired)),
+            _ => self.issue(Error::new(pos, PassError::LvalueRequired)),
         }
     }
 
@@ -413,21 +384,14 @@ impl<'a> SymbolPass<'a> {
             let sig = if let Some(sig) = self.ctx.find_function(name) {
                 sig
             } else {
-                self.issue(Error::new(
-                    pos,
-                    ErrorKind::NotDefinedFunction { name: name.into() },
-                ));
+                self.issue(Error::new(pos, PassError::NotDefinedFunction(name.into())));
                 return None;
             };
 
             if args.len() != sig.params.len() {
                 issues.push(Error::new(
                     pos.clone(),
-                    ErrorKind::FunctionArgNum {
-                        name: name.to_string(),
-                        expected: sig.params.len(),
-                        actual: args.len(),
-                    },
+                    PassError::FunctionArgNum(name.to_string(), sig.params.len(), args.len()),
                 ));
                 return Some(sig.ret_typ.clone());
             }
@@ -439,10 +403,7 @@ impl<'a> SymbolPass<'a> {
                     if !arg_typ.is_same(&param_typ) {
                         issues.push(Error::new(
                             pos.clone(),
-                            ErrorKind::TypeMismatch {
-                                lhs: arg_typ,
-                                rhs: param_typ,
-                            },
+                            PassError::TypeMismatch(arg_typ, param_typ),
                         ));
                     }
                 }
