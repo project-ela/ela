@@ -11,44 +11,51 @@ use std::collections::HashMap;
 
 use super::error::PassError;
 
-struct SymbolPass<'a> {
-    ctx: Context<'a>,
+struct SymbolPass {
+    ctx: Context,
     issues: Errors,
+
+    cur_ret_typ: Option<Type>,
 }
 
-struct Context<'a>(Vec<ContextData<'a>>);
+struct Context(Vec<ContextData>);
 
 #[derive(Default)]
-struct ContextData<'a> {
-    functions: HashMap<String, FunctionSig<'a>>,
+struct ContextData {
+    functions: HashMap<String, FunctionSig>,
     variables: HashMap<String, Variable>,
 }
 
-#[derive(Clone)]
-struct FunctionSig<'a> {
-    params: &'a Vec<Parameter>,
+struct FunctionSig {
+    params: Vec<Parameter>,
     ret_typ: Type,
 }
 
-#[derive(Clone)]
 struct Variable {
     typ: Type,
     is_const: bool,
 }
 
-impl<'a> Context<'a> {
+impl Context {
     fn new() -> Self {
         let mut ctx = Self(Vec::new());
         ctx.push();
         ctx
     }
 
-    fn add_function(&mut self, name: String, params: &'a Vec<Parameter>, ret_typ: Type) {
-        self.0
-            .last_mut()
-            .unwrap()
-            .functions
-            .insert(name, FunctionSig { params, ret_typ });
+    fn add_function(&mut self, name: String, params: &[Parameter], ret_typ: Type) {
+        let mut new_params = Vec::new();
+        for param in params {
+            new_params.push(param.clone());
+        }
+
+        self.0.last_mut().unwrap().functions.insert(
+            name,
+            FunctionSig {
+                params: new_params,
+                ret_typ,
+            },
+        );
     }
 
     fn add_variable(&mut self, name: String, typ: Type, is_const: bool) {
@@ -93,7 +100,7 @@ impl<'a> Context<'a> {
     }
 }
 
-pub fn apply(program: &Program) -> Result<(), Errors> {
+pub fn apply(program: &mut Program) -> Result<(), Errors> {
     let mut pass = SymbolPass::new();
     pass.apply(program);
 
@@ -105,15 +112,16 @@ pub fn apply(program: &Program) -> Result<(), Errors> {
     }
 }
 
-impl<'a> SymbolPass<'a> {
+impl SymbolPass {
     fn new() -> Self {
         Self {
             ctx: Context::new(),
             issues: Errors::default(),
+            cur_ret_typ: None,
         }
     }
 
-    fn apply(&mut self, program: &'a Program) {
+    fn apply(&mut self, program: &mut Program) {
         if program.functions.iter().all(|f| f.name != "main") {
             self.issue(Error::new(Pos::default(), PassError::MainNotFound));
         }
@@ -126,40 +134,45 @@ impl<'a> SymbolPass<'a> {
             );
         }
 
-        for function in &program.functions {
-            if function.name == "main" && function.ret_typ != Type::Int {
-                self.issue(Error::new(
-                    function.pos.clone(),
-                    PassError::MainShouldReturnInt,
-                ));
-            }
-            self.apply_function(&function);
+        for function in program.functions.iter_mut() {
+            self.apply_function(function);
         }
     }
 
-    fn apply_function(&mut self, function: &'a Function) {
+    fn apply_function(&mut self, function: &mut Function) {
         self.ctx.add_function(
             function.name.to_owned(),
             &function.params,
             function.ret_typ.clone(),
         );
+
+        if function.name == "main" && function.ret_typ != Type::Int {
+            self.issue(Error::new(
+                function.pos.clone(),
+                PassError::MainShouldReturnInt,
+            ));
+        }
+
         self.ctx.push();
         for param in &function.params {
             self.ctx
-                .add_variable(param.name.to_owned(), param.typ.clone(), false);
+                .add_variable(param.name.clone(), param.typ.clone(), false);
         }
+        self.cur_ret_typ = Some(function.ret_typ.clone());
+
         if function.body.is_some() {
-            self.apply_statement(function.body.as_ref().unwrap(), &function.ret_typ);
+            self.apply_statement(function.body.as_mut().unwrap());
         }
+
         self.ctx.pop();
     }
 
-    fn apply_statement(&mut self, stmt: &Statement, ret_typ: &Type) {
-        match &stmt.kind {
-            StatementKind::Block { stmts } => {
+    fn apply_statement(&mut self, stmt: &mut Statement) {
+        match &mut stmt.kind {
+            StatementKind::Block { ref mut stmts } => {
                 self.ctx.push();
                 for stmt in stmts {
-                    self.apply_statement(&stmt, ret_typ);
+                    self.apply_statement(stmt);
                 }
                 self.ctx.pop();
             }
@@ -170,42 +183,45 @@ impl<'a> SymbolPass<'a> {
                 self.apply_var(name, typ, value, &stmt.pos, true)
             }
             StatementKind::Assign { dst, value } => {
-                self.check_assign(&*dst, &*value, stmt.pos.clone())
+                self.apply_assign(&mut *dst, &mut *value, stmt.pos.clone())
             }
             StatementKind::Return { value } => {
                 if let Some(value) = value {
-                    if let Some(value_typ) = self.apply_expression(&*value) {
-                        if !value_typ.is_same(ret_typ) {
+                    if let Some(value_typ) = self.apply_expression(&mut *value) {
+                        if !value_typ.is_same(self.cur_ret_typ.as_ref().unwrap()) {
                             self.issue(Error::new(
                                 stmt.pos.clone(),
-                                PassError::TypeMismatch(ret_typ.clone(), value_typ),
+                                PassError::TypeMismatch(
+                                    self.cur_ret_typ.clone().unwrap(),
+                                    value_typ,
+                                ),
                             ));
                         }
                     }
                 }
             }
             StatementKind::If { cond, then, els } => {
-                match self.apply_expression(&*cond) {
+                match self.apply_expression(&mut *cond) {
                     Some(Type::Bool) | None => {}
                     Some(x) => self.issue(Error::new(
                         stmt.pos.clone(),
                         PassError::TypeMismatch(x, Type::Bool),
                     )),
                 }
-                self.apply_statement(&*then, ret_typ);
+                self.apply_statement(&mut *then);
                 if let Some(els) = els {
-                    self.apply_statement(&*els, ret_typ);
+                    self.apply_statement(&mut *els);
                 }
             }
             StatementKind::While { cond, body } => {
-                match self.apply_expression(&*cond) {
+                match self.apply_expression(&mut *cond) {
                     Some(Type::Bool) | None => {}
                     Some(x) => self.issue(Error::new(
                         stmt.pos.clone(),
                         PassError::TypeMismatch(x, Type::Bool),
                     )),
                 }
-                self.apply_statement(&*body, ret_typ);
+                self.apply_statement(&mut *body);
             }
             StatementKind::Call { name, args } => {
                 self.check_call(&*name, args, stmt.pos.clone());
@@ -217,7 +233,7 @@ impl<'a> SymbolPass<'a> {
         &mut self,
         name: &String,
         typ: &Type,
-        value: &Option<Box<Expression>>,
+        value: &mut Option<Box<Expression>>,
         pos: &Pos,
         is_const: bool,
     ) {
@@ -228,12 +244,11 @@ impl<'a> SymbolPass<'a> {
             ));
         }
 
-        self.ctx
-            .add_variable(name.to_owned(), typ.clone(), is_const);
+        self.ctx.add_variable(name.clone(), typ.clone(), is_const);
 
         let value_typ = value
-            .as_deref()
-            .and_then(|value| self.apply_expression(&*value));
+            .as_mut()
+            .and_then(|value| self.apply_expression(value));
         if let Some(value_typ) = value_typ {
             if !value_typ.is_same(typ) {
                 self.issue(Error::new(
@@ -244,10 +259,10 @@ impl<'a> SymbolPass<'a> {
         }
     }
 
-    fn apply_expression(&mut self, expr: &Expression) -> Option<Type> {
+    fn apply_expression(&mut self, expr: &mut Expression) -> Option<Type> {
         use BinaryOperator::*;
         use UnaryOperator::*;
-        match &expr.kind {
+        let typ = match &mut expr.kind {
             ExpressionKind::Char { .. } => Some(Type::Byte),
             ExpressionKind::Integer { .. } => Some(Type::Int),
             ExpressionKind::String { .. } => Some(Type::Byte.pointer_to()),
@@ -257,13 +272,13 @@ impl<'a> SymbolPass<'a> {
                 None => {
                     self.issue(Error::new(
                         expr.pos.clone(),
-                        PassError::NotDefinedVariable(name.into()),
+                        PassError::NotDefinedVariable(name.clone()),
                     ));
                     None
                 }
             },
             ExpressionKind::UnaryOp { op, expr } => {
-                let expr_typ = self.apply_expression(&*expr)?;
+                let expr_typ = self.apply_expression(&mut *expr)?;
                 match op {
                     Not => match expr_typ {
                         Type::Bool => Some(Type::Bool),
@@ -292,8 +307,8 @@ impl<'a> SymbolPass<'a> {
                 }
             }
             ExpressionKind::BinaryOp { op, lhs, rhs } => {
-                let lhs_typ = self.apply_expression(&*lhs)?;
-                let rhs_typ = self.apply_expression(&*rhs)?;
+                let lhs_typ = self.apply_expression(&mut *lhs)?;
+                let rhs_typ = self.apply_expression(&mut *rhs)?;
                 if !lhs_typ.is_same(&rhs_typ) {
                     self.issue(Error::new(
                         expr.pos.clone(),
@@ -317,7 +332,10 @@ impl<'a> SymbolPass<'a> {
                 }
             }
             ExpressionKind::Call { name, args } => self.check_call(&name, args, expr.pos.clone()),
-            ExpressionKind::Index { lhs, index } => {
+            ExpressionKind::Index {
+                ref mut lhs,
+                ref mut index,
+            } => {
                 let lhs_typ = self.apply_expression(lhs)?;
                 let index_typ = self.apply_expression(index)?;
                 match lhs_typ {
@@ -339,10 +357,13 @@ impl<'a> SymbolPass<'a> {
                     }
                 }
             }
-        }
+        };
+
+        expr.typ = typ.clone();
+        typ
     }
 
-    fn check_assign(&mut self, dst: &Expression, value: &Expression, pos: Pos) {
+    fn apply_assign(&mut self, dst: &mut Expression, value: &mut Expression, pos: Pos) {
         let dst_typ = self.apply_expression(dst);
         let value_typ = self.apply_expression(value);
         match (dst_typ, value_typ) {
@@ -374,11 +395,13 @@ impl<'a> SymbolPass<'a> {
     }
 
     // TODO refactor
-    fn check_call(&mut self, name: &str, args: &[Expression], pos: Pos) -> Option<Type> {
+    fn check_call(&mut self, name: &str, args: &mut [Expression], pos: Pos) -> Option<Type> {
         let mut issues = Vec::new();
 
-        let arg_types: Vec<Option<Type>> =
-            args.iter().map(|arg| self.apply_expression(arg)).collect();
+        let arg_types: Vec<Option<Type>> = args
+            .iter_mut()
+            .map(|mut arg| self.apply_expression(&mut arg))
+            .collect();
 
         let do_check = || {
             let sig = if let Some(sig) = self.ctx.find_function(name) {

@@ -44,7 +44,7 @@ pub struct Function {
     pub pos: Pos,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Parameter {
     pub name: String,
     pub typ: Type,
@@ -105,11 +105,16 @@ pub enum StatementKind {
 pub struct Expression {
     pub kind: ExpressionKind,
     pub pos: Pos,
+    pub typ: Option<Type>,
 }
 
 impl Expression {
     pub fn new(kind: ExpressionKind, pos: Pos) -> Self {
-        Self { kind, pos }
+        Self {
+            kind,
+            pos,
+            typ: None,
+        }
     }
 }
 

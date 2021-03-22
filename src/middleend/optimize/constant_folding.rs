@@ -57,7 +57,7 @@ fn opt_statement(statement: Statement) -> Option<Statement> {
         StatementKind::If { cond, then, els } => match opt_expression(*cond) {
             Expression {
                 kind: ExpressionKind::Bool { value },
-                pos: _,
+                ..
             } => {
                 return match (value, els) {
                     (true, _) => opt_statement(*then),
@@ -95,11 +95,11 @@ fn opt_expression(expression: Expression) -> Expression {
         ExpressionKind::Ident { .. } => expression,
         ExpressionKind::UnaryOp { op, expr } => Expression {
             kind: opt_unop(op, *expr),
-            pos: expression.pos,
+            ..expression
         },
         ExpressionKind::BinaryOp { op, lhs, rhs } => Expression {
             kind: opt_binop(op, *lhs, *rhs),
-            pos: expression.pos,
+            ..expression
         },
         ExpressionKind::Call { name, args } => {
             let new_args = args.into_iter().map(opt_expression).collect();

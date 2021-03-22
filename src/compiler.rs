@@ -28,11 +28,10 @@ pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String> {
     }
 
     let mut program = parser::parse(tokens)?;
+    symbol_pass::apply(&mut program)?;
     if config.dump_ast {
         println!("{:#?}", program);
     }
-
-    symbol_pass::apply(&program)?;
 
     if config.optimize {
         program = constant_folding::optimize(program);
