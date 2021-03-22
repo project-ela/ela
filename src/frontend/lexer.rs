@@ -43,9 +43,10 @@ impl Tokenizer {
     fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
         let mut tokens = Vec::new();
 
+        self.consume_whitespace();
         while !self.is_eof() {
-            self.consume_whitespace();
             tokens.push(self.next_token()?);
+            self.consume_whitespace();
         }
 
         tokens.push(Token {
@@ -57,13 +58,6 @@ impl Tokenizer {
     }
 
     fn next_token(&mut self) -> Result<Token, Error> {
-        if self.is_eof() {
-            return Ok(Token {
-                kind: TokenKind::EOF,
-                pos: self.pos.clone(),
-            });
-        }
-
         let pos = self.pos.clone();
         let kind = match self.peek_char() {
             '\'' => self.consume_char_literal()?,
