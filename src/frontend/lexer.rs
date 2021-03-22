@@ -1,16 +1,12 @@
 pub mod token;
 
-use token::Keyword;
-
 use crate::{
     common::{
         error::{Error, ErrorKind},
         pos::Pos,
     },
-    frontend::lexer::token::{Token, TokenKind},
+    frontend::lexer::token::{Keyword, Symbol, Token, TokenKind},
 };
-
-use self::token::Symbol;
 
 struct Tokenizer {
     source: SourceFile,
