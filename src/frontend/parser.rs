@@ -122,7 +122,7 @@ impl Parser {
                     })
                 }
             }
-            x => return Err(Error::new(token.pos, ParserError::UnexpectedToken(x, None)).into()),
+            x => return Err(Error::new(token.pos, ParserError::UnexpectedToken(x)).into()),
         }
 
         Ok(())
@@ -209,7 +209,7 @@ impl Parser {
                     TokenKind::Symbol(Symbol::SlashAssign) => {
                         op_assign!(self, BinaryOperator::Div, expr)
                     }
-                    x => Err(Error::new(token.pos, ParserError::UnexpectedToken(x, None)).into()),
+                    x => Err(Error::new(token.pos, ParserError::UnexpectedToken(x)).into()),
                 }
             }
         }
@@ -492,7 +492,7 @@ impl Parser {
                 return Ok(expr);
             }
             x => {
-                return Err(Error::new(token.pos, ParserError::UnexpectedToken(x, None)).into());
+                return Err(Error::new(token.pos, ParserError::UnexpectedToken(x)).into());
             }
         };
 
@@ -523,11 +523,7 @@ impl Parser {
         if next_token.kind == kind {
             Ok(next_token)
         } else {
-            Err(Error::new(
-                next_token.pos,
-                ParserError::UnexpectedToken(next_token.kind, Some(kind)),
-            )
-            .into())
+            Err(Error::new(next_token.pos, ParserError::Expected(next_token.kind, kind)).into())
         }
     }
 
@@ -547,7 +543,7 @@ impl Parser {
             TokenKind::Integer(value) => Ok(value),
             _ => Err(Error::new(
                 next_token.pos,
-                ParserError::UnexpectedToken(next_token.kind, Some(TokenKind::Integer(0))),
+                ParserError::ExpectedInteger(next_token.kind),
             )
             .into()),
         }
