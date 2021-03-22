@@ -1,11 +1,14 @@
+pub mod error;
+
 use crate::{
-    common::{
-        error::{Error, ErrorKind},
-        pos::Pos,
-    },
+    common::{error::Error, pos::Pos},
     middleend::irgen::ir::*,
 };
 use std::collections::HashMap;
+
+use anyhow::Result;
+
+use self::error::RegallocError;
 
 const REGS: [Register; 4] = [Register::R12, Register::R13, Register::R14, Register::R15];
 
@@ -13,7 +16,7 @@ struct RegAlloc {
     reg_map: HashMap<u32, Register>,
 }
 
-pub fn alloc_register(program: IRProgram) -> Result<IRProgram, Error> {
+pub fn alloc_register(program: IRProgram) -> Result<IRProgram> {
     let mut regalloc = RegAlloc::new();
     Ok(regalloc.alloc_register(program)?)
 }
@@ -25,7 +28,7 @@ impl RegAlloc {
         }
     }
 
-    fn alloc_register(&mut self, mut program: IRProgram) -> Result<IRProgram, Error> {
+    fn alloc_register(&mut self, mut program: IRProgram) -> Result<IRProgram> {
         for function in program.functions.iter_mut() {
             for block in function.blocks.iter_mut() {
                 self.alloc_register_block(block)?;
@@ -35,7 +38,7 @@ impl RegAlloc {
         Ok(program)
     }
 
-    fn alloc_register_block(&mut self, block: &mut IRBlock) -> Result<(), Error> {
+    fn alloc_register_block(&mut self, block: &mut IRBlock) -> Result<()> {
         for ir in block.irs.iter_mut() {
             match ir {
                 IR::UnOp { op: _, src } => {
@@ -92,7 +95,7 @@ impl RegAlloc {
         Ok(())
     }
 
-    fn alloc_operand(&mut self, operand: &mut Operand) -> Result<(), Error> {
+    fn alloc_operand(&mut self, operand: &mut Operand) -> Result<()> {
         match operand {
             Operand::Reg(ref mut info) => {
                 info.physical_index = Some(self.alloc_reg(info.virtual_index)?);
@@ -125,7 +128,7 @@ impl RegAlloc {
         }
     }
 
-    fn alloc_reg(&mut self, virtual_index: u32) -> Result<Register, Error> {
+    fn alloc_reg(&mut self, virtual_index: u32) -> Result<Register> {
         for reg in &REGS {
             if self.reg_map.values().any(|val| val == reg) {
                 continue;
@@ -134,7 +137,7 @@ impl RegAlloc {
             return Ok(*reg);
         }
 
-        Err(Error::new(Pos::default(), ErrorKind::RegistersExhausted))
+        Err(Error::new(Pos::default(), RegallocError::RegistersExhausted).into())
     }
 
     fn get_reg(&mut self, virtual_index: u32) -> Register {
