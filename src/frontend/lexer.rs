@@ -318,14 +318,14 @@ fn find_keyword(ident: TokenKind) -> TokenKind {
     };
 
     let keyword = match name.as_str() {
-        "func" => Keyword::Func,
-        "var" => Keyword::Var,
-        "val" => Keyword::Val,
-        "return" => Keyword::Return,
-        "if" => Keyword::If,
         "else" => Keyword::Else,
         "false" => Keyword::False,
+        "func" => Keyword::Func,
+        "if" => Keyword::If,
+        "return" => Keyword::Return,
         "true" => Keyword::True,
+        "val" => Keyword::Val,
+        "var" => Keyword::Var,
         "while" => Keyword::While,
         _ => return ident,
     };
