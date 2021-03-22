@@ -14,14 +14,16 @@ impl Token {
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
+    EOF,
+
     Char(char),
     Integer(i32),
     String(String),
     Ident(String),
     Comment(String),
+
     Keyword(Keyword),
     Symbol(Symbol),
-    EOF,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -39,38 +41,32 @@ pub enum Keyword {
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Symbol {
-    Assign,
-    PlusAssign,
-    MinusAssign,
-    AsteriskAssign,
-    SlashAssign,
-
     And,
-    Or,
-    Xor,
-    Not,
-
+    Assign,
+    Asterisk,
+    AsteriskAssign,
+    Colon,
+    Comma,
     Equal,
-    NotEqual,
-
-    Lt,
-    Lte,
     Gt,
     Gte,
-
-    Plus,
-    Minus,
-    Asterisk,
-    Slash,
-    Percent,
-
-    LParen,
-    RParen,
     LBrace,
-    RBrace,
     LBracket,
+    LParen,
+    Lt,
+    Lte,
+    Minus,
+    MinusAssign,
+    Not,
+    NotEqual,
+    Or,
+    Percent,
+    Plus,
+    PlusAssign,
+    RBrace,
     RBracket,
-    Comma,
-
-    Colon,
+    RParen,
+    Slash,
+    SlashAssign,
+    Xor,
 }

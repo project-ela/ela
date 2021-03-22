@@ -1,16 +1,12 @@
 pub mod token;
 
-use token::Keyword;
-
 use crate::{
     common::{
         error::{Error, ErrorKind},
         pos::Pos,
     },
-    frontend::lexer::token::{Token, TokenKind},
+    frontend::lexer::token::{Keyword, Symbol, Token, TokenKind},
 };
-
-use self::token::Symbol;
 
 struct Tokenizer {
     source: SourceFile,
@@ -47,9 +43,10 @@ impl Tokenizer {
     fn tokenize(&mut self) -> Result<Vec<Token>, Error> {
         let mut tokens = Vec::new();
 
+        self.consume_whitespace();
         while !self.is_eof() {
-            self.consume_whitespace();
             tokens.push(self.next_token()?);
+            self.consume_whitespace();
         }
 
         tokens.push(Token {
@@ -61,13 +58,6 @@ impl Tokenizer {
     }
 
     fn next_token(&mut self) -> Result<Token, Error> {
-        if self.is_eof() {
-            return Ok(Token {
-                kind: TokenKind::EOF,
-                pos: self.pos.clone(),
-            });
-        }
-
         let pos = self.pos.clone();
         let kind = match self.peek_char() {
             '\'' => self.consume_char_literal()?,
@@ -322,14 +312,14 @@ fn find_keyword(ident: TokenKind) -> TokenKind {
     };
 
     let keyword = match name.as_str() {
-        "func" => Keyword::Func,
-        "var" => Keyword::Var,
-        "val" => Keyword::Val,
-        "return" => Keyword::Return,
-        "if" => Keyword::If,
         "else" => Keyword::Else,
         "false" => Keyword::False,
+        "func" => Keyword::Func,
+        "if" => Keyword::If,
+        "return" => Keyword::Return,
         "true" => Keyword::True,
+        "val" => Keyword::Val,
+        "var" => Keyword::Var,
         "while" => Keyword::While,
         _ => return ident,
     };
