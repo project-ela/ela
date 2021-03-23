@@ -15,11 +15,8 @@ pub fn optimize(mut program: Program) -> Program {
         };
 
         functions.push(Function {
-            name: function.name,
-            params: function.params,
-            ret_typ: function.ret_typ,
             body: optimized_body,
-            pos: function.pos,
+            ..function
         });
     }
     program.functions = functions;

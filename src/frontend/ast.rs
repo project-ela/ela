@@ -1,13 +1,25 @@
 use crate::common::{
     operator::{BinaryOperator, UnaryOperator},
     pos::Pos,
+    symtab::NodeId,
     types::Type,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Program {
     pub functions: Vec<Function>,
     pub global_defs: Vec<GlobalDef>,
+    pub id: NodeId,
+}
+
+impl Program {
+    pub fn new() -> Self {
+        Self {
+            functions: Vec::new(),
+            global_defs: Vec::new(),
+            id: NodeId::new(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -15,6 +27,7 @@ pub struct GlobalDef {
     pub name: String,
     pub typ: Type,
     pub is_const: bool,
+    pub id: NodeId,
 }
 
 impl From<StatementKind> for GlobalDef {
@@ -24,11 +37,13 @@ impl From<StatementKind> for GlobalDef {
                 name,
                 typ,
                 is_const: false,
+                id: NodeId::new(),
             },
             StatementKind::Val { name, typ, .. } => GlobalDef {
                 name,
                 typ,
                 is_const: true,
+                id: NodeId::new(),
             },
             _ => panic!(),
         }
@@ -42,6 +57,7 @@ pub struct Function {
     pub ret_typ: Type,
     pub body: Option<Statement>,
     pub pos: Pos,
+    pub id: NodeId,
 }
 
 #[derive(Debug, Clone)]
@@ -54,11 +70,16 @@ pub struct Parameter {
 pub struct Statement {
     pub kind: StatementKind,
     pub pos: Pos,
+    pub id: NodeId,
 }
 
 impl Statement {
     pub fn new(kind: StatementKind, pos: Pos) -> Self {
-        Self { kind, pos }
+        Self {
+            kind,
+            pos,
+            id: NodeId::new(),
+        }
     }
 }
 
@@ -105,7 +126,7 @@ pub enum StatementKind {
 pub struct Expression {
     pub kind: ExpressionKind,
     pub pos: Pos,
-    pub typ: Option<Type>,
+    pub id: NodeId,
 }
 
 impl Expression {
@@ -113,7 +134,7 @@ impl Expression {
         Self {
             kind,
             pos,
-            typ: None,
+            id: NodeId::new(),
         }
     }
 }

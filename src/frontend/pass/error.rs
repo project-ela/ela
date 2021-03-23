@@ -37,7 +37,7 @@ pub enum PassError {
     #[error("cannot {1} {0:?} {2}")]
     BinaryOpErr(BinaryOperator, Type, Type),
 
-    #[error("'{0}' function takes {1} arguments but {} arguments were supplied")]
+    #[error("'{0}' function takes {1} arguments but {2} arguments were supplied")]
     FunctionArgNum(String, usize, usize),
 
     #[error("redefinition of '{0}'")]

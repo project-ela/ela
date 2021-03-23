@@ -4,6 +4,7 @@ use crate::{
     common::{
         error::Error,
         operator::{BinaryOperator, UnaryOperator},
+        symtab::NodeId,
         types::Type,
     },
     frontend::{
@@ -11,12 +12,11 @@ use crate::{
             Expression, ExpressionKind, Function, GlobalDef, Parameter, Program, Statement,
             StatementKind,
         },
+        parser::error::ParserError,
         token::{Keyword, Symbol, Token, TokenKind},
     },
 };
 use anyhow::Result;
-
-use self::error::ParserError;
 
 struct Parser {
     pos: usize,
@@ -64,7 +64,7 @@ impl Parser {
     }
 
     fn parse(&mut self) -> Result<Program> {
-        let mut program = Program::default();
+        let mut program = Program::new();
         while !self.is_eof() {
             self.parse_toplevel(&mut program)?;
         }
@@ -117,6 +117,7 @@ impl Parser {
             ret_typ,
             body,
             pos,
+            id: NodeId::new(),
         })
     }
 
