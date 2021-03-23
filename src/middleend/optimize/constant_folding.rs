@@ -1,6 +1,6 @@
 use crate::{
     common::operator::{BinaryOperator, UnaryOperator},
-    frontend::parser::ast::*,
+    frontend::ast::*,
 };
 
 pub fn optimize(mut program: Program) -> Program {

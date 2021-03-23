@@ -3,8 +3,7 @@ use crate::{
     common::cli::CompilerConfig,
     frontend::{
         lexer::{self, SourceFile},
-        parser,
-        pass::symbol_pass,
+        parser, symbol_pass,
     },
     middleend::{irgen, optimize::constant_folding},
 };

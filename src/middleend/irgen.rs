@@ -1,12 +1,10 @@
-pub mod ir;
-
 use crate::{
     common::{
         operator::{BinaryOperator, UnaryOperator},
         types::Type,
     },
-    frontend::parser::ast::*,
-    middleend::irgen::ir::*,
+    frontend::ast::*,
+    middleend::ir::*,
 };
 use anyhow::Result;
 use std::collections::HashMap;

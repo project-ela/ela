@@ -2,7 +2,7 @@ pub mod error;
 
 use crate::{
     common::{error::Error, pos::Pos},
-    middleend::irgen::ir::*,
+    middleend::ir::*,
 };
 use std::collections::HashMap;
 

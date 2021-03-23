@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::frontend::lexer::token::TokenKind;
+use crate::frontend::token::TokenKind;
 
 #[derive(Debug, Error)]
 pub enum ParserError {

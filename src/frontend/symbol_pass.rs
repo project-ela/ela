@@ -1,3 +1,4 @@
+pub mod error;
 use crate::{
     common::{
         error::{Error, Errors},
@@ -5,11 +6,11 @@ use crate::{
         pos::Pos,
         types::Type,
     },
-    frontend::parser::ast::*,
+    frontend::ast::*,
 };
 use std::collections::HashMap;
 
-use super::error::PassError;
+use self::error::PassError;
 
 struct SymbolPass {
     ctx: Context,

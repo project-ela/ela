@@ -1,4 +1,3 @@
-pub mod ast;
 pub mod error;
 
 use crate::{
@@ -8,11 +7,11 @@ use crate::{
         types::Type,
     },
     frontend::{
-        lexer::token::{Keyword, Symbol, Token, TokenKind},
-        parser::ast::{
+        ast::{
             Expression, ExpressionKind, Function, GlobalDef, Parameter, Program, Statement,
             StatementKind,
         },
+        token::{Keyword, Symbol, Token, TokenKind},
     },
 };
 use anyhow::Result;

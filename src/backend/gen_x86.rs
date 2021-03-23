@@ -1,6 +1,6 @@
 use crate::{
     common::operator::{BinaryOperator, UnaryOperator},
-    middleend::irgen::ir::*,
+    middleend::ir::*,
 };
 use anyhow::Result;
 
