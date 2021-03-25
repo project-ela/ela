@@ -21,10 +21,10 @@ pub fn compile_to_file(config: CompilerConfig) -> Result<()> {
 pub fn compile(source: SourceFile, _config: &CompilerConfig) -> Result<String> {
     let tokens = frontend::lexer::tokenize(source)?;
     let module = frontend::parser::parse(tokens)?;
-    let _symtab = frontend::type_check::apply(&module)?;
+    let mut symtab = frontend::type_check::apply(&module)?;
     frontend::sema_check::apply(&module)?;
 
-    let module = irgen::generate(module)?;
+    let module = irgen::generate(module, &mut symtab)?;
     let module = regalloc::alloc_register(module)?;
     let output = gen_x86::generate(module, false)?;
     Ok(output)

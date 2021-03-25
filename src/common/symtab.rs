@@ -33,11 +33,35 @@ pub struct SymbolScope {
 
 #[derive(Debug, Clone)]
 // typ, is_const
-pub struct SigVar(pub Type, pub bool);
+pub struct SigVar {
+    pub typ: Type,
+    pub is_const: bool,
 
+    pub offset: Option<i32>,
+}
+
+impl SigVar {
+    pub fn new(typ: Type, is_const: bool) -> Self {
+        Self {
+            typ,
+            is_const,
+
+            offset: None,
+        }
+    }
+}
 #[derive(Debug, Clone)]
 // params, ret_typ
-pub struct SigFunc(pub Vec<Parameter>, pub Type);
+pub struct SigFunc {
+    pub params: Vec<Parameter>,
+    pub ret_typ: Type,
+}
+
+impl SigFunc {
+    pub fn new(params: Vec<Parameter>, ret_typ: Type) -> Self {
+        Self { params, ret_typ }
+    }
+}
 
 impl SymbolScope {
     fn new(parent_node: Option<NodeId>) -> Self {
@@ -65,7 +89,7 @@ impl SymbolTable {
         scope.variables.insert(name, sig);
     }
 
-    pub fn find_variable(&mut self, node: NodeId, name: &String) -> Option<SigVar> {
+    pub fn find_variable(&self, node: NodeId, name: &String) -> Option<SigVar> {
         let mut cur_scope = self.scopes.get(&node).unwrap();
         loop {
             if let Some(sig) = cur_scope.variables.get(name) {
@@ -81,6 +105,12 @@ impl SymbolTable {
         None
     }
 
+    pub fn set_local(&mut self, node: NodeId, name: String, offset: i32) {
+        let mut var = self.find_variable(node, &name).unwrap();
+        var.offset = Some(offset);
+        self.add_variable(node, name, var);
+    }
+
     pub fn is_defined_here(&mut self, node: NodeId, name: &String) -> bool {
         let scope = self.scopes.get(&node).unwrap();
         scope.variables.contains_key(name)
@@ -91,7 +121,7 @@ impl SymbolTable {
         scope.functions.insert(name, sig);
     }
 
-    pub fn find_function(&mut self, node: NodeId, name: &String) -> Option<SigFunc> {
+    pub fn find_function(&self, node: NodeId, name: &String) -> Option<SigFunc> {
         let mut cur_scope = self.scopes.get(&node).unwrap();
         loop {
             if let Some(sig) = cur_scope.functions.get(name) {

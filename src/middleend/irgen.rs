@@ -1,19 +1,21 @@
 use crate::{
     common::{
         operator::{BinaryOperator, UnaryOperator},
+        symtab::{NodeId, SymbolTable},
         types::Type,
     },
     frontend::ast,
 };
 use anyhow::Result;
 use ir::{RegSize, IR};
-use std::collections::HashMap;
 
 use super::ir::{self, Operand, RegisterInfo, Tse};
 
 #[derive(Debug)]
-struct IRGen {
-    ctx: Context,
+struct IRGen<'a> {
+    symtab: &'a mut SymbolTable,
+    cur_nodes: Vec<NodeId>,
+
     cur_funcname: String,
     global_vars: Vec<ir::GlobalVar>,
 
@@ -23,87 +25,17 @@ struct IRGen {
     stack_offset_local: u32,
 }
 
-#[derive(Debug)]
-struct Context(Vec<ContextData>);
-
-#[derive(Debug, Default)]
-struct ContextData {
-    functions: HashMap<String, Type>,
-    variables: HashMap<String, Variable>,
-}
-
-#[derive(Debug, Clone)]
-struct Variable(VarKind, Type);
-
-#[derive(Debug, Clone)]
-enum VarKind {
-    Global(String),
-    Local(i32),
-}
-
-impl Context {
-    fn new() -> Self {
-        let mut ctx = Self(Vec::new());
-        ctx.push();
-        ctx
-    }
-
-    fn add_function(&mut self, name: String, typ: Type) {
-        self.0.last_mut().unwrap().functions.insert(name, typ);
-    }
-
-    fn find_function(&self, name: &str) -> Type {
-        for ctx in self.0.iter().rev() {
-            if ctx.functions.contains_key(name) {
-                return ctx.functions.get(name).cloned().unwrap();
-            }
-        }
-        panic!()
-    }
-
-    fn add_local_variable(&mut self, name: String, off: i32, typ: Type) {
-        self.0
-            .last_mut()
-            .unwrap()
-            .variables
-            .insert(name, Variable(VarKind::Local(off), typ));
-    }
-
-    fn add_global_variable(&mut self, name: String, typ: Type) {
-        self.0
-            .first_mut()
-            .unwrap()
-            .variables
-            .insert(name.clone(), Variable(VarKind::Global(name), typ));
-    }
-
-    fn find_variable(&self, name: &str) -> Variable {
-        for ctx in self.0.iter().rev() {
-            if ctx.variables.contains_key(name) {
-                return ctx.variables.get(name).cloned().unwrap();
-            }
-        }
-        panic!()
-    }
-
-    fn push(&mut self) {
-        self.0.push(ContextData::default());
-    }
-
-    fn pop(&mut self) {
-        self.0.pop();
-    }
-}
-
-pub fn generate(module: ast::Module) -> Result<ir::Module> {
-    let mut generator = IRGen::new();
+pub fn generate(module: ast::Module, symtab: &mut SymbolTable) -> Result<ir::Module> {
+    let mut generator = IRGen::new(symtab);
     Ok(generator.generate(module)?)
 }
 
-impl IRGen {
-    fn new() -> Self {
+impl<'a> IRGen<'a> {
+    fn new(symtab: &'a mut SymbolTable) -> Self {
         Self {
-            ctx: Context::new(),
+            symtab,
+            cur_nodes: Vec::new(),
+
             cur_funcname: "".into(),
             global_vars: Vec::new(),
 
@@ -122,8 +54,6 @@ impl IRGen {
                 typ: global_var.typ.clone(),
                 init_value: None,
             });
-            self.ctx
-                .add_global_variable(global_var.name, global_var.typ);
         }
         for function in module.functions {
             if let Some(func) = self.gen_function(function)? {
@@ -139,20 +69,20 @@ impl IRGen {
     }
 
     fn gen_function(&mut self, func: ast::Function) -> Result<Option<ir::Function>> {
-        self.ctx.add_function(func.name.clone(), func.ret_typ);
         if func.body.is_none() {
             return Ok(None);
         }
 
         self.init();
+        self.push(func.id);
         self.cur_funcname = func.name.clone();
         let mut ir_func = ir::Function::new(func.name.to_owned());
         ir_func.new_block(format!(".L.{}.entry", func.name));
         for (index, param) in func.params.iter().enumerate() {
             let addr = self.alloc_stack_local(&param.typ, &mut ir_func);
             let size = RegSize::from(&param.typ);
-            self.ctx
-                .add_local_variable(param.name.to_owned(), addr, param.typ.clone());
+            self.symtab
+                .set_local(self.cur_node(), param.name.clone(), addr);
             ir_func.push(IR::StoreArg {
                 dst: addr,
                 src: index,
@@ -162,22 +92,23 @@ impl IRGen {
         }
         self.gen_statement(func.body.unwrap(), &mut ir_func)?;
         ir_func.stack_offset = align_to(self.stack_offset_local, 8);
+        self.pop();
         Ok(Some(ir_func))
     }
 
     fn gen_statement(&mut self, stmt: ast::Statement, func: &mut ir::Function) -> Result<()> {
         match stmt.kind {
             ast::StatementKind::Block { stmts } => {
-                self.ctx.push();
+                self.push(stmt.id);
                 for stmt in stmts {
                     self.gen_statement(stmt, func)?;
                 }
-                self.ctx.pop();
+                self.pop();
             }
             ast::StatementKind::Var { name, typ, value }
             | ast::StatementKind::Val { name, typ, value } => {
                 let addr = self.alloc_stack_local(&typ, func);
-                self.ctx.add_local_variable(name, addr, typ.clone());
+                self.symtab.set_local(self.cur_node(), name, addr);
 
                 match value {
                     Some(value) => {
@@ -281,7 +212,7 @@ impl IRGen {
         expr: ast::Expression,
         func: &mut ir::Function,
     ) -> Result<(Operand, Type)> {
-        match expr.kind {
+        let val = match expr.kind {
             ast::ExpressionKind::Char { value } => {
                 let dst = self.next_reg();
                 func.push(IR::Move {
@@ -319,18 +250,18 @@ impl IRGen {
                 Ok((dst, Type::Bool))
             }
             ast::ExpressionKind::Ident { ref name } => {
-                let Variable(_, typ) = self.ctx.find_variable(name);
-                match typ {
+                let sig = self.symtab.find_variable(self.cur_node(), name).unwrap();
+                match sig.typ {
                     Type::Array { .. } => {
                         let (dst, _) = self.gen_lvalue(expr, func)?;
-                        Ok((dst, typ))
+                        Ok((dst, sig.typ))
                     }
                     _ => {
                         let (src, _) = self.gen_lvalue(expr, func)?;
                         let dst = self.next_reg();
-                        let size = RegSize::from(&typ);
+                        let size = RegSize::from(&sig.typ);
                         func.push(IR::Load { dst, src, size });
-                        Ok((dst, typ))
+                        Ok((dst, sig.typ))
                     }
                 }
             }
@@ -373,7 +304,8 @@ impl IRGen {
                 let typ = self.gen_call(Some(dst), name, args, func)?;
                 Ok((dst, typ))
             }
-        }
+        };
+        val
     }
 
     fn gen_lvalue(
@@ -384,19 +316,20 @@ impl IRGen {
         match expr.kind {
             ast::ExpressionKind::Ident { name } => {
                 let reg = self.next_reg();
-                let Variable(kind, typ) = self.ctx.find_variable(&name);
-                let ir = match kind {
-                    VarKind::Global(name) => IR::AddrLabel {
-                        dst: reg,
-                        src: name,
-                    },
-                    VarKind::Local(offset) => IR::Addr {
+                let sig = self.symtab.find_variable(self.cur_node(), &name).unwrap();
+                let ir = if let Some(offset) = sig.offset {
+                    IR::Addr {
                         dst: reg,
                         src: offset,
-                    },
+                    }
+                } else {
+                    IR::AddrLabel {
+                        dst: reg,
+                        src: name,
+                    }
                 };
                 func.push(ir);
-                Ok((reg, typ.pointer_to()))
+                Ok((reg, sig.typ.pointer_to()))
             }
             ast::ExpressionKind::Index { lhs, index } => {
                 let (reg, typ) = self.gen_expression(*lhs, func)?;
@@ -454,13 +387,13 @@ impl IRGen {
         for arg in args {
             arg_operands.push(self.gen_expression(arg, func)?.0);
         }
-        let typ = self.ctx.find_function(&name);
+        let sig = self.symtab.find_function(self.cur_node(), &name).unwrap();
         func.push(IR::Call {
             dst,
             name,
             args: arg_operands,
         });
-        Ok(typ)
+        Ok(sig.ret_typ)
     }
 
     fn init(&mut self) {
@@ -510,6 +443,18 @@ impl IRGen {
         }
 
         offset
+    }
+
+    fn push(&mut self, node: NodeId) {
+        self.cur_nodes.push(node);
+    }
+
+    fn pop(&mut self) {
+        self.cur_nodes.pop();
+    }
+
+    fn cur_node(&self) -> NodeId {
+        self.cur_nodes.last().unwrap().clone()
     }
 }
 

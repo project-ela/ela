@@ -137,8 +137,8 @@ impl TypeCheck {
         }
 
         if let ExpressionKind::Ident { name } = &dst.kind {
-            let SigVar(_, is_const) = self.table.find_variable(self.cur_node(), name).unwrap();
-            if is_const {
+            let sig = self.table.find_variable(self.cur_node(), name).unwrap();
+            if sig.is_const {
                 self.issue_here::<()>(PassError::AssignToConstant(name.clone()));
             }
         }
@@ -184,7 +184,7 @@ impl TypeCheck {
 
     fn apply_expr(&mut self, expr: &Expression) -> Option<Type> {
         self.cur_pos = Some(expr.pos.clone());
-        match &expr.kind {
+        let typ = match &expr.kind {
             ExpressionKind::Char { .. } => Some(Type::Byte),
             ExpressionKind::Integer { .. } => Some(Type::Int),
             ExpressionKind::String { .. } => Some(Type::Byte.pointer_to()),
@@ -195,12 +195,13 @@ impl TypeCheck {
             ExpressionKind::BinaryOp { op, lhs, rhs } => self.apply_binop_expr(op, lhs, rhs),
             ExpressionKind::Call { name, args } => self.apply_call(name, args),
             ExpressionKind::Index { lhs, index } => self.apply_index_expr(lhs, index),
-        }
+        };
+        typ
     }
 
     fn apply_ident_expr(&mut self, name: &String) -> Option<Type> {
         match self.table.find_variable(self.cur_node(), name) {
-            Some(SigVar(typ, _)) => Some(typ),
+            Some(sig) => Some(sig.typ),
             None => self.issue_here(PassError::NotDefinedVariable(name.clone())),
         }
     }
@@ -262,22 +263,22 @@ impl TypeCheck {
     }
 
     fn apply_call(&mut self, name: &String, args: &[Expression]) -> Option<Type> {
-        let SigFunc(params, ret_typ) = self.table.find_function(self.cur_node(), name)?;
+        let sig = self.table.find_function(self.cur_node(), name)?;
 
-        if args.len() != params.len() {
+        if args.len() != sig.params.len() {
             self.issue_here::<()>(PassError::FunctionArgNum(
                 name.clone(),
-                params.len(),
+                sig.params.len(),
                 args.len(),
             ));
-            return Some(ret_typ);
+            return Some(sig.ret_typ);
         }
 
-        for (arg, param) in args.iter().zip(&params) {
+        for (arg, param) in args.iter().zip(&sig.params) {
             self.check_expr_type(arg, param.typ.clone());
         }
 
-        Some(ret_typ)
+        Some(sig.ret_typ)
     }
 
     // -----
@@ -300,12 +301,12 @@ impl TypeCheck {
         }
 
         self.table
-            .add_variable(self.cur_node(), name, SigVar(typ, is_const));
+            .add_variable(self.cur_node(), name, SigVar::new(typ, is_const));
     }
 
     fn add_func(&mut self, name: String, params: Vec<Parameter>, ret_typ: Type) {
         self.table
-            .add_function(self.cur_node(), name, SigFunc(params, ret_typ));
+            .add_function(self.cur_node(), name, SigFunc { params, ret_typ });
     }
 
     fn issue<T>(&mut self, pos: Pos, err: PassError) -> Option<T> {
