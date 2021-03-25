@@ -3,17 +3,19 @@ use crate::{
         operator::{BinaryOperator, UnaryOperator},
         types::Type,
     },
-    frontend::ast::*,
-    middleend::ir::*,
+    frontend::ast,
 };
 use anyhow::Result;
+use ir::{RegSize, IR};
 use std::collections::HashMap;
+
+use super::ir::{self, Operand, RegisterInfo, Tse};
 
 #[derive(Debug)]
 struct IRGen {
     ctx: Context,
     cur_funcname: String,
-    global_defs: Vec<IRGlobalDef>,
+    global_vars: Vec<ir::GlobalVar>,
 
     reg_index: u32,
     label_index: u32,
@@ -93,9 +95,9 @@ impl Context {
     }
 }
 
-pub fn generate(program: Program) -> Result<IRProgram> {
+pub fn generate(module: ast::Module) -> Result<ir::Module> {
     let mut generator = IRGen::new();
-    Ok(generator.generate(program)?)
+    Ok(generator.generate(module)?)
 }
 
 impl IRGen {
@@ -103,7 +105,7 @@ impl IRGen {
         Self {
             ctx: Context::new(),
             cur_funcname: "".into(),
-            global_defs: Vec::new(),
+            global_vars: Vec::new(),
 
             reg_index: 0,
             label_index: 0,
@@ -112,31 +114,31 @@ impl IRGen {
         }
     }
 
-    fn generate(&mut self, program: Program) -> Result<IRProgram> {
-        let mut ir_program = IRProgram::default();
-        for global_def in program.global_defs {
-            ir_program.global_defs.push(IRGlobalDef {
-                name: global_def.name.clone(),
-                typ: global_def.typ.clone(),
+    fn generate(&mut self, module: ast::Module) -> Result<ir::Module> {
+        let mut ir_module = ir::Module::default();
+        for global_var in module.global_vars {
+            ir_module.global_vars.push(ir::GlobalVar {
+                name: global_var.name.clone(),
+                typ: global_var.typ.clone(),
                 init_value: None,
             });
             self.ctx
-                .add_global_variable(global_def.name, global_def.typ);
+                .add_global_variable(global_var.name, global_var.typ);
         }
-        for function in program.functions {
+        for function in module.functions {
             if let Some(func) = self.gen_function(function)? {
-                ir_program.functions.push(func);
+                ir_module.functions.push(func);
             }
         }
 
-        ir_program
-            .global_defs
-            .extend(std::mem::take(&mut self.global_defs));
+        ir_module
+            .global_vars
+            .extend(std::mem::take(&mut self.global_vars));
 
-        Ok(ir_program)
+        Ok(ir_module)
     }
 
-    fn gen_function(&mut self, func: Function) -> Result<Option<IRFunction>> {
+    fn gen_function(&mut self, func: ast::Function) -> Result<Option<ir::Function>> {
         self.ctx.add_function(func.name.clone(), func.ret_typ);
         if func.body.is_none() {
             return Ok(None);
@@ -144,7 +146,7 @@ impl IRGen {
 
         self.init();
         self.cur_funcname = func.name.clone();
-        let mut ir_func = IRFunction::new(func.name.to_owned());
+        let mut ir_func = ir::Function::new(func.name.to_owned());
         ir_func.new_block(format!(".L.{}.entry", func.name));
         for (index, param) in func.params.iter().enumerate() {
             let addr = self.alloc_stack_local(&param.typ, &mut ir_func);
@@ -163,16 +165,17 @@ impl IRGen {
         Ok(Some(ir_func))
     }
 
-    fn gen_statement(&mut self, stmt: Statement, func: &mut IRFunction) -> Result<()> {
+    fn gen_statement(&mut self, stmt: ast::Statement, func: &mut ir::Function) -> Result<()> {
         match stmt.kind {
-            StatementKind::Block { stmts } => {
+            ast::StatementKind::Block { stmts } => {
                 self.ctx.push();
                 for stmt in stmts {
                     self.gen_statement(stmt, func)?;
                 }
                 self.ctx.pop();
             }
-            StatementKind::Var { name, typ, value } | StatementKind::Val { name, typ, value } => {
+            ast::StatementKind::Var { name, typ, value }
+            | ast::StatementKind::Val { name, typ, value } => {
                 let addr = self.alloc_stack_local(&typ, func);
                 self.ctx.add_local_variable(name, addr, typ.clone());
 
@@ -195,8 +198,8 @@ impl IRGen {
                                     rhs: Operand::Const(offset as i32),
                                 });
 
-                                let zero = Expression::new(
-                                    ExpressionKind::Integer { value: 0 },
+                                let zero = ast::Expression::new(
+                                    ast::ExpressionKind::Integer { value: 0 },
                                     stmt.pos.clone(),
                                 );
                                 self.gen_assign(dst, &elm_type, zero, func)?;
@@ -205,25 +208,27 @@ impl IRGen {
                         _ => {
                             let dst = self.next_reg();
                             func.push(IR::Addr { dst, src: addr });
-                            let zero =
-                                Expression::new(ExpressionKind::Integer { value: 0 }, stmt.pos);
+                            let zero = ast::Expression::new(
+                                ast::ExpressionKind::Integer { value: 0 },
+                                stmt.pos,
+                            );
                             self.gen_assign(dst, &typ, zero, func)?;
                         }
                     },
                 }
             }
-            StatementKind::Assign { dst, value } => {
+            ast::StatementKind::Assign { dst, value } => {
                 let (dst, typ) = self.gen_lvalue(*dst, func)?;
                 self.gen_assign(dst, &typ.elm_typ(), *value, func)?;
             }
-            StatementKind::Return { value } => {
+            ast::StatementKind::Return { value } => {
                 let src = match value {
                     Some(value) => Some(self.gen_expression(*value, func)?.0),
                     None => None,
                 };
                 func.push(IR::Ret { src });
             }
-            StatementKind::If { cond, then, els } => {
+            ast::StatementKind::If { cond, then, els } => {
                 let label1 = self.next_label();
 
                 let (cond, _) = self.gen_expression(*cond, func)?;
@@ -246,7 +251,7 @@ impl IRGen {
                     func.new_block(label1);
                 }
             }
-            StatementKind::While { cond, body } => {
+            ast::StatementKind::While { cond, body } => {
                 let label1 = self.next_label();
                 let label2 = self.next_label();
 
@@ -264,7 +269,7 @@ impl IRGen {
 
                 func.new_block(label2);
             }
-            StatementKind::Call { name, args } => {
+            ast::StatementKind::Call { name, args } => {
                 let _ = self.gen_call(None, name, args, func)?;
             }
         }
@@ -273,11 +278,11 @@ impl IRGen {
 
     fn gen_expression(
         &mut self,
-        expr: Expression,
-        func: &mut IRFunction,
+        expr: ast::Expression,
+        func: &mut ir::Function,
     ) -> Result<(Operand, Type)> {
         match expr.kind {
-            ExpressionKind::Char { value } => {
+            ast::ExpressionKind::Char { value } => {
                 let dst = self.next_reg();
                 func.push(IR::Move {
                     dst,
@@ -285,7 +290,7 @@ impl IRGen {
                 });
                 Ok((dst, Type::Byte))
             }
-            ExpressionKind::Integer { value } => {
+            ast::ExpressionKind::Integer { value } => {
                 let dst = self.next_reg();
                 func.push(IR::Move {
                     dst,
@@ -293,9 +298,9 @@ impl IRGen {
                 });
                 Ok((dst, Type::Int))
             }
-            ExpressionKind::String { value } => {
+            ast::ExpressionKind::String { value } => {
                 let name = self.next_string();
-                self.global_defs.push(IRGlobalDef {
+                self.global_vars.push(ir::GlobalVar {
                     name: name.clone(),
                     typ: Type::Byte.pointer_to(),
                     init_value: Some(value),
@@ -305,7 +310,7 @@ impl IRGen {
                 func.push(IR::AddrLabel { dst, src: name });
                 Ok((dst, Type::Byte.pointer_to()))
             }
-            ExpressionKind::Bool { value } => {
+            ast::ExpressionKind::Bool { value } => {
                 let dst = self.next_reg();
                 func.push(IR::Move {
                     dst,
@@ -313,7 +318,7 @@ impl IRGen {
                 });
                 Ok((dst, Type::Bool))
             }
-            ExpressionKind::Ident { ref name } => {
+            ast::ExpressionKind::Ident { ref name } => {
                 let Variable(_, typ) = self.ctx.find_variable(name);
                 match typ {
                     Type::Array { .. } => {
@@ -329,7 +334,7 @@ impl IRGen {
                     }
                 }
             }
-            ExpressionKind::Index { .. } => {
+            ast::ExpressionKind::Index { .. } => {
                 let dst = self.next_reg();
                 let (src, typ) = self.gen_lvalue(expr, func)?;
                 let typ = typ.elm_typ();
@@ -337,7 +342,7 @@ impl IRGen {
                 func.push(IR::Load { dst, src, size });
                 Ok((dst, typ))
             }
-            ExpressionKind::UnaryOp { op, expr } => match op {
+            ast::ExpressionKind::UnaryOp { op, expr } => match op {
                 UnaryOperator::Addr => {
                     let (src, typ) = self.gen_lvalue(*expr, func)?;
                     Ok((src, typ))
@@ -356,14 +361,14 @@ impl IRGen {
                     Ok((src, typ))
                 }
             },
-            ExpressionKind::BinaryOp { op, lhs, rhs } => {
+            ast::ExpressionKind::BinaryOp { op, lhs, rhs } => {
                 let (lhs, typ) = self.gen_expression(*lhs, func)?;
                 let (rhs, _) = self.gen_expression(*rhs, func)?;
                 let dst = self.next_reg();
                 func.push(IR::BinOp { op, dst, lhs, rhs });
                 Ok((dst, typ))
             }
-            ExpressionKind::Call { name, args } => {
+            ast::ExpressionKind::Call { name, args } => {
                 let dst = self.next_reg();
                 let typ = self.gen_call(Some(dst), name, args, func)?;
                 Ok((dst, typ))
@@ -371,9 +376,13 @@ impl IRGen {
         }
     }
 
-    fn gen_lvalue(&mut self, expr: Expression, func: &mut IRFunction) -> Result<(Operand, Type)> {
+    fn gen_lvalue(
+        &mut self,
+        expr: ast::Expression,
+        func: &mut ir::Function,
+    ) -> Result<(Operand, Type)> {
         match expr.kind {
-            ExpressionKind::Ident { name } => {
+            ast::ExpressionKind::Ident { name } => {
                 let reg = self.next_reg();
                 let Variable(kind, typ) = self.ctx.find_variable(&name);
                 let ir = match kind {
@@ -389,7 +398,7 @@ impl IRGen {
                 func.push(ir);
                 Ok((reg, typ.pointer_to()))
             }
-            ExpressionKind::Index { lhs, index } => {
+            ast::ExpressionKind::Index { lhs, index } => {
                 let (reg, typ) = self.gen_expression(*lhs, func)?;
 
                 let (index, _) = self.gen_expression(*index, func)?;
@@ -408,7 +417,7 @@ impl IRGen {
 
                 Ok((reg, typ))
             }
-            ExpressionKind::UnaryOp {
+            ast::ExpressionKind::UnaryOp {
                 op: UnaryOperator::Load,
                 expr,
             } => {
@@ -425,8 +434,8 @@ impl IRGen {
         &mut self,
         dst: Operand,
         dst_typ: &Type,
-        src: Expression,
-        func: &mut IRFunction,
+        src: ast::Expression,
+        func: &mut ir::Function,
     ) -> Result<()> {
         let (src, _) = self.gen_expression(src, func)?;
         let size = RegSize::from(dst_typ);
@@ -438,8 +447,8 @@ impl IRGen {
         &mut self,
         dst: Option<Operand>,
         name: String,
-        args: Vec<Expression>,
-        func: &mut IRFunction,
+        args: Vec<ast::Expression>,
+        func: &mut ir::Function,
     ) -> Result<Type> {
         let mut arg_operands = Vec::new();
         for arg in args {
@@ -481,7 +490,7 @@ impl IRGen {
         format!(".str.{}", cur_string)
     }
 
-    fn alloc_stack_local(&mut self, typ: &Type, func: &mut IRFunction) -> i32 {
+    fn alloc_stack_local(&mut self, typ: &Type, func: &mut ir::Function) -> i32 {
         self.stack_offset_local += typ.size();
         self.stack_offset_local = align_to(self.stack_offset_local, typ.size());
         let offset = -(self.stack_offset_local as i32);
@@ -508,13 +517,13 @@ fn align_to(x: u32, align: u32) -> u32 {
     (x + align - 1) & !(align - 1)
 }
 
-impl IRFunction {
+impl ir::Function {
     fn push(&mut self, ir: IR) {
         let last_block = self.blocks.last_mut().unwrap();
         last_block.irs.push(ir);
     }
 
     fn new_block(&mut self, name: String) {
-        self.blocks.push(IRBlock::new(name));
+        self.blocks.push(ir::Block::new(name));
     }
 }

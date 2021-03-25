@@ -19,10 +19,10 @@ struct GenX86 {
     tse_enable: bool,
 }
 
-pub fn generate(program: IRProgram, tse_enable: bool) -> Result<String> {
+pub fn generate(module: Module, tse_enable: bool) -> Result<String> {
     let mut generator = GenX86::new();
     generator.tse_enable = tse_enable;
-    generator.generate(program)
+    generator.generate(module)
 }
 
 impl GenX86 {
@@ -33,28 +33,28 @@ impl GenX86 {
         }
     }
 
-    fn generate(&mut self, program: IRProgram) -> Result<String> {
+    fn generate(&mut self, module: Module) -> Result<String> {
         self.gen(".intel_syntax noprefix");
-        self.gen_data(program.global_defs)?;
-        self.gen_code(program.functions)?;
+        self.gen_data(module.global_vars)?;
+        self.gen_code(module.functions)?;
         Ok(self.output.to_owned())
     }
 
-    fn gen_data(&mut self, global_defs: Vec<IRGlobalDef>) -> Result<()> {
+    fn gen_data(&mut self, global_vars: Vec<GlobalVar>) -> Result<()> {
         self.gen(".data");
-        for global_def in global_defs {
-            self.gen(&format!(".global {}", global_def.name));
-            self.gen(&format!("{}:", global_def.name));
-            match global_def.init_value {
+        for global_var in global_vars {
+            self.gen(&format!(".global {}", global_var.name));
+            self.gen(&format!("{}:", global_var.name));
+            match global_var.init_value {
                 Some(value) => self.gen(&format!(".ascii \"{}\"", value)),
-                None => self.gen(&format!(".zero {}", global_def.typ.size())),
+                None => self.gen(&format!(".zero {}", global_var.typ.size())),
             }
         }
 
         Ok(())
     }
 
-    fn gen_code(&mut self, functions: Vec<IRFunction>) -> Result<()> {
+    fn gen_code(&mut self, functions: Vec<Function>) -> Result<()> {
         self.gen(".text");
         for function in functions {
             self.gen_function(function)?;
@@ -62,7 +62,7 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_function(&mut self, function: IRFunction) -> Result<()> {
+    fn gen_function(&mut self, function: Function) -> Result<()> {
         self.gen(format!(".global {}", function.name).as_str());
         if self.tse_enable {
             self.gen_tse(&function);
@@ -95,7 +95,7 @@ impl GenX86 {
         Ok(())
     }
 
-    fn gen_tse(&mut self, function: &IRFunction) {
+    fn gen_tse(&mut self, function: &Function) {
         for tse in &function.tses {
             self.gen(&format!(".tse {}, {}, {}", tse.offset, tse.size, tse.align));
         }

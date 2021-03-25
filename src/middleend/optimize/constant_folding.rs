@@ -3,9 +3,9 @@ use crate::{
     frontend::ast::*,
 };
 
-pub fn optimize(mut program: Program) -> Program {
+pub fn optimize(mut module: Module) -> Module {
     let mut functions = Vec::new();
-    for function in program.functions {
+    for function in module.functions {
         let optimized_body = match function.body {
             Some(body) => Some(opt_statement(body).unwrap_or(Statement::new(
                 StatementKind::Block { stmts: Vec::new() },
@@ -19,8 +19,8 @@ pub fn optimize(mut program: Program) -> Program {
             ..function
         });
     }
-    program.functions = functions;
-    program
+    module.functions = functions;
+    module
 }
 
 fn opt_statement(statement: Statement) -> Option<Statement> {

@@ -4,23 +4,23 @@ use crate::common::{
 };
 
 #[derive(Debug, Default)]
-pub struct IRProgram {
-    pub global_defs: Vec<IRGlobalDef>,
-    pub functions: Vec<IRFunction>,
+pub struct Module {
+    pub functions: Vec<Function>,
+    pub global_vars: Vec<GlobalVar>,
 }
 
 #[derive(Debug)]
-pub struct IRGlobalDef {
+pub struct GlobalVar {
     pub name: String,
     pub typ: Type,
     pub init_value: Option<String>,
 }
 
 #[derive(Debug)]
-pub struct IRFunction {
+pub struct Function {
     pub name: String,
     pub params: Vec<u32>,
-    pub blocks: Vec<IRBlock>,
+    pub blocks: Vec<Block>,
     pub stack_offset: u32,
     pub tses: Vec<Tse>,
 }
@@ -37,7 +37,7 @@ pub struct Tse {
     pub align: u64,
 }
 
-impl IRFunction {
+impl Function {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -50,12 +50,12 @@ impl IRFunction {
 }
 
 #[derive(Debug)]
-pub struct IRBlock {
+pub struct Block {
     pub name: String,
     pub irs: Vec<IR>,
 }
 
-impl IRBlock {
+impl Block {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -208,7 +208,7 @@ impl From<Type> for RegSize {
     }
 }
 
-impl IRProgram {
+impl Module {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         for function in &self.functions {
@@ -218,7 +218,7 @@ impl IRProgram {
     }
 }
 
-impl IRFunction {
+impl Function {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         s.push_str(format!("func {}({}) {{\n", self.name, self.dump_params()).as_str());
@@ -238,7 +238,7 @@ impl IRFunction {
     }
 }
 
-impl IRBlock {
+impl Block {
     pub fn dump(&self) -> String {
         let mut s = String::new();
         s.push_str(format!("{}:\n", self.name).as_str());

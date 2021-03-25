@@ -6,40 +6,40 @@ use crate::common::{
 };
 
 #[derive(Debug)]
-pub struct Program {
+pub struct Module {
     pub functions: Vec<Function>,
-    pub global_defs: Vec<GlobalDef>,
+    pub global_vars: Vec<GlobalVar>,
     pub id: NodeId,
 }
 
-impl Program {
+impl Module {
     pub fn new() -> Self {
         Self {
             functions: Vec::new(),
-            global_defs: Vec::new(),
+            global_vars: Vec::new(),
             id: NodeId::new(),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct GlobalDef {
+pub struct GlobalVar {
     pub name: String,
     pub typ: Type,
     pub is_const: bool,
     pub id: NodeId,
 }
 
-impl From<StatementKind> for GlobalDef {
+impl From<StatementKind> for GlobalVar {
     fn from(kind: StatementKind) -> Self {
         match kind {
-            StatementKind::Var { name, typ, .. } => GlobalDef {
+            StatementKind::Var { name, typ, .. } => GlobalVar {
                 name,
                 typ,
                 is_const: false,
                 id: NodeId::new(),
             },
-            StatementKind::Val { name, typ, .. } => GlobalDef {
+            StatementKind::Val { name, typ, .. } => GlobalVar {
                 name,
                 typ,
                 is_const: true,

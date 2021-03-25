@@ -9,7 +9,7 @@ use crate::{
     },
     frontend::{
         ast::{
-            Expression, ExpressionKind, Function, GlobalDef, Parameter, Program, Statement,
+            Expression, ExpressionKind, Function, GlobalVar, Module, Parameter, Statement,
             StatementKind,
         },
         parser::error::ParserError,
@@ -23,7 +23,7 @@ struct Parser {
     tokens: Vec<Token>,
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<Program> {
+pub fn parse(tokens: Vec<Token>) -> Result<Module> {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -63,27 +63,27 @@ impl Parser {
         Self { pos: 0, tokens }
     }
 
-    fn parse(&mut self) -> Result<Program> {
-        let mut program = Program::new();
+    fn parse(&mut self) -> Result<Module> {
+        let mut module = Module::new();
         while !self.is_eof() {
-            self.parse_toplevel(&mut program)?;
+            self.parse_toplevel(&mut module)?;
         }
-        Ok(program)
+        Ok(module)
     }
 
-    fn parse_toplevel(&mut self, program: &mut Program) -> Result<()> {
+    fn parse_toplevel(&mut self, module: &mut Module) -> Result<()> {
         let token = self.peek();
         match token.kind {
-            TokenKind::Keyword(Keyword::Func) => program.functions.push(self.parse_function()?),
+            TokenKind::Keyword(Keyword::Func) => module.functions.push(self.parse_function()?),
             TokenKind::Keyword(Keyword::Var) => {
-                program
-                    .global_defs
-                    .push(GlobalDef::from(self.parse_var_statement()?.kind));
+                module
+                    .global_vars
+                    .push(GlobalVar::from(self.parse_var_statement()?.kind));
             }
             TokenKind::Keyword(Keyword::Val) => {
-                program
-                    .global_defs
-                    .push(GlobalDef::from(self.parse_val_statement()?.kind));
+                module
+                    .global_vars
+                    .push(GlobalVar::from(self.parse_val_statement()?.kind));
             }
             x => return Err(Error::new(token.pos, ParserError::UnexpectedToken(x)).into()),
         }

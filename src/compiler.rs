@@ -20,13 +20,13 @@ pub fn compile_to_file(config: CompilerConfig) -> Result<()> {
 
 pub fn compile(source: SourceFile, _config: &CompilerConfig) -> Result<String> {
     let tokens = frontend::lexer::tokenize(source)?;
-    let program = frontend::parser::parse(tokens)?;
-    let _symtab = frontend::type_check::apply(&program)?;
-    frontend::sema_check::apply(&program)?;
+    let module = frontend::parser::parse(tokens)?;
+    let _symtab = frontend::type_check::apply(&module)?;
+    frontend::sema_check::apply(&module)?;
 
-    let program = irgen::generate(program)?;
-    let program = regalloc::alloc_register(program)?;
-    let output = gen_x86::generate(program, false)?;
+    let module = irgen::generate(module)?;
+    let module = regalloc::alloc_register(module)?;
+    let output = gen_x86::generate(module, false)?;
     Ok(output)
 
     // let program = middleend::ssa::translate(&program)?;

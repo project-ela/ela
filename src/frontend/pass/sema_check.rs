@@ -6,12 +6,12 @@ use crate::{
         pos::Pos,
         types::Type,
     },
-    frontend::{ast::Program, pass::error::PassError},
+    frontend::{ast::Module, pass::error::PassError},
 };
 
-pub fn apply(program: &Program) -> Result<()> {
+pub fn apply(module: &Module) -> Result<()> {
     let mut pass = SemaCheck::new();
-    pass.apply(program);
+    pass.apply(module);
     match pass.issues.0.len() {
         0 => Ok(()),
         _ => Err(pass.issues.into()),
@@ -30,9 +30,9 @@ impl SemaCheck {
         }
     }
 
-    fn apply(&mut self, program: &Program) {
+    fn apply(&mut self, module: &Module) {
         let mut main_exists = false;
-        for function in &program.functions {
+        for function in &module.functions {
             if function.name != "main" {
                 continue;
             }

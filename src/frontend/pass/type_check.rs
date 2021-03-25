@@ -9,14 +9,14 @@ use crate::{
         types::Type,
     },
     frontend::{
-        ast::{Expression, ExpressionKind, Function, Parameter, Program, Statement, StatementKind},
+        ast::{Expression, ExpressionKind, Function, Module, Parameter, Statement, StatementKind},
         pass::error::PassError,
     },
 };
 
-pub fn apply(program: &Program) -> Result<SymbolTable> {
+pub fn apply(module: &Module) -> Result<SymbolTable> {
     let mut pass = TypeCheck::new();
-    let table = pass.apply(program);
+    let table = pass.apply(module);
     match pass.issues.0.len() {
         0 => Ok(table),
         _ => Err(pass.issues.into()),
@@ -45,18 +45,18 @@ impl TypeCheck {
         }
     }
 
-    fn apply(&mut self, program: &Program) -> SymbolTable {
-        self.push(program.id);
+    fn apply(&mut self, module: &Module) -> SymbolTable {
+        self.push(module.id);
 
-        for global_def in &program.global_defs {
+        for global_var in &module.global_vars {
             self.add_var(
-                global_def.name.clone(),
-                global_def.typ.clone(),
-                global_def.is_const,
+                global_var.name.clone(),
+                global_var.typ.clone(),
+                global_var.is_const,
             );
         }
 
-        for function in &program.functions {
+        for function in &module.functions {
             self.apply_function(function);
         }
         self.pop();
