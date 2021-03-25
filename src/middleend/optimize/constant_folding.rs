@@ -1,11 +1,11 @@
 use crate::{
     common::operator::{BinaryOperator, UnaryOperator},
-    frontend::parser::ast::*,
+    frontend::ast::*,
 };
 
-pub fn optimize(mut program: Program) -> Program {
+pub fn optimize(mut module: Module) -> Module {
     let mut functions = Vec::new();
-    for function in program.functions {
+    for function in module.functions {
         let optimized_body = match function.body {
             Some(body) => Some(opt_statement(body).unwrap_or(Statement::new(
                 StatementKind::Block { stmts: Vec::new() },
@@ -15,15 +15,12 @@ pub fn optimize(mut program: Program) -> Program {
         };
 
         functions.push(Function {
-            name: function.name,
-            params: function.params,
-            ret_typ: function.ret_typ,
             body: optimized_body,
-            pos: function.pos,
+            ..function
         });
     }
-    program.functions = functions;
-    program
+    module.functions = functions;
+    module
 }
 
 fn opt_statement(statement: Statement) -> Option<Statement> {
@@ -57,7 +54,7 @@ fn opt_statement(statement: Statement) -> Option<Statement> {
         StatementKind::If { cond, then, els } => match opt_expression(*cond) {
             Expression {
                 kind: ExpressionKind::Bool { value },
-                pos: _,
+                ..
             } => {
                 return match (value, els) {
                     (true, _) => opt_statement(*then),
@@ -95,11 +92,11 @@ fn opt_expression(expression: Expression) -> Expression {
         ExpressionKind::Ident { .. } => expression,
         ExpressionKind::UnaryOp { op, expr } => Expression {
             kind: opt_unop(op, *expr),
-            pos: expression.pos,
+            ..expression
         },
         ExpressionKind::BinaryOp { op, lhs, rhs } => Expression {
             kind: opt_binop(op, *lhs, *rhs),
-            pos: expression.pos,
+            ..expression
         },
         ExpressionKind::Call { name, args } => {
             let new_args = args.into_iter().map(opt_expression).collect();

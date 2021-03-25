@@ -2,7 +2,7 @@ pub mod error;
 
 use crate::{
     common::{error::Error, pos::Pos},
-    middleend::irgen::ir::*,
+    middleend::ir::*,
 };
 use std::collections::HashMap;
 
@@ -16,9 +16,9 @@ struct RegAlloc {
     reg_map: HashMap<u32, Register>,
 }
 
-pub fn alloc_register(program: IRProgram) -> Result<IRProgram> {
+pub fn alloc_register(module: Module) -> Result<Module> {
     let mut regalloc = RegAlloc::new();
-    Ok(regalloc.alloc_register(program)?)
+    Ok(regalloc.alloc_register(module)?)
 }
 
 impl RegAlloc {
@@ -28,17 +28,17 @@ impl RegAlloc {
         }
     }
 
-    fn alloc_register(&mut self, mut program: IRProgram) -> Result<IRProgram> {
-        for function in program.functions.iter_mut() {
+    fn alloc_register(&mut self, mut module: Module) -> Result<Module> {
+        for function in module.functions.iter_mut() {
             for block in function.blocks.iter_mut() {
                 self.alloc_register_block(block)?;
             }
             self.reg_map.clear();
         }
-        Ok(program)
+        Ok(module)
     }
 
-    fn alloc_register_block(&mut self, block: &mut IRBlock) -> Result<()> {
+    fn alloc_register_block(&mut self, block: &mut Block) -> Result<()> {
         for ir in block.irs.iter_mut() {
             match ir {
                 IR::UnOp { op: _, src } => {

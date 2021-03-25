@@ -1,15 +1,12 @@
+use anyhow::Result;
+use std::fs;
+
 use crate::{
     backend::{gen_x86, regalloc},
     common::cli::CompilerConfig,
-    frontend::{
-        lexer::{self, SourceFile},
-        parser,
-        pass::symbol_pass,
-    },
-    middleend::{irgen, optimize::constant_folding},
+    frontend::{self, lexer::SourceFile},
+    middleend::irgen,
 };
-use anyhow::Result;
-use std::fs;
 
 pub fn compile_to_file(config: CompilerConfig) -> Result<()> {
     let source = SourceFile {
@@ -21,29 +18,22 @@ pub fn compile_to_file(config: CompilerConfig) -> Result<()> {
     Ok(())
 }
 
-pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String> {
-    let tokens = lexer::tokenize(source)?;
-    if config.dump_token {
-        println!("{:#?}", tokens);
-    }
+pub fn compile(source: SourceFile, _config: &CompilerConfig) -> Result<String> {
+    let tokens = frontend::lexer::tokenize(source)?;
+    let module = frontend::parser::parse(tokens)?;
+    let mut symtab = frontend::type_check::apply(&module)?;
+    frontend::sema_check::apply(&module)?;
 
-    let mut program = parser::parse(tokens)?;
-    if config.dump_ast {
-        println!("{:#?}", program);
-    }
-
-    symbol_pass::apply(&program)?;
-
-    if config.optimize {
-        program = constant_folding::optimize(program);
-    }
-
-    let program = irgen::generate(program)?;
-    let program = regalloc::alloc_register(program)?;
-    if config.dump_ir {
-        println!("{}", program.dump());
-    }
-
-    let output = gen_x86::generate(program, config.tse)?;
+    let module = irgen::generate(module, &mut symtab)?;
+    let module = regalloc::alloc_register(module)?;
+    let output = gen_x86::generate(module, false)?;
     Ok(output)
+
+    // let program = middleend::ssa::translate(&program)?;
+    // middleend::optimize::apply(&mut program)?;
+
+    // let code = backend::x86::translate(&program)?;
+    // backend::x86::regalloc::apply(&mut code)?;
+    // backend::x86::optimize::apply(&mut code)?;
+    // backend::x86::generator::generate(code)?;
 }

@@ -1,9 +1,8 @@
 pub mod error;
-pub mod token;
 
 use crate::{
     common::{error::Error, pos::Pos},
-    frontend::lexer::token::{Keyword, Symbol, Token, TokenKind},
+    frontend::token::{Keyword, Symbol, Token, TokenKind},
 };
 use anyhow::Result;
 
