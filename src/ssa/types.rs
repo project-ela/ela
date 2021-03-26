@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Type {
+    I1,
     I32,
 }
 
@@ -10,6 +11,7 @@ impl fmt::Display for Type {
         use self::Type::*;
 
         match self {
+            I1 => write!(f, "i1"),
             I32 => write!(f, "i32"),
         }
     }

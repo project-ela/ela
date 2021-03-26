@@ -11,7 +11,9 @@ fn do_test() {
     let one = ssa::Value::Immediate(ssa::Immediate::I32(1));
     let two = builder.add(one, one);
     let three = builder.add(two, one);
-    builder.ret(three);
+    let cond = builder.eq(two, three);
+
+    builder.ret(cond);
 
     println!("{}", function);
 }

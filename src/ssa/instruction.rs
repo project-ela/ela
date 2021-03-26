@@ -9,6 +9,7 @@ pub type InstructionId = Id<Instruction>;
 #[derive(Debug, Clone)]
 pub enum Instruction {
     Add(Value, Value),
+    Equal(Value, Value),
     Ret(Value),
 }
 
@@ -18,6 +19,7 @@ impl fmt::Display for Instruction {
 
         match self {
             Add(lhs, rhs) => write!(f, "add {}, {}", lhs, rhs),
+            Equal(lhs, rhs) => write!(f, "eq {}, {}", lhs, rhs),
             Ret(val) => write!(f, "ret {}", val),
         }
     }
