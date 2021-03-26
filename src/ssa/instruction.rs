@@ -17,7 +17,7 @@ impl fmt::Display for Instruction {
         use self::Instruction::*;
 
         match self {
-            Add(lhs, rhs) => write!(f, "add {} {}", lhs, rhs),
+            Add(lhs, rhs) => write!(f, "add {}, {}", lhs, rhs),
             Ret(val) => write!(f, "ret {}", val),
         }
     }

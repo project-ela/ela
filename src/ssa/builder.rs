@@ -31,7 +31,7 @@ impl<'a> FunctionBuilder<'a> {
     pub fn add(&mut self, lhs: Value, rhs: Value) -> Value {
         let instruction = self.function.add_instruction(Instruction::Add(lhs, rhs));
         self.current_block().add_instruction(instruction);
-        Value::Instruction(instruction)
+        Value::new_inst(instruction, lhs.typ())
     }
 
     pub fn ret(&mut self, val: Value) {

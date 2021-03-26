@@ -8,7 +8,7 @@ fn do_test() {
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let one = ssa::Value::Immediate(1);
+    let one = ssa::Value::Immediate(ssa::Immediate::I32(1));
     let two = builder.add(one, one);
     let three = builder.add(two, one);
     builder.ret(three);
