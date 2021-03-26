@@ -44,4 +44,14 @@ impl<'a> FunctionBuilder<'a> {
         let inst_id = self.function.add_inst(Instruction::Ret(val));
         self.current_block().add_inst(inst_id);
     }
+
+    pub fn br(&mut self, dst: BlockId) {
+        let inst_id = self.function.add_inst(Instruction::Br(dst));
+        self.current_block().add_inst(inst_id);
+    }
+
+    pub fn cond_br(&mut self, cond: Value, con: BlockId, alt: BlockId) {
+        let inst_id = self.function.add_inst(Instruction::CondBr(cond, con, alt));
+        self.current_block().add_inst(inst_id);
+    }
 }
