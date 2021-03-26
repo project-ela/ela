@@ -30,12 +30,12 @@ impl Function {
         self.blocks.get_mut(id)
     }
 
-    pub fn add_instruction(&mut self, instruction: Instruction) -> InstructionId {
-        self.instructions.alloc(instruction)
+    pub fn add_inst(&mut self, inst: Instruction) -> InstructionId {
+        self.instructions.alloc(inst)
     }
 
-    pub fn instruction(&self, id: InstructionId) -> Option<&Instruction> {
-        self.instructions.get(id)
+    pub fn inst(&self, inst_id: InstructionId) -> Option<&Instruction> {
+        self.instructions.get(inst_id)
     }
 }
 
@@ -46,9 +46,9 @@ impl fmt::Display for Function {
         for (i, block) in &self.blocks {
             writeln!(f, "  b{}:", i.index())?;
 
-            for instruction_id in &block.instructions {
-                let instruction = self.instruction(*instruction_id).unwrap();
-                writeln!(f, "    %{} = {}", instruction_id.index(), instruction)?;
+            for inst_id in &block.instructions {
+                let inst = self.inst(*inst_id).unwrap();
+                writeln!(f, "    %{} = {}", inst_id.index(), inst)?;
             }
 
             writeln!(f, "")?;

@@ -16,7 +16,7 @@ impl Block {
         }
     }
 
-    pub fn add_instruction(&mut self, instruction: InstructionId) {
-        self.instructions.push(instruction)
+    pub fn add_inst(&mut self, inst_id: InstructionId) {
+        self.instructions.push(inst_id)
     }
 }

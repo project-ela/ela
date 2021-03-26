@@ -29,13 +29,13 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn add(&mut self, lhs: Value, rhs: Value) -> Value {
-        let instruction = self.function.add_instruction(Instruction::Add(lhs, rhs));
-        self.current_block().add_instruction(instruction);
-        Value::new_inst(instruction, lhs.typ())
+        let inst_id = self.function.add_inst(Instruction::Add(lhs, rhs));
+        self.current_block().add_inst(inst_id);
+        Value::new_inst(inst_id, lhs.typ())
     }
 
     pub fn ret(&mut self, val: Value) {
-        let instruction = self.function.add_instruction(Instruction::Ret(val));
-        self.current_block().add_instruction(instruction);
+        let inst_id = self.function.add_inst(Instruction::Ret(val));
+        self.current_block().add_inst(inst_id);
     }
 }
