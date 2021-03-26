@@ -1,3 +1,6 @@
+mod function;
+pub use function::*;
+
 mod instruction;
 pub use instruction::*;
 
