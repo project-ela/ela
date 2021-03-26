@@ -1,7 +1,7 @@
-use super::Instruction;
+use super::InstructionId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Value {
     Immediate(u32),
-    Instruction(Instruction),
+    Instruction(InstructionId),
 }
