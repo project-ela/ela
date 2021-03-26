@@ -33,4 +33,9 @@ impl<'a> FunctionBuilder<'a> {
         self.current_block().add_instruction(instruction);
         Value::Instruction(instruction)
     }
+
+    pub fn ret(&mut self, val: Value) {
+        let instruction = self.function.add_instruction(Instruction::Ret(val));
+        self.current_block().add_instruction(instruction);
+    }
 }

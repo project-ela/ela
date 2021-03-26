@@ -1,3 +1,5 @@
+use core::fmt;
+
 use id_arena::Arena;
 
 use super::{Block, BlockId, Instruction, InstructionId};
@@ -30,5 +32,30 @@ impl Function {
 
     pub fn add_instruction(&mut self, instruction: Instruction) -> InstructionId {
         self.instructions.alloc(instruction)
+    }
+
+    pub fn instruction(&self, id: InstructionId) -> Option<&Instruction> {
+        self.instructions.get(id)
+    }
+}
+
+impl fmt::Display for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "func {}() {{", self.name)?;
+
+        for (i, block) in &self.blocks {
+            writeln!(f, "  b{}:", i.index())?;
+
+            for instruction_id in &block.instructions {
+                let instruction = self.instruction(*instruction_id).unwrap();
+                writeln!(f, "    %{} = {}", instruction_id.index(), instruction)?;
+            }
+
+            writeln!(f, "")?;
+        }
+
+        write!(f, "}}")?;
+
+        Ok(())
     }
 }

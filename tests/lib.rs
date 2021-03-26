@@ -11,6 +11,7 @@ fn do_test() {
     let one = ssa::Value::Immediate(1);
     let two = builder.add(one, one);
     let three = builder.add(two, one);
+    builder.ret(three);
 
-    println!("{:?}", function);
+    println!("{}", function);
 }
