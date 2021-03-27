@@ -86,6 +86,7 @@ impl Function {
         use super::Type::*;
 
         match typ {
+            Void => "void".into(),
             I1 => "i1".into(),
             I32 => "i32".into(),
             Pointer(_) => {

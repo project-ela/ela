@@ -10,7 +10,7 @@ fn do_test() {
 }
 
 fn func_hoge() -> ssa::Function {
-    let mut function = ssa::Function::new("hoge", ssa::Type::I32);
+    let mut function = ssa::Function::new("hoge", ssa::Type::Void);
     let mut builder = ssa::FunctionBuilder::new(&mut function);
 
     let entry_block = builder.add_block();

@@ -31,6 +31,8 @@ pub type TypeId = Id<Type>;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Type {
+    Void,
+
     I1,
     I32,
 
