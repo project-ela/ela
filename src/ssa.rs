@@ -16,6 +16,9 @@ pub use immediate::*;
 mod instruction;
 pub use instruction::*;
 
+mod module;
+pub use module::*;
+
 mod types;
 pub use types::*;
 

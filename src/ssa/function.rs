@@ -1,6 +1,8 @@
-use id_arena::Arena;
+use id_arena::{Arena, Id};
 
 use super::{Block, BlockId, Instruction, InstructionId, Types};
+
+pub type FunctionId = Id<Function>;
 
 #[derive(Debug)]
 pub struct Function {

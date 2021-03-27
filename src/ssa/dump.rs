@@ -1,4 +1,14 @@
-use super::{BlockId, Function, Immediate, InstructionId, Type, Value};
+use super::{BlockId, Function, Immediate, InstructionId, Module, Type, Value};
+
+impl Module {
+    pub fn dump(&self) -> String {
+        self.functions
+            .iter()
+            .map(|(_, function)| function.dump())
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
+}
 
 impl Function {
     pub fn dump(&self) -> String {
