@@ -4,6 +4,9 @@ pub use block::*;
 mod builder;
 pub use builder::*;
 
+mod dump;
+pub use dump::*;
+
 mod function;
 pub use function::*;
 

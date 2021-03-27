@@ -1,5 +1,3 @@
-use std::fmt;
-
 use id_arena::Id;
 
 use super::{BlockId, Type, Value};
@@ -18,25 +16,4 @@ pub enum Instruction {
     Ret(Value),
     Br(BlockId),
     CondBr(Value, BlockId, BlockId),
-}
-
-impl fmt::Display for Instruction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::Instruction::*;
-
-        match self {
-            Add(lhs, rhs) => write!(f, "add {}, {}", lhs, rhs),
-            Equal(lhs, rhs) => write!(f, "eq {}, {}", lhs, rhs),
-
-            Alloc(typ) => write!(f, "alloc {}", typ),
-            Load(src) => write!(f, "load {}", src),
-            Store(dst, src) => write!(f, "store {}, {}", dst, src),
-
-            Ret(val) => write!(f, "ret {}", val),
-            Br(dst) => write!(f, "br b{}", dst.index()),
-            CondBr(cond, con, alt) => {
-                write!(f, "br {} -> b{} b{} ", cond, con.index(), alt.index())
-            }
-        }
-    }
 }

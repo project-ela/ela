@@ -33,5 +33,5 @@ fn do_test() {
     builder.set_block(block3);
     builder.ret(cond);
 
-    println!("{}", function);
+    println!("{}", function.dump());
 }

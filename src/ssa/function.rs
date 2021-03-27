@@ -1,5 +1,3 @@
-use core::fmt;
-
 use id_arena::Arena;
 
 use super::{Block, BlockId, Instruction, InstructionId, Types};
@@ -39,26 +37,5 @@ impl Function {
 
     pub fn inst(&self, inst_id: InstructionId) -> Option<&Instruction> {
         self.instructions.get(inst_id)
-    }
-}
-
-impl fmt::Display for Function {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "func {}() {{", self.name)?;
-
-        for (i, block) in &self.blocks {
-            writeln!(f, "  b{}:", i.index())?;
-
-            for inst_id in &block.instructions {
-                let inst = self.inst(*inst_id).unwrap();
-                writeln!(f, "    %{} = {}", inst_id.index(), inst)?;
-            }
-
-            writeln!(f, "")?;
-        }
-
-        write!(f, "}}")?;
-
-        Ok(())
     }
 }
