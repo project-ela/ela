@@ -19,7 +19,12 @@ impl Function {
             .collect::<Vec<String>>()
             .join("\n");
 
-        format!("func {}() {{\n{}\n}}\n", self.name, block_str)
+        format!(
+            "func {}() {} {{\n{}\n}}\n",
+            self.name,
+            self.dump_type(self.ret_typ),
+            block_str
+        )
     }
 
     fn dump_block(&self, block_id: BlockId) -> String {

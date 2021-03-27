@@ -1,12 +1,14 @@
 use id_arena::{Arena, Id};
 
-use super::{Block, BlockId, Instruction, InstructionId, Types};
+use super::{Block, BlockId, Instruction, InstructionId, Type, Types};
 
 pub type FunctionId = Id<Function>;
 
 #[derive(Debug)]
 pub struct Function {
     pub name: String,
+
+    pub ret_typ: Type,
 
     pub blocks: Arena<Block>,
 
@@ -16,9 +18,10 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &str, ret_typ: Type) -> Self {
         Self {
             name: name.into(),
+            ret_typ,
             blocks: Arena::new(),
             instructions: Arena::new(),
             types: Types::new(),
