@@ -9,6 +9,11 @@ fn do_test() {
     builder.set_block(entry_block);
 
     let one = ssa::Value::Immediate(ssa::Immediate::I32(1));
+
+    let mem = builder.alloc(ssa::Type::I32);
+    builder.store(mem, one);
+    let one = builder.load(mem);
+
     let two = builder.add(one, one);
 
     let block1 = builder.add_block();

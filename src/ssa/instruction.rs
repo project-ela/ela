@@ -2,7 +2,7 @@ use std::fmt;
 
 use id_arena::Id;
 
-use super::{BlockId, Value};
+use super::{BlockId, Type, Value};
 
 pub type InstructionId = Id<Instruction>;
 
@@ -10,6 +10,11 @@ pub type InstructionId = Id<Instruction>;
 pub enum Instruction {
     Add(Value, Value),
     Equal(Value, Value),
+
+    Alloc(Type),
+    Load(Value),
+    Store(Value, Value),
+
     Ret(Value),
     Br(BlockId),
     CondBr(Value, BlockId, BlockId),
@@ -22,6 +27,11 @@ impl fmt::Display for Instruction {
         match self {
             Add(lhs, rhs) => write!(f, "add {}, {}", lhs, rhs),
             Equal(lhs, rhs) => write!(f, "eq {}, {}", lhs, rhs),
+
+            Alloc(typ) => write!(f, "alloc {}", typ),
+            Load(src) => write!(f, "load {}", src),
+            Store(dst, src) => write!(f, "store {}, {}", dst, src),
+
             Ret(val) => write!(f, "ret {}", val),
             Br(dst) => write!(f, "br b{}", dst.index()),
             CondBr(cond, con, alt) => {

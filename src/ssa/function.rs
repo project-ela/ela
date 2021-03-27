@@ -2,7 +2,7 @@ use core::fmt;
 
 use id_arena::Arena;
 
-use super::{Block, BlockId, Instruction, InstructionId};
+use super::{Block, BlockId, Instruction, InstructionId, Types};
 
 #[derive(Debug)]
 pub struct Function {
@@ -11,6 +11,8 @@ pub struct Function {
     pub blocks: Arena<Block>,
 
     pub instructions: Arena<Instruction>,
+
+    pub types: Types,
 }
 
 impl Function {
@@ -19,6 +21,7 @@ impl Function {
             name: name.into(),
             blocks: Arena::new(),
             instructions: Arena::new(),
+            types: Types::new(),
         }
     }
 

@@ -40,6 +40,25 @@ impl<'a> FunctionBuilder<'a> {
         Value::new_inst(inst_id, Type::I1)
     }
 
+    pub fn alloc(&mut self, typ: Type) -> Value {
+        let inst_id = self.function.add_inst(Instruction::Alloc(typ));
+        self.current_block().add_inst(inst_id);
+        let ptr_typ = self.function.types.ptr_to(typ);
+        Value::new_inst(inst_id, ptr_typ)
+    }
+
+    pub fn load(&mut self, src: Value) -> Value {
+        let inst_id = self.function.add_inst(Instruction::Load(src));
+        self.current_block().add_inst(inst_id);
+        let elm_typ = self.function.types.elm_typ(src.typ());
+        Value::new_inst(inst_id, elm_typ)
+    }
+
+    pub fn store(&mut self, dst: Value, src: Value) {
+        let inst_id = self.function.add_inst(Instruction::Store(dst, src));
+        self.current_block().add_inst(inst_id);
+    }
+
     pub fn ret(&mut self, val: Value) {
         let inst_id = self.function.add_inst(Instruction::Ret(val));
         self.current_block().add_inst(inst_id);
