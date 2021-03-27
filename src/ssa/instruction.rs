@@ -1,6 +1,6 @@
 use id_arena::Id;
 
-use super::{BlockId, Type, Value};
+use super::{BlockId, FunctionId, Type, Value};
 
 pub type InstructionId = Id<Instruction>;
 
@@ -8,6 +8,8 @@ pub type InstructionId = Id<Instruction>;
 pub enum Instruction {
     Add(Value, Value),
     Equal(Value, Value),
+
+    Call(FunctionId),
 
     Alloc(Type),
     Load(Value),

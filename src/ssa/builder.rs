@@ -1,4 +1,4 @@
-use super::{Block, BlockId, Function, Instruction, Type, Value};
+use super::{Block, BlockId, Function, FunctionId, Instruction, Module, Type, Value};
 
 #[derive(Debug)]
 pub struct FunctionBuilder<'a> {
@@ -38,6 +38,13 @@ impl<'a> FunctionBuilder<'a> {
         let inst_id = self.function.add_inst(Instruction::Add(lhs, rhs));
         self.current_block().add_inst(inst_id);
         Value::new_inst(inst_id, Type::I1)
+    }
+
+    pub fn call(&mut self, module: &Module, func_id: FunctionId) -> Value {
+        let inst_id = self.function.add_inst(Instruction::Call(func_id));
+        self.current_block().add_inst(inst_id);
+        let ret_typ = module.function(func_id).unwrap().ret_typ;
+        Value::new_inst(inst_id, ret_typ)
     }
 
     pub fn alloc(&mut self, typ: Type) -> Value {

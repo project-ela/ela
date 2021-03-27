@@ -3,20 +3,21 @@ use siderow::ssa;
 #[test]
 fn do_test() {
     let mut module = ssa::Module::new();
-    module.add_function(func_hoge());
-    module.add_function(func_fuga());
+
+    let func_fuga = module.add_function(func_fuga());
+    module.add_function(func_hoge(&module, func_fuga));
 
     println!("{}", module.dump());
 }
 
-fn func_hoge() -> ssa::Function {
+fn func_hoge(module: &ssa::Module, func_fuga: ssa::FunctionId) -> ssa::Function {
     let mut function = ssa::Function::new("hoge", ssa::Type::Void);
     let mut builder = ssa::FunctionBuilder::new(&mut function);
 
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let one = ssa::Value::Immediate(ssa::Immediate::I32(1));
+    let one = builder.call(module, func_fuga);
 
     let mem = builder.alloc(ssa::Type::I32);
     builder.store(mem, one);

@@ -17,4 +17,8 @@ impl Module {
     pub fn add_function(&mut self, function: Function) -> FunctionId {
         self.functions.alloc(function)
     }
+
+    pub fn function(&self, func_id: FunctionId) -> Option<&Function> {
+        self.functions.get(func_id)
+    }
 }
