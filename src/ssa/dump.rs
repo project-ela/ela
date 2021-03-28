@@ -1,4 +1,7 @@
-use super::{BlockId, Constant, Function, InstructionId, Module, Terminator, Type, Value};
+use super::{
+    BinaryOperator, BlockId, ComparisonOperator, Constant, Function, InstructionId, Module,
+    Terminator, Type, Value,
+};
 
 impl Module {
     pub fn dump(&self) -> String {
@@ -62,8 +65,8 @@ impl Function {
 
         let inst = self.instructions.get(inst_id).unwrap();
         let inst_str = match inst {
-            Add(lhs, rhs) => format!("add {}, {}", lhs.dump(self), rhs.dump(self)),
-            Equal(lhs, rhs) => format!("eq {}, {}", lhs.dump(self), rhs.dump(self)),
+            BinOp(op, lhs, rhs) => format!("{} {}, {}", op.dump(), lhs.dump(self), rhs.dump(self)),
+            Cmp(op, lhs, rhs) => format!("{} {}, {}", op.dump(), lhs.dump(self), rhs.dump(self)),
 
             Call(func_id, args) => {
                 let args_str = args
@@ -105,6 +108,42 @@ impl Terminator {
                 )
             }
         }
+    }
+}
+
+impl BinaryOperator {
+    fn dump(&self) -> String {
+        use super::BinaryOperator::*;
+
+        match self {
+            Add => "add",
+            Sub => "sub",
+            Mul => "mul",
+            Div => "div",
+            Rem => "rem",
+            Shl => "shl",
+            Shr => "shr",
+            And => "and",
+            Or => "or",
+            Xor => "xor",
+        }
+        .into()
+    }
+}
+
+impl ComparisonOperator {
+    fn dump(&self) -> String {
+        use super::ComparisonOperator::*;
+
+        match self {
+            Eq => "eq",
+            Neq => "neq",
+            Gt => "gt",
+            Gte => "gte",
+            Lt => "lt",
+            Lte => "lte",
+        }
+        .into()
     }
 }
 

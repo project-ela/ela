@@ -1,4 +1,7 @@
-use super::{Block, BlockId, Function, FunctionId, Instruction, Module, Terminator, Type, Value};
+use super::{
+    BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId, Instruction, Module,
+    Terminator, Type, Value,
+};
 
 #[derive(Debug)]
 pub struct FunctionBuilder<'a> {
@@ -32,37 +35,30 @@ impl<'a> FunctionBuilder<'a> {
         self.function.block_mut(block_id).unwrap()
     }
 
-    pub fn add(&mut self, lhs: Value, rhs: Value) -> Value {
-        let inst_id = self.function.add_inst(Instruction::Add(lhs, rhs));
+    fn add_inst(&mut self, inst: Instruction, typ: Type) -> Value {
+        let inst_id = self.function.add_inst(inst);
         self.current_block().add_inst(inst_id);
-        Value::new_inst(inst_id, lhs.typ())
+        Value::new_inst(inst_id, typ)
     }
 
-    pub fn eq(&mut self, lhs: Value, rhs: Value) -> Value {
-        let inst_id = self.function.add_inst(Instruction::Equal(lhs, rhs));
-        self.current_block().add_inst(inst_id);
-        Value::new_inst(inst_id, Type::I1)
+    fn add_term(&mut self, term: Terminator) {
+        let term_id = self.function.add_term(term);
+        self.current_block().set_term(term_id);
     }
 
     pub fn call(&mut self, module: &Module, func_id: FunctionId, args: Vec<Value>) -> Value {
-        let inst_id = self.function.add_inst(Instruction::Call(func_id, args));
-        self.current_block().add_inst(inst_id);
         let ret_typ = module.function(func_id).unwrap().ret_typ;
-        Value::new_inst(inst_id, ret_typ)
+        self.add_inst(Instruction::Call(func_id, args), ret_typ)
     }
 
     pub fn alloc(&mut self, typ: Type) -> Value {
-        let inst_id = self.function.add_inst(Instruction::Alloc(typ));
-        self.current_block().add_inst(inst_id);
         let ptr_typ = self.function.types.ptr_to(typ);
-        Value::new_inst(inst_id, ptr_typ)
+        self.add_inst(Instruction::Alloc(typ), ptr_typ)
     }
 
     pub fn load(&mut self, src: Value) -> Value {
-        let inst_id = self.function.add_inst(Instruction::Load(src));
-        self.current_block().add_inst(inst_id);
         let elm_typ = self.function.types.elm_typ(src.typ());
-        Value::new_inst(inst_id, elm_typ)
+        self.add_inst(Instruction::Load(src), elm_typ)
     }
 
     pub fn store(&mut self, dst: Value, src: Value) {
@@ -71,17 +67,54 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn ret(&mut self, val: Value) {
-        let term_id = self.function.add_term(Terminator::Ret(val));
-        self.current_block().set_term(term_id);
+        self.add_term(Terminator::Ret(val));
     }
 
     pub fn br(&mut self, dst: BlockId) {
-        let term_id = self.function.add_term(Terminator::Br(dst));
-        self.current_block().set_term(term_id);
+        self.add_term(Terminator::Br(dst));
     }
 
     pub fn cond_br(&mut self, cond: Value, con: BlockId, alt: BlockId) {
-        let term_id = self.function.add_term(Terminator::CondBr(cond, con, alt));
-        self.current_block().set_term(term_id);
+        self.add_term(Terminator::CondBr(cond, con, alt));
     }
 }
+
+macro_rules! binop {
+    ($name: tt, $op: tt) => {
+        impl<'a> FunctionBuilder<'a> {
+            pub fn $name(&mut self, lhs: Value, rhs: Value) -> Value {
+                let inst = Instruction::BinOp(BinaryOperator::$op, lhs, rhs);
+                self.add_inst(inst, lhs.typ())
+            }
+        }
+    };
+}
+
+macro_rules! cmp {
+    ($name: tt, $op: tt) => {
+        impl<'a> FunctionBuilder<'a> {
+            pub fn $name(&mut self, lhs: Value, rhs: Value) -> Value {
+                let inst = Instruction::Cmp(ComparisonOperator::$op, lhs, rhs);
+                self.add_inst(inst, lhs.typ())
+            }
+        }
+    };
+}
+
+binop!(add, Add);
+binop!(sub, Add);
+binop!(mul, Add);
+binop!(div, Add);
+binop!(rem, Add);
+binop!(shl, Add);
+binop!(shr, Add);
+binop!(and, Add);
+binop!(or, Add);
+binop!(xor, Add);
+
+cmp!(eq, Eq);
+cmp!(neq, Neq);
+cmp!(gt, Gt);
+cmp!(gte, Gte);
+cmp!(lt, Lt);
+cmp!(lte, Lte);

@@ -4,10 +4,10 @@ use super::{BlockId, FunctionId, Type, Value};
 
 pub type InstructionId = Id<Instruction>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Instruction {
-    Add(Value, Value),
-    Equal(Value, Value),
+    BinOp(BinaryOperator, Value, Value),
+    Cmp(ComparisonOperator, Value, Value),
 
     Call(FunctionId, Vec<Value>),
     Arg(usize),
@@ -15,6 +15,33 @@ pub enum Instruction {
     Alloc(Type),
     Load(Value),
     Store(Value, Value),
+}
+
+#[derive(Debug)]
+pub enum BinaryOperator {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+
+    Shl,
+    Shr,
+
+    And,
+    Or,
+    Xor,
+}
+
+#[derive(Debug)]
+pub enum ComparisonOperator {
+    Eq,
+    Neq,
+
+    Gt,
+    Gte,
+    Lt,
+    Lte,
 }
 
 pub type TerminatorId = Id<Terminator>;
