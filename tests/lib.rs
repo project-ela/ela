@@ -17,7 +17,7 @@ fn func_hoge(module: &ssa::Module, func_fuga: ssa::FunctionId) -> ssa::Function 
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let one = ssa::Value::Immediate(ssa::Immediate::I32(1));
+    let one = ssa::Value::Constant(ssa::Constant::I32(1));
     let one = builder.call(module, func_fuga, vec![one]);
 
     let mem = builder.alloc(ssa::Type::I32);

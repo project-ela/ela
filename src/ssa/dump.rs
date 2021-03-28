@@ -1,4 +1,4 @@
-use super::{BlockId, Function, Immediate, InstructionId, Module, Type, Value};
+use super::{BlockId, Constant, Function, InstructionId, Module, Type, Value};
 
 impl Module {
     pub fn dump(&self) -> String {
@@ -97,7 +97,7 @@ impl Value {
         use super::Value::*;
 
         match self {
-            Immediate(imm) => format!("{} {}", self.typ().dump(func), imm.dump()),
+            Constant(r#const) => format!("{} {}", self.typ().dump(func), r#const.dump()),
             Instruction(inst_val) => {
                 format!("{} %{}", self.typ().dump(func), inst_val.inst_id.index())
             }
@@ -122,9 +122,9 @@ impl Type {
     }
 }
 
-impl Immediate {
+impl Constant {
     fn dump(&self) -> String {
-        use super::Immediate::*;
+        use super::Constant::*;
 
         match self {
             I32(x) => format!("{}", x),

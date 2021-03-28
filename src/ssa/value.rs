@@ -1,8 +1,8 @@
-use super::{Function, Immediate, InstructionId, Type};
+use super::{Constant, Function, InstructionId, Type};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Value {
-    Immediate(Immediate),
+    Constant(Constant),
     Instruction(InstructionValue),
     Parameter(ParameterValue),
 }
@@ -36,7 +36,7 @@ impl Value {
         use self::Value::*;
 
         match self {
-            Immediate(imm) => imm.typ(),
+            Constant(r#const) => r#const.typ(),
             Instruction(InstructionValue { typ, .. }) => *typ,
             Parameter(ParameterValue { typ, .. }) => *typ,
         }
