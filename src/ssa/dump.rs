@@ -182,7 +182,10 @@ impl Value {
     fn dump(&self, module: &Module, func: &Function) -> String {
         use super::Value::*;
 
-        let typ_str = self.typ().dump(&func.types);
+        let typ_str = match self {
+            Global(_) => self.typ().dump(&module.types),
+            _ => self.typ().dump(&func.types),
+        };
 
         match self {
             Constant(r#const) => format!("{} {}", typ_str, r#const.dump()),

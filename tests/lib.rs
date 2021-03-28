@@ -1,11 +1,11 @@
-use siderow::ssa;
+use siderow::{arch::x86, ssa};
 
 #[test]
 fn do_test() {
     let mut module = ssa::Module::new();
 
-    let global_piyo = ssa::Global::new("piyo", ssa::Type::I32);
-    let global_piyo = module.add_global(global_piyo);
+    let global_piyo = module.add_global(ssa::Global::new("piyo", ssa::Type::I32));
+    let global_piyo = ssa::Value::new_global(&mut module, global_piyo);
 
     let func_fuga = module.add_function(func_fuga());
     module.add_function(func_hoge(&module, func_fuga, global_piyo));
@@ -16,7 +16,7 @@ fn do_test() {
 fn func_hoge(
     module: &ssa::Module,
     func_fuga: ssa::FunctionId,
-    global_piyo: ssa::GlobalId,
+    global_piyo: ssa::Value,
 ) -> ssa::Function {
     let mut function = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
     let mut builder = ssa::FunctionBuilder::new(&mut function);
@@ -29,7 +29,7 @@ fn func_hoge(
 
     let mem = builder.alloc(ssa::Type::I32);
     builder.store(mem, one);
-    let one = builder.load(mem);
+    let one = builder.load(module, mem);
 
     let two = builder.add(one, one);
 
@@ -37,7 +37,7 @@ fn func_hoge(
     builder.br(block1);
     builder.set_block(block1);
 
-    let piyo = ssa::Value::new_global(module, global_piyo);
+    let piyo = builder.load(module, global_piyo);
     let three = builder.add(two, piyo);
     let cond = builder.eq(two, three);
 

@@ -36,9 +36,13 @@ impl Value {
         Self::Parameter(ParameterValue { index, typ })
     }
 
-    pub fn new_global(module: &Module, global_id: GlobalId) -> Self {
+    pub fn new_global(module: &mut Module, global_id: GlobalId) -> Self {
         let typ = module.global(global_id).unwrap().typ;
-        Self::Global(GlobalValue { global_id, typ })
+        let ptr_typ = module.types.ptr_to(typ);
+        Self::Global(GlobalValue {
+            global_id,
+            typ: ptr_typ,
+        })
     }
 
     pub fn typ(&self) -> Type {

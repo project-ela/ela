@@ -56,8 +56,11 @@ impl<'a> FunctionBuilder<'a> {
         self.add_inst(Instruction::Alloc(typ), ptr_typ)
     }
 
-    pub fn load(&mut self, src: Value) -> Value {
-        let elm_typ = self.function.types.elm_typ(src.typ());
+    pub fn load(&mut self, module: &Module, src: Value) -> Value {
+        let elm_typ = match src {
+            Value::Global(_) => module.types.elm_typ(src.typ()),
+            _ => self.function.types.elm_typ(src.typ()),
+        };
         self.add_inst(Instruction::Load(src), elm_typ)
     }
 
