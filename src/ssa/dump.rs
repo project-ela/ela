@@ -25,7 +25,12 @@ impl Module {
 
 impl Global {
     fn dump(&self, module: &Module) -> String {
-        format!("@{}: {}", self.name, self.typ.dump(&module.types))
+        format!(
+            "@{} = {} {}",
+            self.name,
+            self.typ.dump(&module.types),
+            self.init_value.dump()
+        )
     }
 }
 

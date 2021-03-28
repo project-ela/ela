@@ -1,6 +1,6 @@
 use id_arena::Id;
 
-use super::Type;
+use super::{Constant, Type};
 
 pub type GlobalId = Id<Global>;
 
@@ -8,14 +8,17 @@ pub type GlobalId = Id<Global>;
 pub struct Global {
     pub name: String,
 
+    pub init_value: Constant,
+
     pub typ: Type,
 }
 
 impl Global {
-    pub fn new(name: &str, typ: Type) -> Self {
+    pub fn new(name: &str, init_value: Constant) -> Self {
         Self {
             name: name.into(),
-            typ,
+            init_value,
+            typ: init_value.typ(),
         }
     }
 }

@@ -4,7 +4,7 @@ use siderow::{arch::x86, ssa};
 fn do_test() {
     let mut module = ssa::Module::new();
 
-    let global_piyo = module.add_global(ssa::Global::new("piyo", ssa::Type::I32));
+    let global_piyo = module.add_global(ssa::Global::new("piyo", ssa::Constant::I32(0)));
     let global_piyo = ssa::Value::new_global(&mut module, global_piyo);
 
     let func_fuga = module.add_function(func_fuga());
