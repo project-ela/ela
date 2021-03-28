@@ -47,7 +47,7 @@ impl Function {
             .join("\n\n");
 
         format!(
-            "func {}({}) {} {{\n{}\n}}\n",
+            "func @{}({}) {} {{\n{}\n}}\n",
             self.name,
             param_str,
             self.ret_typ.dump(&module.types),
@@ -103,8 +103,8 @@ impl Function {
 
                 let func_name = &module.function(*func_id).unwrap().name;
                 match args.len() {
-                    0 => format!("call {}", func_name),
-                    _ => format!("call {}, {}", func_name, args_str),
+                    0 => format!("call @{}", func_name),
+                    _ => format!("call @{}({})", func_name, args_str),
                 }
             }
             Arg(index) => format!("arg {}", index),
