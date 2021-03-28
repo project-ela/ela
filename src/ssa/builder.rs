@@ -102,7 +102,7 @@ macro_rules! cmp {
         impl<'a> FunctionBuilder<'a> {
             pub fn $name(&mut self, lhs: Value, rhs: Value) -> Value {
                 let inst = Instruction::Cmp(ComparisonOperator::$op, lhs, rhs);
-                self.add_inst(inst, lhs.typ())
+                self.add_inst(inst, Type::I1)
             }
         }
     };
