@@ -4,13 +4,20 @@ use siderow::ssa;
 fn do_test() {
     let mut module = ssa::Module::new();
 
+    let global_piyo = ssa::Global::new("piyo", ssa::Type::I32);
+    let global_piyo = module.add_global(global_piyo);
+
     let func_fuga = module.add_function(func_fuga());
-    module.add_function(func_hoge(&module, func_fuga));
+    module.add_function(func_hoge(&module, func_fuga, global_piyo));
 
     println!("{}", module.dump());
 }
 
-fn func_hoge(module: &ssa::Module, func_fuga: ssa::FunctionId) -> ssa::Function {
+fn func_hoge(
+    module: &ssa::Module,
+    func_fuga: ssa::FunctionId,
+    global_piyo: ssa::GlobalId,
+) -> ssa::Function {
     let mut function = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
     let mut builder = ssa::FunctionBuilder::new(&mut function);
 
@@ -30,7 +37,8 @@ fn func_hoge(module: &ssa::Module, func_fuga: ssa::FunctionId) -> ssa::Function 
     builder.br(block1);
     builder.set_block(block1);
 
-    let three = builder.add(two, one);
+    let piyo = ssa::Value::new_global(module, global_piyo);
+    let three = builder.add(two, piyo);
     let cond = builder.eq(two, three);
 
     let block2 = builder.add_block();

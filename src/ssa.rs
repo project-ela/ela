@@ -13,6 +13,9 @@ pub use dump::*;
 mod function;
 pub use function::*;
 
+mod global;
+pub use global::*;
+
 mod instruction;
 pub use instruction::*;
 
