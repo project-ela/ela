@@ -1,6 +1,7 @@
 use siderow::{arch::x86, ssa};
 
 #[test]
+#[ignore]
 fn do_test() {
     let mut module = ssa::Module::new();
 
@@ -11,6 +12,26 @@ fn do_test() {
     module.add_function(func_hoge(&module, func_fuga, global_piyo));
 
     println!("{}", module.dump());
+}
+
+#[test]
+fn do_test2() {
+    let mut module = ssa::Module::new();
+
+    let mut func_hoge = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
+    let mut builder = ssa::FunctionBuilder::new(&mut func_hoge);
+    let entry_block = builder.add_block();
+    builder.set_block(entry_block);
+
+    let one = ssa::Value::Constant(ssa::Constant::I32(42));
+    builder.ret(one);
+
+    module.add_function(func_hoge);
+
+    println!("{}", module.dump());
+    let assembly = x86::instsel::translate(module);
+
+    println!("{}", assembly.stringify());
 }
 
 fn func_hoge(
