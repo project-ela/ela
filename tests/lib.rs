@@ -11,13 +11,14 @@ fn do_test() {
 }
 
 fn func_hoge(module: &ssa::Module, func_fuga: ssa::FunctionId) -> ssa::Function {
-    let mut function = ssa::Function::new("hoge", ssa::Type::Void);
+    let mut function = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
     let mut builder = ssa::FunctionBuilder::new(&mut function);
 
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let one = builder.call(module, func_fuga);
+    let one = ssa::Value::Immediate(ssa::Immediate::I32(1));
+    let one = builder.call(module, func_fuga, vec![one]);
 
     let mem = builder.alloc(ssa::Type::I32);
     builder.store(mem, one);
@@ -46,14 +47,14 @@ fn func_hoge(module: &ssa::Module, func_fuga: ssa::FunctionId) -> ssa::Function 
 }
 
 fn func_fuga() -> ssa::Function {
-    let mut function = ssa::Function::new("fuga", ssa::Type::I32);
+    let mut function = ssa::Function::new("fuga", ssa::Type::I32, vec![ssa::Type::I32]);
     let mut builder = ssa::FunctionBuilder::new(&mut function);
 
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let one = ssa::Value::Immediate(ssa::Immediate::I32(1));
-    builder.ret(one);
+    let param = ssa::Value::new_param(builder.function(), 0);
+    builder.ret(param);
 
     function
 }

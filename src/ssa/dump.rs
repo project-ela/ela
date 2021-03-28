@@ -12,6 +12,14 @@ impl Module {
 
 impl Function {
     pub fn dump(&self, module: &Module) -> String {
+        let param_str = self
+            .param_typ
+            .iter()
+            .enumerate()
+            .map(|(i, typ)| format!("{} %{}", typ.dump(self), i))
+            .collect::<Vec<String>>()
+            .join(", ");
+
         let block_str = self
             .blocks
             .iter()
@@ -20,8 +28,9 @@ impl Function {
             .join("\n");
 
         format!(
-            "func {}() {} {{\n{}\n}}\n",
+            "func {}({}) {} {{\n{}\n}}\n",
             self.name,
+            param_str,
             self.ret_typ.dump(self),
             block_str
         )
@@ -48,7 +57,20 @@ impl Function {
             Add(lhs, rhs) => format!("add {}, {}", lhs.dump(self), rhs.dump(self)),
             Equal(lhs, rhs) => format!("eq {}, {}", lhs.dump(self), rhs.dump(self)),
 
-            Call(func_id) => format!("call {}", module.function(*func_id).unwrap().name),
+            Call(func_id, args) => {
+                let args_str = args
+                    .iter()
+                    .map(|arg| arg.dump(self))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                let func_name = &module.function(*func_id).unwrap().name;
+                match args.len() {
+                    0 => format!("call {}", func_name),
+                    _ => format!("call {}, {}", func_name, args_str),
+                }
+            }
+            Arg(index) => format!("arg {}", index),
 
             Alloc(typ) => format!("alloc {}", typ.dump(self)),
             Load(src) => format!("load {}", src.dump(self)),
@@ -79,6 +101,7 @@ impl Value {
             Instruction(inst_val) => {
                 format!("{} %{}", self.typ().dump(func), inst_val.inst_id.index())
             }
+            Parameter(param_val) => format!("{} %{}", self.typ().dump(func), param_val.index),
         }
     }
 }

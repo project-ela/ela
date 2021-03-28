@@ -9,7 +9,8 @@ pub enum Instruction {
     Add(Value, Value),
     Equal(Value, Value),
 
-    Call(FunctionId),
+    Call(FunctionId, Vec<Value>),
+    Arg(usize),
 
     Alloc(Type),
     Load(Value),

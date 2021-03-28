@@ -15,6 +15,10 @@ impl<'a> FunctionBuilder<'a> {
         }
     }
 
+    pub fn function(&self) -> &Function {
+        &self.function
+    }
+
     pub fn add_block(&mut self) -> BlockId {
         self.function.add_block()
     }
@@ -40,8 +44,8 @@ impl<'a> FunctionBuilder<'a> {
         Value::new_inst(inst_id, Type::I1)
     }
 
-    pub fn call(&mut self, module: &Module, func_id: FunctionId) -> Value {
-        let inst_id = self.function.add_inst(Instruction::Call(func_id));
+    pub fn call(&mut self, module: &Module, func_id: FunctionId, args: Vec<Value>) -> Value {
+        let inst_id = self.function.add_inst(Instruction::Call(func_id, args));
         self.current_block().add_inst(inst_id);
         let ret_typ = module.function(func_id).unwrap().ret_typ;
         Value::new_inst(inst_id, ret_typ)

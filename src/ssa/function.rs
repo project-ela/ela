@@ -8,6 +8,8 @@ pub type FunctionId = Id<Function>;
 pub struct Function {
     pub name: String,
 
+    pub param_typ: Vec<Type>,
+
     pub ret_typ: Type,
 
     pub blocks: Arena<Block>,
@@ -18,12 +20,18 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(name: &str, ret_typ: Type) -> Self {
+    pub fn new(name: &str, ret_typ: Type, param_typ: Vec<Type>) -> Self {
+        let mut instructions = Arena::new();
+        for (i, _) in param_typ.iter().enumerate() {
+            instructions.alloc(Instruction::Arg(i));
+        }
+
         Self {
             name: name.into(),
+            param_typ,
             ret_typ,
             blocks: Arena::new(),
-            instructions: Arena::new(),
+            instructions,
             types: Types::new(),
         }
     }
