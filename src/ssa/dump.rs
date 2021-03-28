@@ -127,6 +127,7 @@ impl Constant {
         use super::Constant::*;
 
         match self {
+            I1(x) => format!("{}", *x as u32),
             I32(x) => format!("{}", x),
         }
     }
