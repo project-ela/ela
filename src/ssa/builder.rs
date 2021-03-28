@@ -66,8 +66,12 @@ impl<'a> FunctionBuilder<'a> {
         self.current_block().add_inst(inst_id);
     }
 
+    pub fn ret_void(&mut self) {
+        self.add_term(Terminator::Ret(None));
+    }
+
     pub fn ret(&mut self, val: Value) {
-        self.add_term(Terminator::Ret(val));
+        self.add_term(Terminator::Ret(Some(val)));
     }
 
     pub fn br(&mut self, dst: BlockId) {

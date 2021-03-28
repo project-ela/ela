@@ -48,7 +48,7 @@ pub type TerminatorId = Id<Terminator>;
 
 #[derive(Debug)]
 pub enum Terminator {
-    Ret(Value),
+    Ret(Option<Value>),
     Br(BlockId),
     CondBr(Value, BlockId, BlockId),
 }

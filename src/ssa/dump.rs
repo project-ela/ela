@@ -127,7 +127,8 @@ impl Terminator {
         use super::Terminator::*;
 
         match self {
-            Ret(val) => format!("  ret {}", val.dump(module, func)),
+            Ret(Some(val)) => format!("  ret {}", val.dump(module, func)),
+            Ret(None) => format!("  ret"),
             Br(dst) => format!("  br b{}", dst.index()),
             CondBr(cond, con, alt) => {
                 format!(
