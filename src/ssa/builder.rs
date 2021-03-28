@@ -39,7 +39,7 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn eq(&mut self, lhs: Value, rhs: Value) -> Value {
-        let inst_id = self.function.add_inst(Instruction::Add(lhs, rhs));
+        let inst_id = self.function.add_inst(Instruction::Equal(lhs, rhs));
         self.current_block().add_inst(inst_id);
         Value::new_inst(inst_id, Type::I1)
     }
