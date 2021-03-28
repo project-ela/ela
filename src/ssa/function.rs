@@ -1,6 +1,6 @@
 use id_arena::{Arena, Id};
 
-use super::{Block, BlockId, Instruction, InstructionId, Type, Types};
+use super::{Block, BlockId, Instruction, InstructionId, Terminator, TerminatorId, Type, Types};
 
 pub type FunctionId = Id<Function>;
 
@@ -15,6 +15,8 @@ pub struct Function {
     pub blocks: Arena<Block>,
 
     pub instructions: Arena<Instruction>,
+
+    pub terminators: Arena<Terminator>,
 
     pub types: Types,
 }
@@ -32,6 +34,7 @@ impl Function {
             ret_typ,
             blocks: Arena::new(),
             instructions,
+            terminators: Arena::new(),
             types: Types::new(),
         }
     }
@@ -50,5 +53,13 @@ impl Function {
 
     pub fn inst(&self, inst_id: InstructionId) -> Option<&Instruction> {
         self.instructions.get(inst_id)
+    }
+
+    pub fn add_term(&mut self, term: Terminator) -> TerminatorId {
+        self.terminators.alloc(term)
+    }
+
+    pub fn term(&self, term_id: TerminatorId) -> Option<&Terminator> {
+        self.terminators.get(term_id)
     }
 }

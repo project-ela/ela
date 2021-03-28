@@ -1,4 +1,4 @@
-use super::{BlockId, Constant, Function, InstructionId, Module, Type, Value};
+use super::{BlockId, Constant, Function, InstructionId, Module, Terminator, Type, Value};
 
 impl Module {
     pub fn dump(&self) -> String {
@@ -25,7 +25,7 @@ impl Function {
             .iter()
             .map(|(block_id, _)| self.dump_block(module, block_id))
             .collect::<Vec<String>>()
-            .join("\n");
+            .join("\n\n");
 
         format!(
             "func {}({}) {} {{\n{}\n}}\n",
@@ -46,7 +46,15 @@ impl Function {
             .collect::<Vec<String>>()
             .join("\n");
 
-        format!("  b{}:\n{}", block_id.index(), inst_str)
+        let term_str = match block.terminator {
+            Some(term_id) => self.term(term_id).unwrap().dump(self),
+            None => "  invalid".into(),
+        };
+
+        match inst_str.is_empty() {
+            false => format!("  b{}:\n{}\n{}", block_id.index(), inst_str, term_str),
+            true => format!("  b{}:\n{}", block_id.index(), term_str),
+        }
     }
 
     fn dump_inst(&self, module: &Module, inst_id: InstructionId) -> String {
@@ -75,20 +83,28 @@ impl Function {
             Alloc(typ) => format!("alloc {}", typ.dump(self)),
             Load(src) => format!("load {}", src.dump(self)),
             Store(dst, src) => format!("store {}, {}", dst.dump(self), src.dump(self)),
+        };
 
-            Ret(val) => format!("ret {}", val.dump(self)),
-            Br(dst) => format!("br b{}", dst.index()),
+        format!("    %{} = {}", inst_id.index(), inst_str)
+    }
+}
+
+impl Terminator {
+    fn dump(&self, func: &Function) -> String {
+        use super::Terminator::*;
+
+        match self {
+            Ret(val) => format!("  ret {}", val.dump(func)),
+            Br(dst) => format!("  br b{}", dst.index()),
             CondBr(cond, con, alt) => {
                 format!(
-                    "br {} -> b{} b{} ",
-                    cond.dump(self),
+                    "  br {} -> b{} b{} ",
+                    cond.dump(func),
                     con.index(),
                     alt.index()
                 )
             }
-        };
-
-        format!("    %{} = {}", inst_id.index(), inst_str)
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-use super::{Block, BlockId, Function, FunctionId, Instruction, Module, Type, Value};
+use super::{Block, BlockId, Function, FunctionId, Instruction, Module, Terminator, Type, Value};
 
 #[derive(Debug)]
 pub struct FunctionBuilder<'a> {
@@ -71,17 +71,17 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn ret(&mut self, val: Value) {
-        let inst_id = self.function.add_inst(Instruction::Ret(val));
-        self.current_block().add_inst(inst_id);
+        let term_id = self.function.add_term(Terminator::Ret(val));
+        self.current_block().set_term(term_id);
     }
 
     pub fn br(&mut self, dst: BlockId) {
-        let inst_id = self.function.add_inst(Instruction::Br(dst));
-        self.current_block().add_inst(inst_id);
+        let term_id = self.function.add_term(Terminator::Br(dst));
+        self.current_block().set_term(term_id);
     }
 
     pub fn cond_br(&mut self, cond: Value, con: BlockId, alt: BlockId) {
-        let inst_id = self.function.add_inst(Instruction::CondBr(cond, con, alt));
-        self.current_block().add_inst(inst_id);
+        let term_id = self.function.add_term(Terminator::CondBr(cond, con, alt));
+        self.current_block().set_term(term_id);
     }
 }

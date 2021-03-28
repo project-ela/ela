@@ -15,7 +15,12 @@ pub enum Instruction {
     Alloc(Type),
     Load(Value),
     Store(Value, Value),
+}
 
+pub type TerminatorId = Id<Terminator>;
+
+#[derive(Debug)]
+pub enum Terminator {
     Ret(Value),
     Br(BlockId),
     CondBr(Value, BlockId, BlockId),
