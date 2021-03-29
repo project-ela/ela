@@ -108,7 +108,6 @@ impl InstructionSelector {
                     vec![asm::Operand::Label(self.block_label(*con))],
                 ),
             ],
-            x => unimplemented!("{:?}", x),
         }
     }
 }
