@@ -16,14 +16,14 @@ impl InstructionSelector {
                     asm::Instruction::new(
                         asm::Mnemonic::Mov,
                         vec![
-                            asm::Operand::Register(asm::Register::Virtual(inst_id.index())),
+                            asm::Operand::Register(inst_id.into()),
                             self.trans_value(lhs),
                         ],
                     ),
                     asm::Instruction::new(
                         asm::Mnemonic::Add,
                         vec![
-                            asm::Operand::Register(asm::Register::Virtual(inst_id.index())),
+                            asm::Operand::Register(inst_id.into()),
                             self.trans_value(rhs),
                         ],
                     ),
@@ -46,9 +46,7 @@ impl InstructionSelector {
                         inst.push(asm::Instruction::new(
                             asm::Mnemonic::Mov,
                             vec![
-                                asm::Operand::Register(asm::Register::Physical(
-                                    asm::MachineRegister::Rax,
-                                )),
+                                asm::Operand::Register(asm::MachineRegister::Rax.into()),
                                 self.trans_value(val),
                             ],
                         ));

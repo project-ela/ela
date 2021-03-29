@@ -1,7 +1,27 @@
+use crate::ssa::InstructionId;
+
 #[derive(Debug)]
 pub enum Register {
     Virtual(usize),
     Physical(MachineRegister),
+}
+
+impl From<InstructionId> for Register {
+    fn from(inst_id: InstructionId) -> Self {
+        Register::Virtual(inst_id.index())
+    }
+}
+
+impl From<&InstructionId> for Register {
+    fn from(inst_id: &InstructionId) -> Self {
+        Register::Virtual(inst_id.index())
+    }
+}
+
+impl From<MachineRegister> for Register {
+    fn from(reg: MachineRegister) -> Self {
+        Register::Physical(reg)
+    }
 }
 
 #[derive(Debug)]

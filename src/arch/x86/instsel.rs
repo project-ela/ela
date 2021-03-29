@@ -40,15 +40,13 @@ impl InstructionSelector {
         // prologue
         self.assembly.add_inst(asm::Instruction::new(
             asm::Mnemonic::Push,
-            vec![asm::Operand::Register(asm::Register::Physical(
-                asm::MachineRegister::Rbp,
-            ))],
+            vec![asm::Operand::Register(asm::MachineRegister::Rbp.into())],
         ));
         self.assembly.add_inst(asm::Instruction::new(
             asm::Mnemonic::Mov,
             vec![
-                asm::Operand::Register(asm::Register::Physical(asm::MachineRegister::Rbp)),
-                asm::Operand::Register(asm::Register::Physical(asm::MachineRegister::Rsp)),
+                asm::Operand::Register(asm::MachineRegister::Rbp.into()),
+                asm::Operand::Register(asm::MachineRegister::Rsp.into()),
             ],
         ));
 
@@ -63,15 +61,13 @@ impl InstructionSelector {
         self.assembly.add_inst(asm::Instruction::new(
             asm::Mnemonic::Mov,
             vec![
-                asm::Operand::Register(asm::Register::Physical(asm::MachineRegister::Rsp)),
-                asm::Operand::Register(asm::Register::Physical(asm::MachineRegister::Rbp)),
+                asm::Operand::Register(asm::MachineRegister::Rsp.into()),
+                asm::Operand::Register(asm::MachineRegister::Rbp.into()),
             ],
         ));
         self.assembly.add_inst(asm::Instruction::new(
             asm::Mnemonic::Pop,
-            vec![asm::Operand::Register(asm::Register::Physical(
-                asm::MachineRegister::Rbp,
-            ))],
+            vec![asm::Operand::Register(asm::MachineRegister::Rbp.into())],
         ));
         self.assembly
             .add_inst(asm::Instruction::new(asm::Mnemonic::Ret, vec![]))
@@ -99,9 +95,7 @@ impl InstructionSelector {
 
         match val {
             Constant(r#const) => asm::Operand::Immediate(r#const.into()),
-            Instruction(inst_val) => {
-                asm::Operand::Register(asm::Register::Virtual(inst_val.inst_id.index()))
-            }
+            Instruction(inst_val) => asm::Operand::Register(inst_val.inst_id.into()),
             x => unimplemented!("{:?}", x),
         }
     }
