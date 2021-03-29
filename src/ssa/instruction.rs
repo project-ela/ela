@@ -10,7 +10,7 @@ pub enum Instruction {
     Cmp(ComparisonOperator, Value, Value),
 
     Call(FunctionId, Vec<Value>),
-    Arg(usize),
+    Param(usize),
 
     Alloc(Type),
     Load(Value),

@@ -25,7 +25,7 @@ impl Function {
     pub fn new(name: &str, ret_typ: Type, param_typ: Vec<Type>) -> Self {
         let mut instructions = Arena::new();
         for (i, _) in param_typ.iter().enumerate() {
-            instructions.alloc(Instruction::Arg(i));
+            instructions.alloc(Instruction::Param(i));
         }
 
         Self {

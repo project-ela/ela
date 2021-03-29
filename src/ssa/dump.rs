@@ -112,7 +112,7 @@ impl Function {
                     _ => format!("call @{}({})", func_name, args_str),
                 }
             }
-            Arg(index) => format!("arg {}", index),
+            Param(index) => format!("param {}", index),
 
             Alloc(typ) => format!("alloc {}", typ.dump(&self.types)),
             Load(src) => format!("load {}", src.dump(module, self)),
