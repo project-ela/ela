@@ -1,4 +1,6 @@
-use crate::ssa::{self, InstructionId};
+mod instruction;
+
+use crate::ssa;
 
 use super::asm;
 
@@ -91,67 +93,6 @@ impl InstructionSelector {
         let asm_inst = self.trans_term(ssa_term);
         for inst in asm_inst {
             self.assembly.add_inst(inst);
-        }
-    }
-
-    fn trans_inst(
-        &mut self,
-        inst_id: &InstructionId,
-        inst: &ssa::Instruction,
-    ) -> Vec<asm::Instruction> {
-        use ssa::Instruction::*;
-
-        match inst {
-            BinOp(ssa::BinaryOperator::Add, lhs, rhs) => {
-                vec![
-                    asm::Instruction::new(
-                        asm::Mnemonic::Mov,
-                        vec![
-                            asm::Operand::Register(asm::Register::Virtual(inst_id.index())),
-                            self.trans_value(lhs),
-                        ],
-                    ),
-                    asm::Instruction::new(
-                        asm::Mnemonic::Add,
-                        vec![
-                            asm::Operand::Register(asm::Register::Virtual(inst_id.index())),
-                            self.trans_value(rhs),
-                        ],
-                    ),
-                ]
-            }
-
-            x => unimplemented!("{:?}", x),
-        }
-    }
-
-    fn trans_term(&mut self, term: &ssa::Terminator) -> Vec<asm::Instruction> {
-        use ssa::Terminator::*;
-
-        match term {
-            Ret(val) => {
-                let mut inst = Vec::new();
-                match val {
-                    None => {}
-                    Some(val) => {
-                        inst.push(asm::Instruction::new(
-                            asm::Mnemonic::Mov,
-                            vec![
-                                asm::Operand::Register(asm::Register::Physical(
-                                    asm::MachineRegister::Rax,
-                                )),
-                                self.trans_value(val),
-                            ],
-                        ));
-                    }
-                }
-                inst.push(asm::Instruction::new(
-                    asm::Mnemonic::Jmp,
-                    vec![asm::Operand::Label(self.cur_ret_label.clone())],
-                ));
-                inst
-            }
-            x => unimplemented!("{:?}", x),
         }
     }
 
