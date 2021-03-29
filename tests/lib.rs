@@ -18,6 +18,19 @@ fn do_test() {
 fn do_test2() {
     let mut module = ssa::Module::new();
 
+    // ---
+    let mut func_fuga = ssa::Function::new("fuga", ssa::Type::I32, vec![]);
+    let mut builder = ssa::FunctionBuilder::new(&mut func_fuga);
+    let entry_block = builder.add_block();
+    builder.set_block(entry_block);
+
+    let one = ssa::Value::Constant(ssa::Constant::I32(42));
+    builder.ret(one);
+
+    let func_fuga = module.add_function(func_fuga);
+
+    // ---
+
     let mut func_hoge = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
     let mut builder = ssa::FunctionBuilder::new(&mut func_hoge);
     let entry_block = builder.add_block();
@@ -26,7 +39,7 @@ fn do_test2() {
     let block1 = builder.add_block();
     let block2 = builder.add_block();
 
-    let one = ssa::Value::Constant(ssa::Constant::I32(42));
+    let one = builder.call(&module, func_fuga, vec![]);
     let two = builder.eq(one, one);
     builder.cond_br(two, block1, block2);
 
@@ -37,6 +50,8 @@ fn do_test2() {
     builder.ret_void();
 
     module.add_function(func_hoge);
+
+    // ---
 
     println!("{}", module.dump());
     let assembly = x86::instsel::translate(module);

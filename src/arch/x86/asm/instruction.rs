@@ -16,6 +16,7 @@ impl Instruction {
 pub enum Mnemonic {
     Add,
     And,
+    Call,
     Cmp,
     Je,
     Jmp,
@@ -53,6 +54,7 @@ impl Mnemonic {
         match self {
             Add => "add",
             And => "and",
+            Call => "call",
             Cmp => "cmp",
             Je => "je",
             Jmp => "jmp",

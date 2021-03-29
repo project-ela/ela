@@ -5,6 +5,7 @@ use super::InstructionSelector;
 impl InstructionSelector {
     pub(crate) fn trans_inst(
         &mut self,
+        module: &ssa::Module,
         inst_id: &ssa::InstructionId,
         inst: &ssa::Instruction,
     ) -> Vec<asm::Instruction> {
@@ -54,6 +55,23 @@ impl InstructionSelector {
                         vec![
                             asm::Operand::Register(inst_id.into()),
                             asm::Operand::Immediate(asm::Immediate::I8(1)),
+                        ],
+                    ),
+                ]
+            }
+
+            Call(func_id, _args) => {
+                let func = module.function(*func_id).unwrap();
+                vec![
+                    asm::Instruction::new(
+                        asm::Mnemonic::Call,
+                        vec![asm::Operand::Label(func.name.clone())],
+                    ),
+                    asm::Instruction::new(
+                        asm::Mnemonic::Mov,
+                        vec![
+                            asm::Operand::Register(inst_id.into()),
+                            asm::Operand::Register(asm::MachineRegister::Rax.into()),
                         ],
                     ),
                 ]

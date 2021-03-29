@@ -24,14 +24,14 @@ impl InstructionSelector {
     }
 
     fn translate(mut self, module: ssa::Module) -> asm::Assembly {
-        for (_, function) in module.functions {
-            self.trans_function(function);
+        for (_, function) in &module.functions {
+            self.trans_function(&module, function);
         }
 
         self.assembly
     }
 
-    fn trans_function(&mut self, function: ssa::Function) {
+    fn trans_function(&mut self, module: &ssa::Module, function: &ssa::Function) {
         self.cur_func_name = function.name.clone();
         self.assembly
             .add_pseudo_op(asm::PseudoOp::Global(self.cur_func_name.clone()));
@@ -53,7 +53,7 @@ impl InstructionSelector {
         for (block_id, block) in &function.blocks {
             self.assembly.add_label(self.block_label(block_id));
 
-            self.trans_block(&function, block);
+            self.trans_block(module, &function, block);
         }
 
         // epilogue
@@ -73,10 +73,10 @@ impl InstructionSelector {
             .add_inst(asm::Instruction::new(asm::Mnemonic::Ret, vec![]))
     }
 
-    fn trans_block(&mut self, function: &ssa::Function, block: &ssa::Block) {
+    fn trans_block(&mut self, module: &ssa::Module, function: &ssa::Function, block: &ssa::Block) {
         for inst_id in &block.instructions {
             let ssa_inst = function.inst(*inst_id).unwrap();
-            let asm_inst = self.trans_inst(inst_id, ssa_inst);
+            let asm_inst = self.trans_inst(module, inst_id, ssa_inst);
             for inst in asm_inst {
                 self.assembly.add_inst(inst);
             }
