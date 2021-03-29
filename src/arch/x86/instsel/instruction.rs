@@ -91,6 +91,23 @@ impl InstructionSelector {
                 asm::Mnemonic::Jmp,
                 vec![asm::Operand::Label(self.block_label(*dst))],
             )],
+            CondBr(cond, con, alt) => vec![
+                asm::Instruction::new(
+                    asm::Mnemonic::Cmp,
+                    vec![
+                        asm::Operand::Immediate(asm::Immediate::I8(0)),
+                        self.trans_value(cond),
+                    ],
+                ),
+                asm::Instruction::new(
+                    asm::Mnemonic::Je,
+                    vec![asm::Operand::Label(self.block_label(*alt))],
+                ),
+                asm::Instruction::new(
+                    asm::Mnemonic::Jmp,
+                    vec![asm::Operand::Label(self.block_label(*con))],
+                ),
+            ],
             x => unimplemented!("{:?}", x),
         }
     }
