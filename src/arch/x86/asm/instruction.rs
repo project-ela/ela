@@ -14,6 +14,7 @@ impl Instruction {
 
 #[derive(Debug)]
 pub enum Mnemonic {
+    Add,
     Jmp,
     Mov,
     Pop,
@@ -46,6 +47,7 @@ impl Mnemonic {
         use self::Mnemonic::*;
 
         match self {
+            Add => "add",
             Jmp => "jmp",
             Mov => "mov",
             Pop => "pop",

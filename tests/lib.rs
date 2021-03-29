@@ -24,7 +24,9 @@ fn do_test2() {
     builder.set_block(entry_block);
 
     let one = ssa::Value::Constant(ssa::Constant::I32(42));
-    builder.ret(one);
+    let two = builder.add(one, one);
+    let three = builder.add(two, one);
+    builder.ret(three);
 
     module.add_function(func_hoge);
 

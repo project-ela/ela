@@ -1,5 +1,11 @@
 #[derive(Debug)]
 pub enum Register {
+    Virtual(usize),
+    Physical(MachineRegister),
+}
+
+#[derive(Debug)]
+pub enum MachineRegister {
     Rax,
     Rbx,
     Rcx,
@@ -21,6 +27,17 @@ pub enum Register {
 impl Register {
     pub fn stringify(&self) -> String {
         use self::Register::*;
+
+        match self {
+            Virtual(id) => format!("%{}", id),
+            Physical(reg) => reg.stringify(),
+        }
+    }
+}
+
+impl MachineRegister {
+    pub fn stringify(&self) -> String {
+        use self::MachineRegister::*;
 
         match self {
             Rax => "rax",
