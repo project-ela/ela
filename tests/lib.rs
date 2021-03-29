@@ -26,6 +26,11 @@ fn do_test2() {
     let one = ssa::Value::Constant(ssa::Constant::I32(42));
     let two = builder.add(one, one);
     let three = builder.add(two, one);
+
+    let block1 = builder.add_block();
+    builder.br(block1);
+
+    builder.set_block(block1);
     builder.ret(three);
 
     module.add_function(func_hoge);

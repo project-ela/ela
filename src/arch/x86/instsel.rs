@@ -12,14 +12,14 @@ pub fn translate(module: ssa::Module) -> asm::Assembly {
 struct InstructionSelector {
     assembly: asm::Assembly,
 
-    cur_ret_label: String,
+    cur_func_name: String,
 }
 
 impl InstructionSelector {
     fn new() -> Self {
         Self {
             assembly: asm::Assembly::new(),
-            cur_ret_label: "".into(),
+            cur_func_name: "".into(),
         }
     }
 
@@ -32,11 +32,10 @@ impl InstructionSelector {
     }
 
     fn trans_function(&mut self, function: ssa::Function) {
-        let func_name = function.name.clone();
+        self.cur_func_name = function.name.clone();
         self.assembly
-            .add_pseudo_op(asm::PseudoOp::Global(func_name.clone()));
-        self.assembly.add_label(func_name.clone());
-        self.cur_ret_label = format!(".{}.ret", func_name);
+            .add_pseudo_op(asm::PseudoOp::Global(self.cur_func_name.clone()));
+        self.assembly.add_label(self.cur_func_name.clone());
 
         // prologue
         self.assembly.add_inst(asm::Instruction::new(
@@ -53,15 +52,14 @@ impl InstructionSelector {
             ],
         ));
 
-        for (i, block) in &function.blocks {
-            let block_name = format!(".{}.{}", func_name.clone(), i.index());
-            self.assembly.add_label(block_name);
+        for (block_id, block) in &function.blocks {
+            self.assembly.add_label(self.block_label(block_id));
 
             self.trans_block(&function, block);
         }
 
         // epilogue
-        self.assembly.add_label(self.cur_ret_label.clone());
+        self.assembly.add_label(self.return_label());
         self.assembly.add_inst(asm::Instruction::new(
             asm::Mnemonic::Mov,
             vec![
@@ -106,5 +104,13 @@ impl InstructionSelector {
             }
             x => unimplemented!("{:?}", x),
         }
+    }
+
+    fn block_label(&self, block_id: ssa::BlockId) -> String {
+        format!(".{}.{}", self.cur_func_name, block_id.index())
+    }
+
+    fn return_label(&self) -> String {
+        format!(".{}.ret", self.cur_func_name)
     }
 }

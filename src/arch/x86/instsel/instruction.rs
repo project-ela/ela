@@ -56,10 +56,14 @@ impl InstructionSelector {
                 }
                 inst.push(asm::Instruction::new(
                     asm::Mnemonic::Jmp,
-                    vec![asm::Operand::Label(self.cur_ret_label.clone())],
+                    vec![asm::Operand::Label(self.return_label())],
                 ));
                 inst
             }
+            Br(dst) => vec![asm::Instruction::new(
+                asm::Mnemonic::Jmp,
+                vec![asm::Operand::Label(self.block_label(*dst))],
+            )],
             x => unimplemented!("{:?}", x),
         }
     }
