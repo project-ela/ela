@@ -15,11 +15,14 @@ impl Instruction {
 #[derive(Debug)]
 pub enum Mnemonic {
     Add,
+    And,
+    Cmp,
     Jmp,
     Mov,
     Pop,
     Push,
     Ret,
+    Sete,
 }
 
 #[derive(Debug)]
@@ -48,11 +51,14 @@ impl Mnemonic {
 
         match self {
             Add => "add",
+            And => "and",
+            Cmp => "cmp",
             Jmp => "jmp",
             Mov => "mov",
             Pop => "pop",
             Push => "push",
             Ret => "ret",
+            Sete => "sete",
         }
         .into()
     }

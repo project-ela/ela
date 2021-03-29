@@ -29,6 +29,35 @@ impl InstructionSelector {
                     ),
                 ]
             }
+            Cmp(ssa::ComparisonOperator::Eq, lhs, rhs) => {
+                vec![
+                    asm::Instruction::new(
+                        asm::Mnemonic::Mov,
+                        vec![
+                            asm::Operand::Register(inst_id.into()),
+                            self.trans_value(lhs),
+                        ],
+                    ),
+                    asm::Instruction::new(
+                        asm::Mnemonic::Cmp,
+                        vec![
+                            asm::Operand::Register(inst_id.into()),
+                            self.trans_value(rhs),
+                        ],
+                    ),
+                    asm::Instruction::new(
+                        asm::Mnemonic::Sete,
+                        vec![asm::Operand::Register(inst_id.into())],
+                    ),
+                    asm::Instruction::new(
+                        asm::Mnemonic::And,
+                        vec![
+                            asm::Operand::Register(inst_id.into()),
+                            asm::Operand::Immediate(asm::Immediate::I8(1)),
+                        ],
+                    ),
+                ]
+            }
 
             x => unimplemented!("{:?}", x),
         }
