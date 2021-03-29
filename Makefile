@@ -4,4 +4,7 @@ build:
 run:
 	cargo run
 
-.PHONY: build run
+test:
+	cargo test -- --nocapture
+
+.PHONY: build run test
