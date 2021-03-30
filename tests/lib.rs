@@ -20,16 +20,20 @@ fn do_test2() {
 
     // ---
 
+    let global_fuga = module.add_global(ssa::Global::new("piyo", ssa::Constant::I32(0)));
+    let global_fuga = ssa::Value::new_global(&mut module, global_fuga);
+
+    // ---
+
     let mut func_hoge = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
     let mut builder = ssa::FunctionBuilder::new(&mut func_hoge);
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let v1 = builder.alloc(ssa::Type::I32);
     let one = ssa::Value::Constant(ssa::Constant::I32(1));
-    builder.store(v1, one);
-    let v1_val = builder.load(&module, v1);
-    builder.ret(v1_val);
+    builder.store(global_fuga, one);
+    let fuga_val = builder.load(&module, global_fuga);
+    builder.ret(fuga_val);
 
     module.add_function(func_hoge);
 

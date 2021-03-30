@@ -28,11 +28,23 @@ impl InstructionSelector {
     }
 
     fn translate(mut self, module: ssa::Module) -> asm::Assembly {
+        self.assembly.add_pseudo_op(asm::PseudoOp::Data);
+        for (_, global) in &module.globals {
+            self.trans_global(global);
+        }
+
+        self.assembly.add_pseudo_op(asm::PseudoOp::Text);
         for (_, function) in &module.functions {
             self.trans_function(&module, function);
         }
 
         self.assembly
+    }
+
+    // TODO
+    fn trans_global(&mut self, global: &ssa::Global) {
+        self.assembly.add_label(global.name.clone());
+        self.assembly.add_pseudo_op(asm::PseudoOp::Zero(8));
     }
 
     fn trans_function(&mut self, module: &ssa::Module, function: &ssa::Function) {
@@ -62,7 +74,7 @@ impl InstructionSelector {
                 stack_offset += 8;
                 self.stack_offlsets.insert(
                     inst_id,
-                    asm::Operand::Indirect(asm::Indirect::new(
+                    asm::Operand::Indirect(asm::Indirect::new_imm(
                         asm::MachineRegister::Rbp.into(),
                         -stack_offset,
                     )),

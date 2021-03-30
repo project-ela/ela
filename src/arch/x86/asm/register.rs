@@ -42,6 +42,8 @@ pub enum MachineRegister {
     R13,
     R14,
     R15,
+
+    Rip,
 }
 
 impl Register {
@@ -76,6 +78,8 @@ impl MachineRegister {
             R13 => "r13",
             R14 => "r14",
             R15 => "r15",
+
+            Rip => "rip",
         }
         .into()
     }

@@ -9,7 +9,10 @@ pub enum AssemblyItem {
 
 #[derive(Debug)]
 pub enum PseudoOp {
+    Data,
     Global(String),
+    Text,
+    Zero(usize),
 }
 
 impl AssemblyItem {
@@ -29,7 +32,10 @@ impl PseudoOp {
         use self::PseudoOp::*;
 
         match self {
+            Data => ".data".into(),
             Global(name) => format!(".global {}", name),
+            Text => ".text".into(),
+            Zero(size) => format!(".zero {}", size),
         }
     }
 }

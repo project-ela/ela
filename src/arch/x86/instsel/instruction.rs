@@ -99,12 +99,12 @@ impl InstructionSelector {
                 asm::Mnemonic::Mov,
                 vec![
                     asm::Operand::Register(inst_id.into()),
-                    self.trans_lvalue(src),
+                    self.trans_lvalue(module, src),
                 ],
             )],
             Store(dst, src) => vec![asm::Instruction::new(
                 asm::Mnemonic::Mov,
-                vec![self.trans_lvalue(dst), self.trans_value(src)],
+                vec![self.trans_lvalue(module, dst), self.trans_value(src)],
             )],
 
             x => unimplemented!("{:?}", x),
@@ -166,15 +166,23 @@ impl InstructionSelector {
             Constant(r#const) => asm::Operand::Immediate(r#const.into()),
             Instruction(inst_val) => asm::Operand::Register(inst_val.inst_id.into()),
             Parameter(ssa::ParameterValue { index, .. }) => self.arg_reg(*index),
+
             x => unimplemented!("{:?}", x),
         }
     }
 
-    fn trans_lvalue(&mut self, val: &ssa::Value) -> asm::Operand {
+    fn trans_lvalue(&mut self, module: &ssa::Module, val: &ssa::Value) -> asm::Operand {
         use ssa::Value::*;
 
         match val {
             Instruction(inst_val) => self.stack_offlsets.get(&inst_val.inst_id).unwrap().clone(),
+            Global(ssa::GlobalValue { global_id, .. }) => {
+                let global = module.global(*global_id).unwrap();
+                asm::Operand::Indirect(asm::Indirect::new_label(
+                    asm::MachineRegister::Rip.into(),
+                    global.name.clone(),
+                ))
+            }
             x => panic!("{:?}", x),
         }
     }
