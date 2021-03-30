@@ -1,6 +1,6 @@
 use crate::ssa;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Immediate {
     I8(i8),
     I32(i32),

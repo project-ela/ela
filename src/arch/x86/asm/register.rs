@@ -1,6 +1,6 @@
 use crate::ssa::InstructionId;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Register {
     Virtual(usize),
     Physical(MachineRegister),

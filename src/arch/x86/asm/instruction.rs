@@ -1,4 +1,4 @@
-use super::{Immediate, Register};
+use super::{Immediate, Indirect, Register};
 
 #[derive(Debug)]
 pub struct Instruction {
@@ -25,13 +25,15 @@ pub enum Mnemonic {
     Push,
     Ret,
     Sete,
+    Sub,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operand {
     Register(Register),
     Label(String),
     Immediate(Immediate),
+    Indirect(Indirect),
 }
 
 impl Instruction {
@@ -63,6 +65,7 @@ impl Mnemonic {
             Push => "push",
             Ret => "ret",
             Sete => "sete",
+            Sub => "sub",
         }
         .into()
     }
@@ -76,6 +79,7 @@ impl Operand {
             Register(reg) => reg.stringify(),
             Label(name) => name.clone(),
             Immediate(imm) => imm.stringify(),
+            Indirect(addr) => addr.stringify(),
         }
     }
 }

@@ -93,6 +93,20 @@ impl InstructionSelector {
                 inst
             }
 
+            // do nothing
+            Alloc(_) => vec![],
+            Load(src) => vec![asm::Instruction::new(
+                asm::Mnemonic::Mov,
+                vec![
+                    asm::Operand::Register(inst_id.into()),
+                    self.trans_lvalue(src),
+                ],
+            )],
+            Store(dst, src) => vec![asm::Instruction::new(
+                asm::Mnemonic::Mov,
+                vec![self.trans_lvalue(dst), self.trans_value(src)],
+            )],
+
             x => unimplemented!("{:?}", x),
         }
     }
@@ -153,6 +167,15 @@ impl InstructionSelector {
             Instruction(inst_val) => asm::Operand::Register(inst_val.inst_id.into()),
             Parameter(ssa::ParameterValue { index, .. }) => self.arg_reg(*index),
             x => unimplemented!("{:?}", x),
+        }
+    }
+
+    fn trans_lvalue(&mut self, val: &ssa::Value) -> asm::Operand {
+        use ssa::Value::*;
+
+        match val {
+            Instruction(inst_val) => self.stack_offlsets.get(&inst_val.inst_id).unwrap().clone(),
+            x => panic!("{:?}", x),
         }
     }
 

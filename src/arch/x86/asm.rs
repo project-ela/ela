@@ -4,6 +4,9 @@ pub use assembly::*;
 mod immediate;
 pub use immediate::*;
 
+mod indirect;
+pub use indirect::*;
+
 mod instruction;
 pub use instruction::*;
 

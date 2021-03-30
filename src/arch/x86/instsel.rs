@@ -1,5 +1,7 @@
 mod instruction;
 
+use std::collections::HashMap;
+
 use crate::ssa;
 
 use super::asm;
@@ -12,6 +14,7 @@ pub fn translate(module: ssa::Module) -> asm::Assembly {
 struct InstructionSelector {
     assembly: asm::Assembly,
 
+    stack_offlsets: HashMap<ssa::InstructionId, asm::Operand>,
     cur_func_name: String,
 }
 
@@ -19,6 +22,7 @@ impl InstructionSelector {
     fn new() -> Self {
         Self {
             assembly: asm::Assembly::new(),
+            stack_offlsets: HashMap::new(),
             cur_func_name: "".into(),
         }
     }
@@ -47,6 +51,29 @@ impl InstructionSelector {
             vec![
                 asm::Operand::Register(asm::MachineRegister::Rbp.into()),
                 asm::Operand::Register(asm::MachineRegister::Rsp.into()),
+            ],
+        ));
+
+        // TODO
+        let mut stack_offset = 0;
+        self.stack_offlsets.clear();
+        for (inst_id, inst) in &function.instructions {
+            if let ssa::Instruction::Alloc(_) = inst {
+                stack_offset += 8;
+                self.stack_offlsets.insert(
+                    inst_id,
+                    asm::Operand::Indirect(asm::Indirect::new(
+                        asm::MachineRegister::Rbp.into(),
+                        -stack_offset,
+                    )),
+                );
+            }
+        }
+        self.assembly.add_inst(asm::Instruction::new(
+            asm::Mnemonic::Sub,
+            vec![
+                asm::Operand::Register(asm::MachineRegister::Rsp.into()),
+                asm::Operand::Immediate(asm::Immediate::I32(stack_offset)),
             ],
         ));
 

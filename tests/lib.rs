@@ -19,39 +19,17 @@ fn do_test2() {
     let mut module = ssa::Module::new();
 
     // ---
-    let mut func_fuga =
-        ssa::Function::new("fuga", ssa::Type::I32, vec![ssa::Type::I32, ssa::Type::I32]);
-    let mut builder = ssa::FunctionBuilder::new(&mut func_fuga);
-    let entry_block = builder.add_block();
-    builder.set_block(entry_block);
-
-    let param1 = ssa::Value::new_param(&builder.function(), 0);
-    let param2 = ssa::Value::new_param(&builder.function(), 1);
-    let v1 = builder.add(param1, param2);
-    builder.ret(v1);
-
-    let func_fuga = module.add_function(func_fuga);
-
-    // ---
 
     let mut func_hoge = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
     let mut builder = ssa::FunctionBuilder::new(&mut func_hoge);
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let block1 = builder.add_block();
-    let block2 = builder.add_block();
-
-    let one = ssa::Value::Constant(ssa::Constant::I32(42));
-    let one = builder.call(&module, func_fuga, vec![one, one]);
-    let two = builder.eq(one, one);
-    builder.cond_br(two, block1, block2);
-
-    builder.set_block(block1);
-    builder.ret_void();
-
-    builder.set_block(block2);
-    builder.ret_void();
+    let v1 = builder.alloc(ssa::Type::I32);
+    let one = ssa::Value::Constant(ssa::Constant::I32(1));
+    builder.store(v1, one);
+    let v1_val = builder.load(&module, v1);
+    builder.ret(v1_val);
 
     module.add_function(func_hoge);
 
