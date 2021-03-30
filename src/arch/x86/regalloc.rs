@@ -1,18 +1,8 @@
 use std::collections::HashMap;
 
 use super::asm::{
-    Assembly, AssemblyItem, Function, Instruction, MachineRegister, Operand, Register,
+    Assembly, AssemblyItem, Function, Instruction, MachineRegister, Operand, Register, REGS,
 };
-
-const REGS: [MachineRegister; 7] = [
-    MachineRegister::R10,
-    MachineRegister::R11,
-    MachineRegister::Rbx,
-    MachineRegister::R12,
-    MachineRegister::R13,
-    MachineRegister::R14,
-    MachineRegister::R15,
-];
 
 pub fn allocate(assembly: &mut Assembly) {
     let mut allocator = DummyRegisterAllocator::new();

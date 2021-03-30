@@ -88,6 +88,13 @@ impl InstructionSelector {
             ],
         ));
 
+        for reg in &asm::REGS {
+            self.func.add_inst(asm::Instruction::new(
+                asm::Mnemonic::Push,
+                vec![asm::Operand::Register(reg.clone().into())],
+            ));
+        }
+
         for (block_id, block) in &function.blocks {
             self.func.add_label(self.block_label(block_id));
 
@@ -96,6 +103,12 @@ impl InstructionSelector {
 
         // epilogue
         self.func.add_label(self.return_label());
+        for reg in asm::REGS.iter().rev() {
+            self.func.add_inst(asm::Instruction::new(
+                asm::Mnemonic::Push,
+                vec![asm::Operand::Register(reg.clone().into())],
+            ));
+        }
         self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Mov,
             vec![

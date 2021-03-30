@@ -46,6 +46,16 @@ pub enum MachineRegister {
     Rip,
 }
 
+pub const REGS: [MachineRegister; 7] = [
+    MachineRegister::R10,
+    MachineRegister::R11,
+    MachineRegister::Rbx,
+    MachineRegister::R12,
+    MachineRegister::R13,
+    MachineRegister::R14,
+    MachineRegister::R15,
+];
+
 impl Register {
     pub fn stringify(&self) -> String {
         use self::Register::*;
