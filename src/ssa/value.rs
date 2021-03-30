@@ -27,6 +27,14 @@ pub struct GlobalValue {
 }
 
 impl Value {
+    pub fn new_i1(val: bool) -> Self {
+        Self::Constant(Constant::I1(val))
+    }
+
+    pub fn new_i32(val: i32) -> Self {
+        Self::Constant(Constant::I32(val))
+    }
+
     pub fn new_inst(inst_id: InstructionId, typ: Type) -> Self {
         Self::Instruction(InstructionValue { inst_id, typ })
     }
