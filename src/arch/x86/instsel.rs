@@ -90,16 +90,6 @@ impl InstructionSelector {
         }
     }
 
-    fn trans_value(&mut self, val: &ssa::Value) -> asm::Operand {
-        use ssa::Value::*;
-
-        match val {
-            Constant(r#const) => asm::Operand::Immediate(r#const.into()),
-            Instruction(inst_val) => asm::Operand::Register(inst_val.inst_id.into()),
-            x => unimplemented!("{:?}", x),
-        }
-    }
-
     fn block_label(&self, block_id: ssa::BlockId) -> String {
         format!(".{}.{}", self.cur_func_name, block_id.index())
     }

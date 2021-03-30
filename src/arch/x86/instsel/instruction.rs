@@ -2,6 +2,15 @@ use crate::{arch::x86::asm, ssa};
 
 use super::InstructionSelector;
 
+const ARG_REGS: [asm::MachineRegister; 6] = [
+    asm::MachineRegister::Rdi,
+    asm::MachineRegister::Rsi,
+    asm::MachineRegister::Rdx,
+    asm::MachineRegister::Rcx,
+    asm::MachineRegister::R8,
+    asm::MachineRegister::R9,
+];
+
 impl InstructionSelector {
     pub(crate) fn trans_inst(
         &mut self,
@@ -60,21 +69,28 @@ impl InstructionSelector {
                 ]
             }
 
-            Call(func_id, _args) => {
+            Call(func_id, args) => {
                 let func = module.function(*func_id).unwrap();
-                vec![
-                    asm::Instruction::new(
-                        asm::Mnemonic::Call,
-                        vec![asm::Operand::Label(func.name.clone())],
-                    ),
-                    asm::Instruction::new(
+                let mut inst = Vec::new();
+                for (i, arg) in args.iter().enumerate() {
+                    inst.push(asm::Instruction::new(
                         asm::Mnemonic::Mov,
-                        vec![
-                            asm::Operand::Register(inst_id.into()),
-                            asm::Operand::Register(asm::MachineRegister::Rax.into()),
-                        ],
-                    ),
-                ]
+                        vec![self.arg_reg(i), self.trans_value(arg)],
+                    ))
+                }
+
+                inst.push(asm::Instruction::new(
+                    asm::Mnemonic::Call,
+                    vec![asm::Operand::Label(func.name.clone())],
+                ));
+                inst.push(asm::Instruction::new(
+                    asm::Mnemonic::Mov,
+                    vec![
+                        asm::Operand::Register(inst_id.into()),
+                        asm::Operand::Register(asm::MachineRegister::Rax.into()),
+                    ],
+                ));
+                inst
             }
 
             x => unimplemented!("{:?}", x),
@@ -127,5 +143,25 @@ impl InstructionSelector {
                 ),
             ],
         }
+    }
+
+    fn trans_value(&mut self, val: &ssa::Value) -> asm::Operand {
+        use ssa::Value::*;
+
+        match val {
+            Constant(r#const) => asm::Operand::Immediate(r#const.into()),
+            Instruction(inst_val) => asm::Operand::Register(inst_val.inst_id.into()),
+            Parameter(ssa::ParameterValue { index, .. }) => self.arg_reg(*index),
+            x => unimplemented!("{:?}", x),
+        }
+    }
+
+    fn arg_reg(&mut self, index: usize) -> asm::Operand {
+        if index >= 6 {
+            unimplemented!()
+        }
+
+        let reg = ARG_REGS.get(index).unwrap().clone();
+        asm::Operand::Register(reg.into())
     }
 }

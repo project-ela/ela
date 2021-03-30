@@ -24,7 +24,7 @@ impl From<MachineRegister> for Register {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MachineRegister {
     Rax,
     Rbx,
