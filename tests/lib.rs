@@ -1,7 +1,6 @@
 use siderow::{arch::x86, ssa};
 
 #[test]
-#[ignore]
 fn do_test() {
     let mut module = ssa::Module::new();
 
@@ -12,6 +11,8 @@ fn do_test() {
     module.add_function(func_hoge(&module, func_fuga, global_piyo));
 
     println!("{}", module.dump());
+    let assembly = x86::instsel::translate(module);
+    println!("{}", assembly.stringify());
 }
 
 #[test]
@@ -41,7 +42,6 @@ fn do_test2() {
 
     println!("{}", module.dump());
     let assembly = x86::instsel::translate(module);
-
     println!("{}", assembly.stringify());
 }
 
