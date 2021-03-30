@@ -13,6 +13,7 @@ pub fn translate(module: ssa::Module) -> asm::Assembly {
 
 struct InstructionSelector {
     assembly: asm::Assembly,
+    func: asm::Function,
 
     stack_offlsets: HashMap<ssa::InstructionId, asm::Operand>,
     cur_func_name: String,
@@ -22,18 +23,17 @@ impl InstructionSelector {
     fn new() -> Self {
         Self {
             assembly: asm::Assembly::new(),
+            func: asm::Function::new(),
             stack_offlsets: HashMap::new(),
             cur_func_name: "".into(),
         }
     }
 
     fn translate(mut self, module: ssa::Module) -> asm::Assembly {
-        self.assembly.add_pseudo_op(asm::PseudoOp::Data);
         for (_, global) in &module.globals {
             self.trans_global(global);
         }
 
-        self.assembly.add_pseudo_op(asm::PseudoOp::Text);
         for (_, function) in &module.functions {
             self.trans_function(&module, function);
         }
@@ -43,22 +43,21 @@ impl InstructionSelector {
 
     // TODO
     fn trans_global(&mut self, global: &ssa::Global) {
-        self.assembly.add_label(global.name.clone());
-        self.assembly.add_pseudo_op(asm::PseudoOp::Zero(8));
+        self.assembly.data.add_data(global.name.clone(), 8);
     }
 
     fn trans_function(&mut self, module: &ssa::Module, function: &ssa::Function) {
         self.cur_func_name = function.name.clone();
-        self.assembly
+        self.func
             .add_pseudo_op(asm::PseudoOp::Global(self.cur_func_name.clone()));
-        self.assembly.add_label(self.cur_func_name.clone());
+        self.func.add_label(self.cur_func_name.clone());
 
         // prologue
-        self.assembly.add_inst(asm::Instruction::new(
+        self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Push,
             vec![asm::Operand::Register(asm::MachineRegister::Rbp.into())],
         ));
-        self.assembly.add_inst(asm::Instruction::new(
+        self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Mov,
             vec![
                 asm::Operand::Register(asm::MachineRegister::Rbp.into()),
@@ -81,7 +80,7 @@ impl InstructionSelector {
                 );
             }
         }
-        self.assembly.add_inst(asm::Instruction::new(
+        self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Sub,
             vec![
                 asm::Operand::Register(asm::MachineRegister::Rsp.into()),
@@ -90,26 +89,30 @@ impl InstructionSelector {
         ));
 
         for (block_id, block) in &function.blocks {
-            self.assembly.add_label(self.block_label(block_id));
+            self.func.add_label(self.block_label(block_id));
 
             self.trans_block(module, &function, block);
         }
 
         // epilogue
-        self.assembly.add_label(self.return_label());
-        self.assembly.add_inst(asm::Instruction::new(
+        self.func.add_label(self.return_label());
+        self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Mov,
             vec![
                 asm::Operand::Register(asm::MachineRegister::Rsp.into()),
                 asm::Operand::Register(asm::MachineRegister::Rbp.into()),
             ],
         ));
-        self.assembly.add_inst(asm::Instruction::new(
+        self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Pop,
             vec![asm::Operand::Register(asm::MachineRegister::Rbp.into())],
         ));
-        self.assembly
-            .add_inst(asm::Instruction::new(asm::Mnemonic::Ret, vec![]))
+        self.func
+            .add_inst(asm::Instruction::new(asm::Mnemonic::Ret, vec![]));
+
+        let mut new_func = asm::Function::new();
+        std::mem::swap(&mut self.func, &mut new_func);
+        self.assembly.text.add_function(new_func);
     }
 
     fn trans_block(&mut self, module: &ssa::Module, function: &ssa::Function, block: &ssa::Block) {
@@ -117,7 +120,7 @@ impl InstructionSelector {
             let ssa_inst = function.inst(*inst_id).unwrap();
             let asm_inst = self.trans_inst(module, inst_id, ssa_inst);
             for inst in asm_inst {
-                self.assembly.add_inst(inst);
+                self.func.add_inst(inst);
             }
         }
 
@@ -125,7 +128,7 @@ impl InstructionSelector {
         let ssa_term = function.term(term_id).unwrap();
         let asm_inst = self.trans_term(ssa_term);
         for inst in asm_inst {
-            self.assembly.add_inst(inst);
+            self.func.add_inst(inst);
         }
     }
 

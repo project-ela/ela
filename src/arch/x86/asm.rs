@@ -1,6 +1,9 @@
 mod assembly;
 pub use assembly::*;
 
+mod function;
+pub use function::*;
+
 mod immediate;
 pub use immediate::*;
 
