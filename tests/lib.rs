@@ -21,20 +21,18 @@ fn do_test2() {
 
     // ---
 
-    let global_fuga = module.add_global(ssa::Global::new("piyo", ssa::Constant::I32(0)));
-    let global_fuga = ssa::Value::new_global(&mut module, global_fuga);
-
-    // ---
-
-    let mut func_hoge = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
+    let mut func_hoge = ssa::Function::new(
+        "hoge",
+        ssa::Type::Void,
+        vec![module.types.ptr_to(ssa::Type::I32)],
+    );
     let mut builder = ssa::FunctionBuilder::new(&mut func_hoge);
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let one = ssa::Value::Constant(ssa::Constant::I32(1));
-    builder.store(global_fuga, one);
-    let fuga_val = builder.load(&module, global_fuga);
-    builder.ret(fuga_val);
+    let param1 = ssa::Value::new_param(builder.function(), 0);
+    let param1_val = builder.load(&module, param1);
+    builder.ret(param1_val);
 
     module.add_function(func_hoge);
 

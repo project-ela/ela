@@ -188,7 +188,7 @@ impl Value {
         use super::Value::*;
 
         let typ_str = match self {
-            Global(_) => self.typ().dump(&module.types),
+            Global(_) | Parameter(_) => self.typ().dump(&module.types),
             _ => self.typ().dump(&func.types),
         };
 

@@ -30,7 +30,10 @@ impl InstructionSelector {
                 for (i, arg) in args.iter().enumerate() {
                     inst.push(asm::Instruction::new(
                         asm::Mnemonic::Mov,
-                        vec![self.arg_reg(i), self.trans_value(arg)],
+                        vec![
+                            asm::Operand::Register(self.arg_reg(i)),
+                            self.trans_value(arg),
+                        ],
                     ))
                 }
 
@@ -275,9 +278,10 @@ impl InstructionSelector {
         match val {
             Constant(r#const) => asm::Operand::Immediate(r#const.into()),
             Instruction(inst_val) => asm::Operand::Register(inst_val.inst_id.into()),
-            Parameter(ssa::ParameterValue { index, .. }) => self.arg_reg(*index),
-
             x => unimplemented!("{:?}", x),
+            Parameter(ssa::ParameterValue { index, .. }) => {
+                asm::Operand::Register(self.arg_reg(*index))
+            }
         }
     }
 
@@ -293,16 +297,19 @@ impl InstructionSelector {
                     global.name.clone(),
                 ))
             }
+            Parameter(param_val) => {
+                asm::Operand::Indirect(asm::Indirect::new_imm(self.arg_reg(param_val.index), 0))
+            }
             x => panic!("{:?}", x),
         }
     }
 
-    fn arg_reg(&mut self, index: usize) -> asm::Operand {
-        if index >= 6 {
+    fn arg_reg(&mut self, index: usize) -> asm::Register {
+        if index >= ARG_REGS.len() {
             unimplemented!()
         }
 
         let reg = ARG_REGS.get(index).unwrap().clone();
-        asm::Operand::Register(reg.into())
+        reg.into()
     }
 }

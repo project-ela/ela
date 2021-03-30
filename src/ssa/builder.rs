@@ -58,7 +58,7 @@ impl<'a> FunctionBuilder<'a> {
 
     pub fn load(&mut self, module: &Module, src: Value) -> Value {
         let elm_typ = match src {
-            Value::Global(_) => module.types.elm_typ(src.typ()),
+            Value::Global(_) | Value::Parameter(_) => module.types.elm_typ(src.typ()),
             _ => self.function.types.elm_typ(src.typ()),
         };
         self.add_inst(Instruction::Load(src), elm_typ)
