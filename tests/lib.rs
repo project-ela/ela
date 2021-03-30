@@ -1,98 +1,64 @@
-use siderow::{arch::x86, ssa};
+use std::{
+    fs::File,
+    io::{self, Write},
+    process::Command,
+};
+
+use siderow::{
+    arch::x86::{self, asm},
+    ssa,
+};
 
 #[test]
 fn do_test() {
     let mut module = ssa::Module::new();
 
-    let global_piyo = module.add_global(ssa::Global::new("piyo", ssa::Constant::I32(0)));
-    let global_piyo = ssa::Value::new_global(&mut module, global_piyo);
-
-    let func_fuga = module.add_function(func_fuga());
-    module.add_function(func_hoge(&module, func_fuga, global_piyo));
-
-    println!("{}", module.dump());
-    let assembly = x86::instsel::translate(module);
-    println!("{}", assembly.stringify());
-}
-
-#[test]
-fn do_test2() {
-    let mut module = ssa::Module::new();
-
     // ---
 
-    let mut func_hoge = ssa::Function::new(
-        "hoge",
-        ssa::Type::Void,
-        vec![module.types.ptr_to(ssa::Type::I32)],
-    );
-    let mut builder = ssa::FunctionBuilder::new(&mut func_hoge);
-    let entry_block = builder.add_block();
-    builder.set_block(entry_block);
-
-    let param1 = ssa::Value::new_param(builder.function(), 0);
-    let param1_val = builder.load(&module, param1);
-    builder.ret(param1_val);
-
-    module.add_function(func_hoge);
-
-    // ---
-
-    println!("{}", module.dump());
-    let assembly = x86::instsel::translate(module);
-    println!("{}", assembly.stringify());
-}
-
-fn func_hoge(
-    module: &ssa::Module,
-    func_fuga: ssa::FunctionId,
-    global_piyo: ssa::Value,
-) -> ssa::Function {
-    let mut function = ssa::Function::new("hoge", ssa::Type::Void, vec![]);
-    let mut builder = ssa::FunctionBuilder::new(&mut function);
+    let mut func_main = ssa::Function::new("main", ssa::Type::I32, vec![]);
+    let mut builder = ssa::FunctionBuilder::new(&mut func_main);
 
     let entry_block = builder.add_block();
     builder.set_block(entry_block);
 
-    let one = ssa::Value::Constant(ssa::Constant::I32(1));
-    let one = builder.call(module, func_fuga, vec![one]);
-
-    let mem = builder.alloc(ssa::Type::I32);
-    builder.store(mem, one);
-    let one = builder.load(module, mem);
-
+    let one = ssa::Value::new_i32(1);
     let two = builder.add(one, one);
+    builder.ret(two);
 
-    let block1 = builder.add_block();
-    builder.br(block1);
-    builder.set_block(block1);
+    module.add_function(func_main);
 
-    let piyo = builder.load(module, global_piyo);
-    let three = builder.add(two, piyo);
-    let cond = builder.eq(two, three);
+    // ---
 
-    let block2 = builder.add_block();
-    let block3 = builder.add_block();
-    builder.cond_br(cond, block2, block3);
+    println!("{}", module.dump());
+    let assembly = x86::instsel::translate(module);
+    println!("{}", assembly.stringify());
 
-    builder.set_block(block2);
-    builder.ret(cond);
-
-    builder.set_block(block3);
-    builder.ret(cond);
-
-    function
+    // ---
+    run(assembly, 1).unwrap();
 }
 
-fn func_fuga() -> ssa::Function {
-    let mut function = ssa::Function::new("fuga", ssa::Type::I32, vec![ssa::Type::I32]);
-    let mut builder = ssa::FunctionBuilder::new(&mut function);
+fn run(assembly: asm::Assembly, expected: i32) -> io::Result<()> {
+    let mut file = File::create("./tmp.s")?;
+    file.write_all(assembly.stringify().as_bytes())?;
 
-    let entry_block = builder.add_block();
-    builder.set_block(entry_block);
+    let status = Command::new("gcc")
+        .arg("./tmp.s")
+        .arg("-o")
+        .arg("./tmp")
+        .status()?;
 
-    let param = ssa::Value::new_param(builder.function(), 0);
-    builder.ret(param);
+    if !status.success() {
+        println!("==> failed to compile");
+        panic!();
+    }
 
-    function
+    println!("==> finished compiling successfully");
+
+    let status = Command::new("./tmp").status()?;
+    let status_code = status.code().unwrap();
+    println!("==> exited with {}, expected {}", status_code, expected);
+
+    assert_eq!(status_code, expected);
+
+    Ok(())
 }
