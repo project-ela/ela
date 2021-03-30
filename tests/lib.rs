@@ -5,7 +5,7 @@ use std::{
 };
 
 use siderow::{
-    arch::x86::{self, asm},
+    arch::x86::{self, asm, regalloc},
     ssa,
 };
 
@@ -30,11 +30,12 @@ fn do_test() {
     // ---
 
     println!("{}", module.dump());
-    let assembly = x86::instsel::translate(module);
+    let mut assembly = x86::instsel::translate(module);
+    regalloc::allocate(&mut assembly);
     println!("{}", assembly.stringify());
 
     // ---
-    run(assembly, 1).unwrap();
+    run(assembly, 2).unwrap();
 }
 
 fn run(assembly: asm::Assembly, expected: i32) -> io::Result<()> {
