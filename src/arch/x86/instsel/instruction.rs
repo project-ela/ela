@@ -278,10 +278,10 @@ impl InstructionSelector {
         match val {
             Constant(r#const) => asm::Operand::Immediate(r#const.into()),
             Instruction(inst_val) => asm::Operand::Register(inst_val.inst_id.into()),
-            x => unimplemented!("{:?}", x),
             Parameter(ssa::ParameterValue { index, .. }) => {
                 asm::Operand::Register(self.arg_reg(*index))
             }
+            x => panic!("{:?}", x),
         }
     }
 
