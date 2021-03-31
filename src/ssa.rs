@@ -24,6 +24,9 @@ pub use module::*;
 
 pub mod pass;
 
+mod terminator;
+pub use terminator::*;
+
 mod types;
 pub use types::*;
 
