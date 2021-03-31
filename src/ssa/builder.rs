@@ -109,15 +109,15 @@ macro_rules! cmp {
 }
 
 binop!(add, Add);
-binop!(sub, Add);
-binop!(mul, Add);
-binop!(div, Add);
-binop!(rem, Add);
-binop!(shl, Add);
-binop!(shr, Add);
-binop!(and, Add);
-binop!(or, Add);
-binop!(xor, Add);
+binop!(sub, Sub);
+binop!(mul, Mul);
+binop!(div, Div);
+binop!(rem, Rem);
+binop!(shl, Shl);
+binop!(shr, Shr);
+binop!(and, And);
+binop!(or, Or);
+binop!(xor, Xor);
 
 cmp!(eq, Eq);
 cmp!(neq, Neq);
