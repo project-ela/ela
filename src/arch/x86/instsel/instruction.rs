@@ -66,6 +66,8 @@ impl InstructionSelector {
                 asm::Mnemonic::Mov,
                 vec![self.trans_lvalue(module, dst), self.trans_value(src)],
             )],
+
+            x => unreachable!("{:?}", x),
         }
     }
 
@@ -224,10 +226,10 @@ impl InstructionSelector {
         inst
     }
 
-    pub(crate) fn trans_term(&mut self, term: &ssa::Terminator) -> Vec<asm::Instruction> {
-        use ssa::Terminator::*;
+    pub(crate) fn trans_term(&mut self, inst_kind: &ssa::InstructionKind) -> Vec<asm::Instruction> {
+        use ssa::InstructionKind::*;
 
-        match term {
+        match inst_kind {
             Ret(val) => {
                 let mut inst = Vec::new();
                 match val {
@@ -269,6 +271,8 @@ impl InstructionSelector {
                     vec![asm::Operand::Label(self.block_label(*con))],
                 ),
             ],
+
+            x => unreachable!("{:?}", x),
         }
     }
 

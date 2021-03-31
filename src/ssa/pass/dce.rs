@@ -25,13 +25,10 @@ impl DeadCodeElimination {
         for (_, block) in function.blocks.iter().rev() {
             for inst_id in block.instructions.iter().rev() {
                 let inst = function.inst(*inst_id).unwrap();
-                let new_users: HashSet<InstructionId> = inst
-                    .users_inst
-                    .difference(&ids_to_eliminate)
-                    .map(|id| *id)
-                    .collect();
+                let new_users: HashSet<InstructionId> =
+                    inst.users.difference(&ids_to_eliminate).copied().collect();
 
-                let can_be_eliminated = new_users.len() == 0 && inst.users_term.len() == 0;
+                let can_be_eliminated = new_users.len() == 0;
                 if can_be_eliminated {
                     ids_to_eliminate.insert(*inst_id);
                 } else {
@@ -47,7 +44,7 @@ impl DeadCodeElimination {
         }
         for (inst_id, new_users) in new_users_map.into_iter() {
             let inst = function.inst_mut(inst_id).unwrap();
-            let _ = std::mem::replace(&mut inst.users_inst, new_users);
+            let _ = std::mem::replace(&mut inst.users, new_users);
         }
     }
 }

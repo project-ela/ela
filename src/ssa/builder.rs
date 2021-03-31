@@ -1,6 +1,6 @@
 use super::{
     BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId, InstructionKind,
-    Module, Terminator, Type, Value,
+    Module, Type, Value,
 };
 
 #[derive(Debug)]
@@ -41,9 +41,9 @@ impl<'a> FunctionBuilder<'a> {
         Value::new_inst(inst_id, typ)
     }
 
-    fn add_term(&mut self, term: Terminator) {
-        let term_id = self.function.add_term(term);
-        self.current_block().set_term(term_id);
+    fn add_term(&mut self, inst_kind: InstructionKind) {
+        let inst_id = self.function.add_inst(inst_kind);
+        self.current_block().set_term(inst_id);
     }
 
     pub fn call(&mut self, module: &Module, func_id: FunctionId, args: Vec<Value>) -> Value {
@@ -70,19 +70,19 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn ret_void(&mut self) {
-        self.add_term(Terminator::Ret(None));
+        self.add_term(InstructionKind::Ret(None));
     }
 
     pub fn ret(&mut self, val: Value) {
-        self.add_term(Terminator::Ret(Some(val)));
+        self.add_term(InstructionKind::Ret(Some(val)));
     }
 
     pub fn br(&mut self, dst: BlockId) {
-        self.add_term(Terminator::Br(dst));
+        self.add_term(InstructionKind::Br(dst));
     }
 
     pub fn cond_br(&mut self, cond: Value, con: BlockId, alt: BlockId) {
-        self.add_term(Terminator::CondBr(cond, con, alt));
+        self.add_term(InstructionKind::CondBr(cond, con, alt));
     }
 }
 

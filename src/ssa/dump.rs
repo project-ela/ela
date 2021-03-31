@@ -1,6 +1,6 @@
 use super::{
     BinaryOperator, BlockId, ComparisonOperator, Constant, Function, Global, GlobalValue,
-    InstructionId, InstructionValue, Module, ParameterValue, Terminator, Type, Types, Value,
+    InstructionId, InstructionValue, Module, ParameterValue, Type, Types, Value,
 };
 
 impl Module {
@@ -66,12 +66,12 @@ impl Function {
         let inst_str = block
             .instructions
             .iter()
-            .map(|inst_id| self.dump_inst(module, *inst_id))
+            .map(|inst_id| self.dump_inst(module, self, *inst_id))
             .collect::<Vec<String>>()
             .join("\n");
 
         let term_str = match block.terminator {
-            Some(term_id) => self.term(term_id).unwrap().dump(module, self),
+            Some(inst_id) => self.dump_inst(module, self, inst_id),
             None => "  invalid".into(),
         };
 
@@ -81,7 +81,7 @@ impl Function {
         }
     }
 
-    fn dump_inst(&self, module: &Module, inst_id: InstructionId) -> String {
+    fn dump_inst(&self, module: &Module, func: &Function, inst_id: InstructionId) -> String {
         use super::InstructionKind::*;
 
         let inst = self.instructions.get(inst_id).unwrap();
@@ -121,35 +121,7 @@ impl Function {
                 dst.dump(module, self),
                 src.dump(module, self)
             ),
-        };
-        let users_inst_str = inst
-            .users_inst
-            .iter()
-            .map(|user| format!("%{}", user.index()))
-            .collect::<Vec<String>>()
-            .join(", ");
-        let users_term_str = inst
-            .users_term
-            .iter()
-            .map(|user| format!("%{}", user.index()))
-            .collect::<Vec<String>>()
-            .join(", ");
 
-        format!(
-            "    %{} = {} <-- ({}) ({})",
-            inst_id.index(),
-            inst_str,
-            users_inst_str,
-            users_term_str
-        )
-    }
-}
-
-impl Terminator {
-    fn dump(&self, module: &Module, func: &Function) -> String {
-        use super::Terminator::*;
-
-        match self {
             Ret(Some(val)) => format!("  ret {}", val.dump(module, func)),
             Ret(None) => format!("  ret"),
             Br(dst) => format!("  br b{}", dst.index()),
@@ -161,6 +133,17 @@ impl Terminator {
                     alt.index()
                 )
             }
+        };
+        let users_str = inst
+            .users
+            .iter()
+            .map(|user| format!("%{}", user.index()))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        match inst.is_terminator() {
+            true => format!("  {}", inst_str),
+            false => format!("    %{} = {} <-- {}", inst_id.index(), inst_str, users_str),
         }
     }
 }

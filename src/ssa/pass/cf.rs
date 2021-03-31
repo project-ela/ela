@@ -33,23 +33,10 @@ impl ConstantFolding {
 
         for (inst_id, val) in foldables.into_iter() {
             let inst = function.inst_mut(inst_id).unwrap();
-            let users = std::mem::take(&mut inst.users_inst);
+            let users = std::mem::take(&mut inst.users);
             for user_id in users {
                 let user_inst = function.inst_mut(user_id).unwrap();
-                for value in user_inst.kind.values_mut() {
-                    if let Value::Instruction(inst_val) = value {
-                        if inst_val.inst_id == inst_id {
-                            let _ = std::mem::replace(value, val);
-                        }
-                    }
-                }
-            }
-
-            let inst = function.inst_mut(inst_id).unwrap();
-            let users = std::mem::take(&mut inst.users_term);
-            for user_id in users {
-                let user_term = function.term_mut(user_id).unwrap();
-                for value in user_term.values_mut() {
+                for value in user_inst.values_mut() {
                     if let Value::Instruction(inst_val) = value {
                         if inst_val.inst_id == inst_id {
                             let _ = std::mem::replace(value, val);

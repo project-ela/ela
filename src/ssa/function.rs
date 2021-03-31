@@ -1,9 +1,6 @@
 use id_arena::{Arena, Id};
 
-use super::{
-    Block, BlockId, Instruction, InstructionId, InstructionKind, Terminator, TerminatorId, Type,
-    Types,
-};
+use super::{Block, BlockId, Instruction, InstructionId, InstructionKind, Type, Types};
 
 pub type FunctionId = Id<Function>;
 
@@ -18,8 +15,6 @@ pub struct Function {
     pub blocks: Arena<Block>,
 
     pub instructions: Arena<Instruction>,
-
-    pub terminators: Arena<Terminator>,
 
     pub types: Types,
 }
@@ -37,7 +32,6 @@ impl Function {
             ret_typ,
             blocks: Arena::new(),
             instructions,
-            terminators: Arena::new(),
             types: Types::new(),
         }
     }
@@ -65,7 +59,7 @@ impl Function {
             self.instructions
                 .get_mut(inst_id)
                 .unwrap()
-                .add_user_inst(user_id);
+                .add_user(user_id);
         }
     }
 
@@ -75,27 +69,5 @@ impl Function {
 
     pub fn inst_mut(&mut self, inst_id: InstructionId) -> Option<&mut Instruction> {
         self.instructions.get_mut(inst_id)
-    }
-
-    pub fn add_term(&mut self, term: Terminator) -> TerminatorId {
-        self.update_users_term(&term, self.terminators.next_id());
-        self.terminators.alloc(term)
-    }
-
-    fn update_users_term(&mut self, user: &Terminator, user_id: TerminatorId) {
-        for inst_id in user.uses() {
-            self.instructions
-                .get_mut(inst_id)
-                .unwrap()
-                .add_user_term(user_id);
-        }
-    }
-
-    pub fn term(&self, term_id: TerminatorId) -> Option<&Terminator> {
-        self.terminators.get(term_id)
-    }
-
-    pub fn term_mut(&mut self, term_id: TerminatorId) -> Option<&mut Terminator> {
-        self.terminators.get_mut(term_id)
     }
 }

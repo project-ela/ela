@@ -1,6 +1,6 @@
 use id_arena::Id;
 
-use super::{InstructionId, TerminatorId};
+use super::InstructionId;
 
 pub type BlockId = Id<Block>;
 
@@ -8,7 +8,7 @@ pub type BlockId = Id<Block>;
 pub struct Block {
     pub instructions: Vec<InstructionId>,
 
-    pub terminator: Option<TerminatorId>,
+    pub terminator: Option<InstructionId>,
 }
 
 impl Block {
@@ -23,7 +23,7 @@ impl Block {
         self.instructions.push(inst_id)
     }
 
-    pub fn set_term(&mut self, term_id: TerminatorId) {
-        self.terminator = Some(term_id);
+    pub fn set_term(&mut self, inst_id: InstructionId) {
+        self.terminator = Some(inst_id);
     }
 }

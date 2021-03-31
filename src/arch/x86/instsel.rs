@@ -138,8 +138,8 @@ impl InstructionSelector {
         }
 
         let term_id = block.terminator.unwrap();
-        let ssa_term = function.term(term_id).unwrap();
-        let asm_inst = self.trans_term(ssa_term);
+        let ssa_inst = function.inst(term_id).unwrap();
+        let asm_inst = self.trans_term(&ssa_inst.kind);
         for inst in asm_inst {
             self.func.add_inst(inst);
         }

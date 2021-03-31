@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use id_arena::Id;
 
-use super::{FunctionId, TerminatorId, Type, Value};
+use super::{BlockId, FunctionId, Type, Value};
 
 pub type InstructionId = Id<Instruction>;
 
@@ -10,36 +10,7 @@ pub type InstructionId = Id<Instruction>;
 pub struct Instruction {
     pub kind: InstructionKind,
 
-    pub users_inst: HashSet<InstructionId>,
-    pub users_term: HashSet<TerminatorId>,
-}
-
-impl Instruction {
-    pub fn new(kind: InstructionKind) -> Self {
-        Self {
-            kind,
-            users_inst: HashSet::new(),
-            users_term: HashSet::new(),
-        }
-    }
-
-    pub fn uses(&self) -> Vec<InstructionId> {
-        let mut uses = HashSet::new();
-        for value in self.kind.values() {
-            if let Value::Instruction(inst_val) = value {
-                uses.insert(inst_val.inst_id);
-            }
-        }
-        uses.into_iter().collect()
-    }
-
-    pub fn add_user_inst(&mut self, user: InstructionId) {
-        self.users_inst.insert(user);
-    }
-
-    pub fn add_user_term(&mut self, user: TerminatorId) {
-        self.users_term.insert(user);
-    }
+    pub users: HashSet<InstructionId>,
 }
 
 #[derive(Debug)]
@@ -53,40 +24,11 @@ pub enum InstructionKind {
     Alloc(Type),
     Load(Value),
     Store(Value, Value),
-}
 
-impl InstructionKind {
-    pub fn values(&self) -> Vec<&Value> {
-        use self::InstructionKind::*;
-
-        match self {
-            BinOp(_, lhs, rhs) => vec![lhs, rhs],
-            Cmp(_, lhs, rhs) => vec![lhs, rhs],
-
-            Call(_, args) => args.iter().collect(),
-            Param(_) => vec![],
-
-            Alloc(_) => vec![],
-            Load(src) => vec![src],
-            Store(dst, src) => vec![dst, src],
-        }
-    }
-
-    pub fn values_mut(&mut self) -> Vec<&mut Value> {
-        use self::InstructionKind::*;
-
-        match self {
-            BinOp(_, lhs, rhs) => vec![lhs, rhs],
-            Cmp(_, lhs, rhs) => vec![lhs, rhs],
-
-            Call(_, args) => args.iter_mut().collect(),
-            Param(_) => vec![],
-
-            Alloc(_) => vec![],
-            Load(src) => vec![src],
-            Store(dst, src) => vec![dst, src],
-        }
-    }
+    // terminators
+    Ret(Option<Value>),
+    Br(BlockId),
+    CondBr(Value, BlockId, BlockId),
 }
 
 #[derive(Debug)]
@@ -114,4 +56,78 @@ pub enum ComparisonOperator {
     Gte,
     Lt,
     Lte,
+}
+
+impl Instruction {
+    pub fn new(kind: InstructionKind) -> Self {
+        Self {
+            kind,
+            users: HashSet::new(),
+        }
+    }
+
+    pub fn uses(&self) -> Vec<InstructionId> {
+        let mut uses = HashSet::new();
+        for value in self.values() {
+            if let Value::Instruction(inst_val) = value {
+                uses.insert(inst_val.inst_id);
+            }
+        }
+        uses.into_iter().collect()
+    }
+
+    pub fn add_user(&mut self, user: InstructionId) {
+        self.users.insert(user);
+    }
+
+    pub fn values(&self) -> Vec<&Value> {
+        use self::InstructionKind::*;
+
+        match &self.kind {
+            BinOp(_, lhs, rhs) => vec![lhs, rhs],
+            Cmp(_, lhs, rhs) => vec![lhs, rhs],
+
+            Call(_, args) => args.iter().collect(),
+            Param(_) => vec![],
+
+            Alloc(_) => vec![],
+            Load(src) => vec![src],
+            Store(dst, src) => vec![dst, src],
+
+            Ret(None) => vec![],
+            Ret(Some(val)) => vec![val],
+            Br(_) => vec![],
+            CondBr(cond, _, _) => vec![cond],
+        }
+    }
+
+    pub fn values_mut(&mut self) -> Vec<&mut Value> {
+        use self::InstructionKind::*;
+
+        match &mut self.kind {
+            BinOp(_, lhs, rhs) => vec![lhs, rhs],
+            Cmp(_, lhs, rhs) => vec![lhs, rhs],
+
+            Call(_, args) => args.iter_mut().collect(),
+            Param(_) => vec![],
+
+            Alloc(_) => vec![],
+            Load(src) => vec![src],
+            Store(dst, src) => vec![dst, src],
+
+            Ret(None) => vec![],
+            Ret(Some(val)) => vec![val],
+            Br(_) => vec![],
+            CondBr(cond, _, _) => vec![cond],
+        }
+    }
+
+    pub fn is_terminator(&self) -> bool {
+        use self::InstructionKind::*;
+
+        match self.kind {
+            Ret(_) | Br(_) | CondBr(_, _, _) => true,
+            _ => false,
+        }
+    }
 }
