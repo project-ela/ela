@@ -22,6 +22,8 @@ pub use instruction::*;
 mod module;
 pub use module::*;
 
+pub mod pass;
+
 mod types;
 pub use types::*;
 
