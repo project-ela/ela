@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::ssa::{
-    BinaryOperator, ComparisonOperator, Constant, Function, Instruction, InstructionId, Module,
-    Type, Value,
+    BinaryOperator, ComparisonOperator, Constant, Function, Instruction, InstructionId,
+    InstructionKind, Module, Type, Value,
 };
 
 pub fn apply(module: &mut Module) {
@@ -23,24 +23,40 @@ impl ConstantFolding {
     }
 
     fn apply_function(&mut self, function: &mut Function) {
-        let mut foldables = HashMap::new();
+        let mut foldable_inst = HashMap::new();
+        let mut foldable_term = HashMap::new();
 
         for (_, block) in &function.blocks {
+            // determine which instructions to fold
             for inst_id in &block.instructions {
                 let inst = function.inst(*inst_id).unwrap();
-                if let Some(val) = self.fold(inst, &foldables) {
-                    foldables.insert(*inst_id, val);
+                if let Some(val) = self.fold_inst(inst, &foldable_inst) {
+                    foldable_inst.insert(*inst_id, val);
                 }
+            }
+
+            // determine which terminators to fold
+            let inst_id = block.terminator.unwrap();
+            let inst = function.inst(inst_id).unwrap();
+            if let Some(kind) = self.fold_term(inst, &foldable_inst) {
+                foldable_term.insert(inst_id, kind);
             }
         }
 
-        for (inst_id, val) in foldables.into_iter() {
+        // fold instructions
+        for (inst_id, val) in foldable_inst.into_iter() {
             let inst = function.inst_mut(inst_id).unwrap();
             let users = std::mem::take(&mut inst.users);
             for user_id in users {
                 let user_inst = function.inst_mut(user_id).unwrap();
                 self.replace_value(user_inst, inst_id, val);
             }
+        }
+
+        // fold terminators
+        for (inst_id, kind) in foldable_term.into_iter() {
+            let inst = function.inst_mut(inst_id).unwrap();
+            inst.kind = kind;
         }
     }
 
@@ -59,7 +75,26 @@ impl ConstantFolding {
         }
     }
 
-    fn fold(
+    fn fold_term(
+        &mut self,
+        inst: &Instruction,
+        foldables: &HashMap<InstructionId, Value>,
+    ) -> Option<InstructionKind> {
+        use InstructionKind::*;
+
+        match inst.kind {
+            CondBr(cond, con, alt) => {
+                let cond = self.unwrap_i1(&cond, foldables)?;
+                match cond {
+                    true => Some(InstructionKind::Br(con)),
+                    false => Some(InstructionKind::Br(alt)),
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn fold_inst(
         &mut self,
         inst: &Instruction,
         foldables: &HashMap<InstructionId, Value>,
@@ -161,7 +196,7 @@ impl ConstantFolding {
 #[cfg(test)]
 mod tests {
     use super::ConstantFolding;
-    use crate::ssa::{Function, FunctionBuilder, Type, Value};
+    use crate::ssa::{Function, FunctionBuilder, InstructionKind, Type, Value};
 
     #[test]
     fn cf_1() {
@@ -203,5 +238,33 @@ mod tests {
         let ret_inst = func_main.inst(ret_id).unwrap();
         let ret_val = ret_inst.values()[0].as_i1();
         assert_eq!(ret_val, false);
+    }
+
+    #[test]
+    fn cf_3() {
+        let mut func_main = Function::new("main", Type::I32, vec![]);
+        let mut builder = FunctionBuilder::new(&mut func_main);
+        let block_0 = builder.add_block();
+        let block_1 = builder.add_block();
+        let block_2 = builder.add_block();
+
+        builder.set_block(block_0);
+        let v0 = builder.eq(Value::new_i32(1), Value::new_i32(1));
+        builder.cond_br(v0, block_1, block_2);
+
+        builder.set_block(block_1);
+        builder.ret(Value::new_i32(1));
+
+        builder.set_block(block_2);
+        builder.ret(Value::new_i32(2));
+
+        // ---
+
+        ConstantFolding::new().apply_function(&mut func_main);
+
+        let br_id = func_main.block(block_0).unwrap().terminator.unwrap();
+        let br_inst = func_main.inst(br_id).unwrap();
+        // TODO
+        assert!(matches!(br_inst.kind, InstructionKind::Br(block_id) if block_id == block_1));
     }
 }
