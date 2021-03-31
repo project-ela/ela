@@ -130,4 +130,13 @@ impl Instruction {
             _ => false,
         }
     }
+
+    pub fn has_side_effects(&self) -> bool {
+        use self::InstructionKind::*;
+
+        match self.kind {
+            Call(_, _) | Param(_) => true,
+            _ => false,
+        }
+    }
 }

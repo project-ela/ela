@@ -28,7 +28,7 @@ impl DeadCodeElimination {
                 let new_users: HashSet<InstructionId> =
                     inst.users.difference(&ids_to_eliminate).copied().collect();
 
-                let can_be_eliminated = new_users.len() == 0;
+                let can_be_eliminated = new_users.len() == 0 && !inst.has_side_effects();
                 if can_be_eliminated {
                     ids_to_eliminate.insert(*inst_id);
                 } else {
@@ -52,7 +52,7 @@ impl DeadCodeElimination {
 #[cfg(test)]
 mod tests {
     use super::DeadCodeElimination;
-    use crate::ssa::{Block, Function, FunctionBuilder, Type, Value};
+    use crate::ssa::{Block, Function, FunctionBuilder, Module, Type, Value};
 
     #[test]
     fn dce_1() {
@@ -77,6 +77,25 @@ mod tests {
         DeadCodeElimination::new().apply_function(&mut func_main);
         assert_eq!(inst_indices(func_main.block(block_0).unwrap()), vec![0, 1]);
         assert_eq!(inst_indices(func_main.block(block_1).unwrap()), vec![]);
+    }
+
+    #[test]
+    fn dce_2() {
+        let mut module = Module::new();
+        let func_hoge = module.add_function(Function::new("hoge", Type::Void, vec![]));
+
+        let mut func_main = Function::new("main", Type::Void, vec![]);
+        let mut builder = FunctionBuilder::new(&mut func_main);
+        let block_0 = builder.add_block();
+
+        builder.set_block(block_0);
+        builder.call(&module, func_hoge, vec![]);
+        builder.ret_void();
+
+        // ---
+
+        DeadCodeElimination::new().apply_function(&mut func_main);
+        assert_eq!(inst_indices(func_main.block(block_0).unwrap()), vec![0]);
     }
 
     fn inst_indices(block: &Block) -> Vec<usize> {
