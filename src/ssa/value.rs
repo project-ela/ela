@@ -53,6 +53,13 @@ impl Value {
         })
     }
 
+    pub fn as_i1(&self) -> bool {
+        match self {
+            Self::Constant(Constant::I1(val)) => *val,
+            _ => panic!(),
+        }
+    }
+
     pub fn as_i32(&self) -> i32 {
         match self {
             Self::Constant(Constant::I32(val)) => *val,
