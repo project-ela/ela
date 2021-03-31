@@ -36,6 +36,7 @@ fn do_test() {
     // ---
 
     println!("{}", module.dump());
+    ssa::pass::cf::apply(&mut module);
     ssa::pass::dce::apply(&mut module);
     println!("{}", module.dump());
 

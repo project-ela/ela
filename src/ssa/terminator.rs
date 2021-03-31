@@ -25,6 +25,17 @@ impl Terminator {
         }
     }
 
+    pub fn values_mut(&mut self) -> Vec<&mut Value> {
+        use self::Terminator::*;
+
+        match self {
+            Ret(None) => vec![],
+            Ret(Some(val)) => vec![val],
+            Br(_) => vec![],
+            CondBr(cond, _, _) => vec![cond],
+        }
+    }
+
     pub fn uses(&self) -> Vec<InstructionId> {
         let mut uses = HashSet::new();
         for value in self.values() {

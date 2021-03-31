@@ -53,6 +53,13 @@ impl Value {
         })
     }
 
+    pub fn as_i32(&self) -> i32 {
+        match self {
+            Self::Constant(Constant::I32(val)) => *val,
+            _ => panic!(),
+        }
+    }
+
     pub fn typ(&self) -> Type {
         use self::Value::*;
 

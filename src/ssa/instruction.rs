@@ -71,6 +71,22 @@ impl InstructionKind {
             Store(dst, src) => vec![dst, src],
         }
     }
+
+    pub fn values_mut(&mut self) -> Vec<&mut Value> {
+        use self::InstructionKind::*;
+
+        match self {
+            BinOp(_, lhs, rhs) => vec![lhs, rhs],
+            Cmp(_, lhs, rhs) => vec![lhs, rhs],
+
+            Call(_, args) => args.iter_mut().collect(),
+            Param(_) => vec![],
+
+            Alloc(_) => vec![],
+            Load(src) => vec![src],
+            Store(dst, src) => vec![dst, src],
+        }
+    }
 }
 
 #[derive(Debug)]

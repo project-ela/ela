@@ -94,4 +94,8 @@ impl Function {
     pub fn term(&self, term_id: TerminatorId) -> Option<&Terminator> {
         self.terminators.get(term_id)
     }
+
+    pub fn term_mut(&mut self, term_id: TerminatorId) -> Option<&mut Terminator> {
+        self.terminators.get_mut(term_id)
+    }
 }
