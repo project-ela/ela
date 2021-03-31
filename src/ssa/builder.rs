@@ -1,6 +1,6 @@
 use super::{
-    BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId, Instruction, Module,
-    Terminator, Type, Value,
+    BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId, InstructionKind,
+    Module, Terminator, Type, Value,
 };
 
 #[derive(Debug)]
@@ -35,8 +35,8 @@ impl<'a> FunctionBuilder<'a> {
         self.function.block_mut(block_id).unwrap()
     }
 
-    fn add_inst(&mut self, inst: Instruction, typ: Type) -> Value {
-        let inst_id = self.function.add_inst(inst);
+    fn add_inst(&mut self, inst_kind: InstructionKind, typ: Type) -> Value {
+        let inst_id = self.function.add_inst(inst_kind);
         self.current_block().add_inst(inst_id);
         Value::new_inst(inst_id, typ)
     }
@@ -48,12 +48,12 @@ impl<'a> FunctionBuilder<'a> {
 
     pub fn call(&mut self, module: &Module, func_id: FunctionId, args: Vec<Value>) -> Value {
         let ret_typ = module.function(func_id).unwrap().ret_typ;
-        self.add_inst(Instruction::Call(func_id, args), ret_typ)
+        self.add_inst(InstructionKind::Call(func_id, args), ret_typ)
     }
 
     pub fn alloc(&mut self, typ: Type) -> Value {
         let ptr_typ = self.function.types.ptr_to(typ);
-        self.add_inst(Instruction::Alloc(typ), ptr_typ)
+        self.add_inst(InstructionKind::Alloc(typ), ptr_typ)
     }
 
     pub fn load(&mut self, module: &Module, src: Value) -> Value {
@@ -61,11 +61,11 @@ impl<'a> FunctionBuilder<'a> {
             Value::Global(_) | Value::Parameter(_) => module.types.elm_typ(src.typ()),
             _ => self.function.types.elm_typ(src.typ()),
         };
-        self.add_inst(Instruction::Load(src), elm_typ)
+        self.add_inst(InstructionKind::Load(src), elm_typ)
     }
 
     pub fn store(&mut self, dst: Value, src: Value) {
-        let inst_id = self.function.add_inst(Instruction::Store(dst, src));
+        let inst_id = self.function.add_inst(InstructionKind::Store(dst, src));
         self.current_block().add_inst(inst_id);
     }
 
@@ -90,8 +90,8 @@ macro_rules! binop {
     ($name: tt, $op: tt) => {
         impl<'a> FunctionBuilder<'a> {
             pub fn $name(&mut self, lhs: Value, rhs: Value) -> Value {
-                let inst = Instruction::BinOp(BinaryOperator::$op, lhs, rhs);
-                self.add_inst(inst, lhs.typ())
+                let inst_kind = InstructionKind::BinOp(BinaryOperator::$op, lhs, rhs);
+                self.add_inst(inst_kind, lhs.typ())
             }
         }
     };
@@ -101,8 +101,8 @@ macro_rules! cmp {
     ($name: tt, $op: tt) => {
         impl<'a> FunctionBuilder<'a> {
             pub fn $name(&mut self, lhs: Value, rhs: Value) -> Value {
-                let inst = Instruction::Cmp(ComparisonOperator::$op, lhs, rhs);
-                self.add_inst(inst, Type::I1)
+                let inst_kind = InstructionKind::Cmp(ComparisonOperator::$op, lhs, rhs);
+                self.add_inst(inst_kind, Type::I1)
             }
         }
     };

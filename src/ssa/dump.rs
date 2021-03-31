@@ -82,10 +82,10 @@ impl Function {
     }
 
     fn dump_inst(&self, module: &Module, inst_id: InstructionId) -> String {
-        use super::Instruction::*;
+        use super::InstructionKind::*;
 
         let inst = self.instructions.get(inst_id).unwrap();
-        let inst_str = match inst {
+        let inst_str = match &inst.kind {
             BinOp(op, lhs, rhs) => format!(
                 "{} {}, {}",
                 op.dump(),
@@ -122,8 +122,26 @@ impl Function {
                 src.dump(module, self)
             ),
         };
+        let users_inst_str = inst
+            .users_inst
+            .iter()
+            .map(|user| format!("%{}", user.index()))
+            .collect::<Vec<String>>()
+            .join(", ");
+        let users_term_str = inst
+            .users_term
+            .iter()
+            .map(|user| format!("%{}", user.index()))
+            .collect::<Vec<String>>()
+            .join(", ");
 
-        format!("    %{} = {}", inst_id.index(), inst_str)
+        format!(
+            "    %{} = {} <-- ({}) ({})",
+            inst_id.index(),
+            inst_str,
+            users_inst_str,
+            users_term_str
+        )
     }
 }
 

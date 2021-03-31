@@ -1,6 +1,9 @@
 use id_arena::{Arena, Id};
 
-use super::{Block, BlockId, Instruction, InstructionId, Terminator, TerminatorId, Type, Types};
+use super::{
+    Block, BlockId, Instruction, InstructionId, InstructionKind, Terminator, TerminatorId, Type,
+    Types,
+};
 
 pub type FunctionId = Id<Function>;
 
@@ -25,7 +28,7 @@ impl Function {
     pub fn new(name: &str, ret_typ: Type, param_typ: Vec<Type>) -> Self {
         let mut instructions = Arena::new();
         for (i, _) in param_typ.iter().enumerate() {
-            instructions.alloc(Instruction::Param(i));
+            instructions.alloc(Instruction::new(InstructionKind::Param(i)));
         }
 
         Self {
@@ -43,20 +46,49 @@ impl Function {
         self.blocks.alloc(Block::new())
     }
 
+    pub fn block(&self, id: BlockId) -> Option<&Block> {
+        self.blocks.get(id)
+    }
+
     pub fn block_mut(&mut self, id: BlockId) -> Option<&mut Block> {
         self.blocks.get_mut(id)
     }
 
-    pub fn add_inst(&mut self, inst: Instruction) -> InstructionId {
+    pub fn add_inst(&mut self, inst_kind: InstructionKind) -> InstructionId {
+        let inst = Instruction::new(inst_kind);
+        self.update_users_inst(&inst, self.instructions.next_id());
         self.instructions.alloc(inst)
+    }
+
+    fn update_users_inst(&mut self, user: &Instruction, user_id: InstructionId) {
+        for inst_id in user.uses() {
+            self.instructions
+                .get_mut(inst_id)
+                .unwrap()
+                .add_user_inst(user_id);
+        }
     }
 
     pub fn inst(&self, inst_id: InstructionId) -> Option<&Instruction> {
         self.instructions.get(inst_id)
     }
 
+    pub fn inst_mut(&mut self, inst_id: InstructionId) -> Option<&mut Instruction> {
+        self.instructions.get_mut(inst_id)
+    }
+
     pub fn add_term(&mut self, term: Terminator) -> TerminatorId {
+        self.update_users_term(&term, self.terminators.next_id());
         self.terminators.alloc(term)
+    }
+
+    fn update_users_term(&mut self, user: &Terminator, user_id: TerminatorId) {
+        for inst_id in user.uses() {
+            self.instructions
+                .get_mut(inst_id)
+                .unwrap()
+                .add_user_term(user_id);
+        }
     }
 
     pub fn term(&self, term_id: TerminatorId) -> Option<&Terminator> {

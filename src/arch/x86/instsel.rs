@@ -69,7 +69,7 @@ impl InstructionSelector {
         let mut stack_offset = 0;
         self.stack_offlsets.clear();
         for (inst_id, inst) in &function.instructions {
-            if let ssa::Instruction::Alloc(_) = inst {
+            if let ssa::InstructionKind::Alloc(_) = inst.kind {
                 stack_offset += 8;
                 self.stack_offlsets.insert(
                     inst_id,
@@ -131,7 +131,7 @@ impl InstructionSelector {
     fn trans_block(&mut self, module: &ssa::Module, function: &ssa::Function, block: &ssa::Block) {
         for inst_id in &block.instructions {
             let ssa_inst = function.inst(*inst_id).unwrap();
-            let asm_inst = self.trans_inst(module, inst_id, ssa_inst);
+            let asm_inst = self.trans_inst(module, inst_id, &ssa_inst.kind);
             for inst in asm_inst {
                 self.func.add_inst(inst);
             }

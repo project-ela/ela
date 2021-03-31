@@ -16,11 +16,11 @@ impl InstructionSelector {
         &mut self,
         module: &ssa::Module,
         inst_id: &ssa::InstructionId,
-        inst: &ssa::Instruction,
+        inst_kind: &ssa::InstructionKind,
     ) -> Vec<asm::Instruction> {
-        use ssa::Instruction::*;
+        use ssa::InstructionKind::*;
 
-        match inst {
+        match inst_kind {
             BinOp(op, lhs, rhs) => self.trans_binop(inst_id, op, lhs, rhs),
             Cmp(op, lhs, rhs) => self.trans_cmp(inst_id, op, lhs, rhs),
 
