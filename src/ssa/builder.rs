@@ -38,10 +38,16 @@ impl<'a> FunctionBuilder<'a> {
     pub fn strip_empty_block(&mut self) {
         let block_id = self.current_block.unwrap();
         let block = self.function.block(block_id).unwrap();
-        if block.is_empty() && block.terminator == None {
+        if block.is_empty() && !block.is_terminated() {
             self.function.block_order.pop();
             self.current_block = None;
         }
+    }
+
+    pub fn is_terminated(&self) -> bool {
+        let block_id = self.current_block.unwrap();
+        let block = self.function.block(block_id).unwrap();
+        block.is_terminated()
     }
 
     fn add_inst(&mut self, inst_kind: InstructionKind, typ: Type) -> Value {

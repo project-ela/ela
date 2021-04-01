@@ -30,4 +30,8 @@ impl Block {
     pub fn is_empty(&self) -> bool {
         self.instructions.is_empty()
     }
+
+    pub fn is_terminated(&self) -> bool {
+        self.terminator.is_some()
+    }
 }
