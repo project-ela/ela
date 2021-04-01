@@ -14,6 +14,8 @@ pub struct Function {
 
     pub blocks: Arena<Block>,
 
+    pub block_order: Vec<BlockId>,
+
     pub instructions: Arena<Instruction>,
 
     pub types: Types,
@@ -31,13 +33,16 @@ impl Function {
             param_typ,
             ret_typ,
             blocks: Arena::new(),
+            block_order: Vec::new(),
             instructions,
             types: Types::new(),
         }
     }
 
     pub fn add_block(&mut self) -> BlockId {
-        self.blocks.alloc(Block::new())
+        let block_id = self.blocks.alloc(Block::new());
+        self.block_order.push(block_id);
+        block_id
     }
 
     pub fn block(&self, id: BlockId) -> Option<&Block> {

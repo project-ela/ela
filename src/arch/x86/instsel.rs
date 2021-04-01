@@ -95,8 +95,9 @@ impl InstructionSelector {
             ));
         }
 
-        for (block_id, block) in &function.blocks {
-            self.func.add_label(self.block_label(block_id));
+        for block_id in &function.block_order {
+            let block = function.block(*block_id).unwrap();
+            self.func.add_label(self.block_label(*block_id));
 
             self.trans_block(module, &function, block);
         }

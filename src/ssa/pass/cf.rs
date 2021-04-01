@@ -26,7 +26,9 @@ impl ConstantFolding {
         let mut foldable_inst = HashMap::new();
         let mut foldable_term = HashMap::new();
 
-        for (_, block) in &function.blocks {
+        for block_id in &function.block_order {
+            let block = function.block(*block_id).unwrap();
+
             // determine which instructions to fold
             for inst_id in &block.instructions {
                 let inst = function.inst(*inst_id).unwrap();

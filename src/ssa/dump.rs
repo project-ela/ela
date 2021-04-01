@@ -45,9 +45,9 @@ impl Function {
             .join(", ");
 
         let block_str = self
-            .blocks
+            .block_order
             .iter()
-            .map(|(block_id, _)| self.dump_block(module, block_id))
+            .map(|block_id| self.dump_block(module, *block_id))
             .collect::<Vec<String>>()
             .join("\n\n");
 
@@ -61,7 +61,7 @@ impl Function {
     }
 
     fn dump_block(&self, module: &Module, block_id: BlockId) -> String {
-        let block = self.blocks.get(block_id).unwrap();
+        let block = self.block(block_id).unwrap();
 
         let inst_str = block
             .instructions

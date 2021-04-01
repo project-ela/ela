@@ -22,7 +22,8 @@ impl DeadCodeElimination {
     fn apply_function(&mut self, function: &mut Function) {
         let mut ids_to_eliminate = HashSet::new();
         let mut new_users_map = HashMap::new();
-        for (_, block) in function.blocks.iter().rev() {
+        for block_id in function.block_order.iter().rev() {
+            let block = function.block(*block_id).unwrap();
             for inst_id in block.instructions.iter().rev() {
                 let inst = function.inst(*inst_id).unwrap();
                 let new_users: HashSet<InstructionId> =
@@ -37,7 +38,8 @@ impl DeadCodeElimination {
             }
         }
 
-        for (_, block) in function.blocks.iter_mut() {
+        for block_id in function.block_order.to_vec() {
+            let block = function.block_mut(block_id).unwrap();
             block
                 .instructions
                 .retain(|inst_id| !ids_to_eliminate.contains(inst_id));
