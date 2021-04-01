@@ -221,8 +221,14 @@ impl InstructionSelector {
         inst
     }
 
-    pub(crate) fn trans_term(&mut self, inst_kind: &ssa::InstructionKind) -> Vec<asm::Instruction> {
+    pub(crate) fn trans_term(
+        &mut self,
+        inst_id: ssa::InstructionId,
+        inst_kind: &ssa::InstructionKind,
+    ) -> Vec<asm::Instruction> {
         use ssa::InstructionKind::*;
+
+        let reg = asm::Operand::Register(inst_id.into());
 
         match inst_kind {
             Ret(val) => {
@@ -250,12 +256,14 @@ impl InstructionSelector {
                 vec![asm::Operand::Label(self.block_label(*dst))],
             )],
             CondBr(cond, con, alt) => vec![
+                // TODO
+                asm::Instruction::new(
+                    asm::Mnemonic::Mov,
+                    vec![reg.clone(), self.trans_value(cond)],
+                ),
                 asm::Instruction::new(
                     asm::Mnemonic::Cmp,
-                    vec![
-                        self.trans_value(cond),
-                        asm::Operand::Immediate(asm::Immediate::I8(0)),
-                    ],
+                    vec![reg, asm::Operand::Immediate(asm::Immediate::I8(0))],
                 ),
                 asm::Instruction::new(
                     asm::Mnemonic::Je,
