@@ -106,7 +106,8 @@ impl InstructionSelector {
                     ],
                 ),
                 asm::Instruction::new(asm::Mnemonic::Cqo, vec![]),
-                asm::Instruction::new(asm::Mnemonic::Idiv, vec![rhs]),
+                asm::Instruction::new(asm::Mnemonic::Mov, vec![reg.clone(), rhs]),
+                asm::Instruction::new(asm::Mnemonic::Idiv, vec![reg.clone()]),
                 asm::Instruction::new(
                     asm::Mnemonic::Mov,
                     vec![
