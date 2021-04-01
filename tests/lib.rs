@@ -17,8 +17,8 @@ fn do_test() {
 
     let mut func_main = ssa::Function::new("main", ssa::Type::I32, vec![]);
     let mut builder = ssa::FunctionBuilder::new(&mut func_main);
-    let block_0 = builder.add_block();
-    let block_1 = builder.add_block();
+    let block_0 = builder.new_block();
+    let block_1 = builder.new_block();
 
     builder.set_block(block_0);
     let one = ssa::Value::new_i32(1);

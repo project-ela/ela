@@ -22,8 +22,8 @@ impl<'a> FunctionBuilder<'a> {
         &self.function
     }
 
-    pub fn add_block(&mut self) -> BlockId {
-        self.function.add_block()
+    pub fn new_block(&mut self) -> BlockId {
+        self.function.new_block()
     }
 
     pub fn set_block(&mut self, block_id: BlockId) {

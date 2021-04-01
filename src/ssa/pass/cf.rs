@@ -204,7 +204,7 @@ mod tests {
     fn cf_1() {
         let mut func_main = Function::new("main", Type::I32, vec![]);
         let mut builder = FunctionBuilder::new(&mut func_main);
-        let block_0 = builder.add_block();
+        let block_0 = builder.new_block();
 
         builder.set_block(block_0);
         let v0 = builder.add(Value::new_i32(3), Value::new_i32(4));
@@ -226,7 +226,7 @@ mod tests {
     fn cf_2() {
         let mut func_main = Function::new("main", Type::I32, vec![]);
         let mut builder = FunctionBuilder::new(&mut func_main);
-        let block_0 = builder.add_block();
+        let block_0 = builder.new_block();
 
         builder.set_block(block_0);
         let v0 = builder.eq(Value::new_i32(3), Value::new_i32(4));
@@ -246,9 +246,9 @@ mod tests {
     fn cf_3() {
         let mut func_main = Function::new("main", Type::I32, vec![]);
         let mut builder = FunctionBuilder::new(&mut func_main);
-        let block_0 = builder.add_block();
-        let block_1 = builder.add_block();
-        let block_2 = builder.add_block();
+        let block_0 = builder.new_block();
+        let block_1 = builder.new_block();
+        let block_2 = builder.new_block();
 
         builder.set_block(block_0);
         let v0 = builder.eq(Value::new_i32(1), Value::new_i32(1));
