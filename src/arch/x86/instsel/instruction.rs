@@ -146,27 +146,18 @@ impl InstructionSelector {
                 ),
                 asm::Instruction::new(
                     asm::Mnemonic::Shl,
-                    vec![
-                        reg,
-                        asm::Operand::Register(asm::MachineRegister::Rcx.into()),
-                    ],
+                    vec![reg, asm::Operand::Register(asm::MachineRegister::Cl.into())],
                 ),
             ],
             Shr => vec![
                 asm::Instruction::new(asm::Mnemonic::Mov, vec![reg.clone(), lhs]),
                 asm::Instruction::new(
                     asm::Mnemonic::Mov,
-                    vec![
-                        asm::Operand::Register(asm::MachineRegister::Rcx.into()),
-                        rhs,
-                    ],
+                    vec![asm::Operand::Register(asm::MachineRegister::Cl.into()), rhs],
                 ),
                 asm::Instruction::new(
                     asm::Mnemonic::Shr,
-                    vec![
-                        reg,
-                        asm::Operand::Register(asm::MachineRegister::Rcx.into()),
-                    ],
+                    vec![reg, asm::Operand::Register(asm::MachineRegister::Cl.into())],
                 ),
             ],
 
@@ -217,11 +208,14 @@ impl InstructionSelector {
             Lt => asm::Mnemonic::Setl,
             Lte => asm::Mnemonic::Setle,
         };
-        inst.push(asm::Instruction::new(mnemonic, vec![reg.clone()]));
+        inst.push(asm::Instruction::new(
+            mnemonic,
+            vec![asm::Operand::Register(asm::MachineRegister::Cl.into())],
+        ));
 
         inst.push(asm::Instruction::new(
-            asm::Mnemonic::And,
-            vec![reg, asm::Operand::Immediate(asm::Immediate::I8(1))],
+            asm::Mnemonic::Movzx,
+            vec![reg, asm::Operand::Register(asm::MachineRegister::Cl.into())],
         ));
 
         inst

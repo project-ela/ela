@@ -44,6 +44,9 @@ pub enum MachineRegister {
     R15,
 
     Rip,
+
+    // TODO
+    Cl,
 }
 
 pub const REGS: [MachineRegister; 7] = [
@@ -90,6 +93,8 @@ impl MachineRegister {
             R15 => "r15",
 
             Rip => "rip",
+
+            Cl => "cl",
         }
         .into()
     }
