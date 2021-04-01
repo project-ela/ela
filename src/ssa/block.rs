@@ -26,4 +26,8 @@ impl Block {
     pub fn set_term(&mut self, inst_id: InstructionId) {
         self.terminator = Some(inst_id);
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.instructions.is_empty()
+    }
 }

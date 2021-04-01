@@ -35,6 +35,15 @@ impl<'a> FunctionBuilder<'a> {
         self.function.block_mut(block_id).unwrap()
     }
 
+    pub fn strip_empty_block(&mut self) {
+        let block_id = self.current_block.unwrap();
+        let block = self.function.block(block_id).unwrap();
+        if block.is_empty() && block.terminator == None {
+            self.function.block_order.pop();
+            self.current_block = None;
+        }
+    }
+
     fn add_inst(&mut self, inst_kind: InstructionKind, typ: Type) -> Value {
         let inst_id = self.function.add_inst(inst_kind);
         self.current_block().add_inst(inst_id);
