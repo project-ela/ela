@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::{
     BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId, InstructionKind,
     Module, Type, Value,
@@ -35,13 +37,18 @@ impl<'a> FunctionBuilder<'a> {
         self.function.block_mut(block_id).unwrap()
     }
 
-    pub fn strip_empty_block(&mut self) {
-        let block_id = self.current_block.unwrap();
-        let block = self.function.block(block_id).unwrap();
-        if block.is_empty() && !block.is_terminated() {
-            self.function.block_order.pop();
-            self.current_block = None;
+    pub fn remove_invalid_blocks(&mut self) {
+        let mut remove_blocks = HashSet::new();
+        for block_id in &self.function.block_order {
+            let block = self.function.block(*block_id).unwrap();
+            if !block.is_terminated() {
+                remove_blocks.insert(*block_id);
+            }
         }
+
+        self.function
+            .block_order
+            .retain(|block_id| !remove_blocks.contains(block_id));
     }
 
     pub fn is_terminated(&self) -> bool {
