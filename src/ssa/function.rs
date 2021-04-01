@@ -22,7 +22,7 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(name: &str, ret_typ: Type, param_typ: Vec<Type>) -> Self {
+    pub fn new<S: Into<String>>(name: S, ret_typ: Type, param_typ: Vec<Type>) -> Self {
         let mut instructions = Arena::new();
         for (i, _) in param_typ.iter().enumerate() {
             instructions.alloc(Instruction::new(InstructionKind::Param(i)));

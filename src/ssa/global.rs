@@ -14,7 +14,7 @@ pub struct Global {
 }
 
 impl Global {
-    pub fn new(name: &str, init_value: Constant) -> Self {
+    pub fn new<S: Into<String>>(name: S, init_value: Constant) -> Self {
         Self {
             name: name.into(),
             init_value,
