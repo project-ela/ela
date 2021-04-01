@@ -253,8 +253,8 @@ impl InstructionSelector {
                 asm::Instruction::new(
                     asm::Mnemonic::Cmp,
                     vec![
-                        asm::Operand::Immediate(asm::Immediate::I8(0)),
                         self.trans_value(cond),
+                        asm::Operand::Immediate(asm::Immediate::I8(0)),
                     ],
                 ),
                 asm::Instruction::new(
