@@ -38,7 +38,10 @@ impl ConstantFolding {
             }
 
             // determine which terminators to fold
-            let inst_id = block.terminator.unwrap();
+            let inst_id = match block.terminator {
+                Some(inst_id) => inst_id,
+                None => continue,
+            };
             let inst = function.inst(inst_id).unwrap();
             if let Some(kind) = self.fold_term(inst, &foldable_inst) {
                 foldable_term.insert(inst_id, kind);

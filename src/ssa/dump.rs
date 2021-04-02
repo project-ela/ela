@@ -72,7 +72,7 @@ impl Function {
 
         let term_str = match block.terminator {
             Some(inst_id) => self.dump_inst(module, self, inst_id),
-            None => "  invalid".into(),
+            None => "".into(),
         };
 
         match inst_str.is_empty() {

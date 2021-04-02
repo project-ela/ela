@@ -138,7 +138,10 @@ impl InstructionSelector {
             }
         }
 
-        let term_id = block.terminator.unwrap();
+        let term_id = match block.terminator {
+            Some(term_id) => term_id,
+            None => return,
+        };
         let ssa_inst = function.inst(term_id).unwrap();
         let asm_inst = self.trans_term(term_id, &ssa_inst.kind);
         for inst in asm_inst {
