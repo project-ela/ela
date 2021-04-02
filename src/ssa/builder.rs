@@ -37,20 +37,6 @@ impl<'a> FunctionBuilder<'a> {
         self.function.block_mut(block_id).unwrap()
     }
 
-    pub fn remove_invalid_blocks(&mut self) {
-        let mut remove_blocks = HashSet::new();
-        for block_id in &self.function.block_order {
-            let block = self.function.block(*block_id).unwrap();
-            if !block.is_terminated() {
-                remove_blocks.insert(*block_id);
-            }
-        }
-
-        self.function
-            .block_order
-            .retain(|block_id| !remove_blocks.contains(block_id));
-    }
-
     pub fn is_terminated(&self) -> bool {
         let block_id = self.current_block.unwrap();
         let block = self.function.block(block_id).unwrap();
