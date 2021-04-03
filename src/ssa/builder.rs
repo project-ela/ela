@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use super::{
     BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId, InstructionKind,
     Module, Type, Value,

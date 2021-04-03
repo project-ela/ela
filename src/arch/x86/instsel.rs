@@ -15,7 +15,7 @@ struct InstructionSelector {
     assembly: asm::Assembly,
     func: asm::Function,
 
-    stack_offlsets: HashMap<ssa::InstructionId, asm::Operand>,
+    stack_offsets: HashMap<ssa::InstructionId, asm::Operand>,
     cur_func_name: String,
 }
 
@@ -24,7 +24,7 @@ impl InstructionSelector {
         Self {
             assembly: asm::Assembly::new(),
             func: asm::Function::new(),
-            stack_offlsets: HashMap::new(),
+            stack_offsets: HashMap::new(),
             cur_func_name: "".into(),
         }
     }
@@ -67,19 +67,25 @@ impl InstructionSelector {
 
         // TODO
         let mut stack_offset = 0;
-        self.stack_offlsets.clear();
-        for (inst_id, inst) in &function.instructions {
-            if let ssa::InstructionKind::Alloc(_) = inst.kind {
-                stack_offset += 8;
-                self.stack_offlsets.insert(
-                    inst_id,
-                    asm::Operand::Indirect(asm::Indirect::new_imm(
-                        asm::MachineRegister::Rbp.into(),
-                        -stack_offset,
-                    )),
-                );
+        self.stack_offsets.clear();
+        for block_id in &function.block_order {
+            let block = function.block(*block_id).unwrap();
+            for inst_id in &block.instructions {
+                let inst = function.inst(*inst_id).unwrap();
+
+                if let ssa::InstructionKind::Alloc(_) = inst.kind {
+                    stack_offset += 8;
+                    self.stack_offsets.insert(
+                        *inst_id,
+                        asm::Operand::Indirect(asm::Indirect::new_imm(
+                            asm::MachineRegister::Rbp.into(),
+                            -stack_offset,
+                        )),
+                    );
+                }
             }
         }
+
         self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Sub,
             vec![

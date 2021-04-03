@@ -296,7 +296,7 @@ impl InstructionSelector {
         use ssa::Value::*;
 
         match val {
-            Instruction(inst_val) => self.stack_offlsets.get(&inst_val.inst_id).unwrap().clone(),
+            Instruction(inst_val) => self.stack_offsets.get(&inst_val.inst_id).unwrap().clone(),
             Global(ssa::GlobalValue { global_id, .. }) => {
                 let global = module.global(*global_id).unwrap();
                 asm::Operand::Indirect(asm::Indirect::new_label(
