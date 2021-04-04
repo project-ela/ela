@@ -112,7 +112,7 @@ impl InstructionSelector {
         self.func.add_label(self.return_label());
         for reg in asm::REGS.iter().rev() {
             self.func.add_inst(asm::Instruction::new(
-                asm::Mnemonic::Push,
+                asm::Mnemonic::Pop,
                 vec![asm::Operand::Register(reg.clone().into())],
             ));
         }
