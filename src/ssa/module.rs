@@ -28,11 +28,19 @@ impl Module {
         self.functions.get(func_id)
     }
 
+    pub fn function_mut(&mut self, func_id: FunctionId) -> Option<&mut Function> {
+        self.functions.get_mut(func_id)
+    }
+
     pub fn add_global(&mut self, global: Global) -> GlobalId {
         self.globals.alloc(global)
     }
 
     pub fn global(&self, global_id: GlobalId) -> Option<&Global> {
         self.globals.get(global_id)
+    }
+
+    pub fn global_mut(&mut self, global_id: GlobalId) -> Option<&mut Global> {
+        self.globals.get_mut(global_id)
     }
 }
