@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use super::asm::{Assembly, AssemblyItem, Function, MachineRegister, Operand, Register, REGS};
+use super::asm::{Assembly, AssemblyItem, Function, MachineRegister, Register, REGS};
 
 pub fn allocate(assembly: &mut Assembly) {
     let mut allocator = DummyRegisterAllocator::new();
@@ -36,12 +36,16 @@ impl DummyRegisterAllocator {
             };
 
             for j in 0..inst.operands.len() {
-                match inst.operands.get_mut(j).unwrap() {
-                    Operand::Register(Register::Virtual(id)) => {
+                match inst.operands[j].virt_reg_mut() {
+                    Some(reg) => {
+                        let id = match reg {
+                            Register::Virtual(id) => *id,
+                            x => unreachable!("{:?}", x),
+                        };
                         let next_reg = self.find_next_reg();
-                        let reg = self.reg_map.entry(*id).or_insert(next_reg).clone();
+                        let next_reg = self.reg_map.entry(id).or_insert(next_reg).clone();
 
-                        inst.operands[j] = Operand::Register(reg.into());
+                        *reg = next_reg.into();
                     }
                     _ => {}
                 }
@@ -66,16 +70,17 @@ impl DummyRegisterAllocator {
             };
 
             for j in 0..inst.operands.len() {
-                let id = match inst.operands.get(j).unwrap() {
-                    Operand::Register(Register::Virtual(id)) => id,
+                let id = match inst.operands[j].virt_reg() {
+                    Some(Register::Virtual(id)) => *id,
                     _ => continue,
                 };
-                if current_regs.contains(id) {
+
+                if current_regs.contains(&id) {
                     continue;
                 }
 
-                lifetimes.entry(i).or_insert(HashSet::new()).insert(*id);
-                current_regs.insert(*id);
+                lifetimes.entry(i).or_insert(HashSet::new()).insert(id);
+                current_regs.insert(id);
             }
         }
 

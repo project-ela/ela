@@ -49,6 +49,30 @@ pub enum Operand {
     Indirect(Indirect),
 }
 
+impl Operand {
+    pub fn virt_reg(&self) -> Option<&Register> {
+        match self {
+            Self::Register(reg @ Register::Virtual(_)) => Some(reg),
+            Self::Indirect(Indirect {
+                index: Some(reg @ Register::Virtual(_)),
+                ..
+            }) => Some(reg),
+            _ => None,
+        }
+    }
+
+    pub fn virt_reg_mut(&mut self) -> Option<&mut Register> {
+        match self {
+            Self::Register(ref mut reg @ Register::Virtual(_)) => Some(reg),
+            Self::Indirect(Indirect {
+                index: Some(ref mut reg @ Register::Virtual(_)),
+                ..
+            }) => Some(reg),
+            _ => None,
+        }
+    }
+}
+
 impl Instruction {
     pub fn stringify(&self) -> String {
         let operands_str = self

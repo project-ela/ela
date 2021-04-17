@@ -246,14 +246,18 @@ impl InstructionSelector {
             x => unimplemented!("{:?}", x),
         };
 
-        let index = match indices[1] {
-            ssa::Value::Constant(ssa::Constant::I32(index)) => index,
+        match indices[1] {
+            ssa::Value::Constant(ssa::Constant::I32(index)) => {
+                let elm_typ = gep_elm_typ(module, function, val, indices);
+                let offset = elm_typ.size(&function.types) as i32 * index;
+                indirect.set_disp_offset(offset);
+            }
+            ssa::Value::Instruction(inst_val) => {
+                let index = inst_val.inst_id.into();
+                indirect.set_index(index);
+            }
             x => unimplemented!("{:?}", x),
         };
-
-        let elm_typ = gep_elm_typ(module, function, val, indices);
-        let offset = elm_typ.size(&function.types) as i32 * index;
-        indirect.set_disp_offset(offset);
 
         self.geps.insert(inst_id, asm::Operand::Indirect(indirect));
     }
