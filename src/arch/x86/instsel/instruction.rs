@@ -241,23 +241,19 @@ impl InstructionSelector {
             unimplemented!();
         }
 
-        let base = self.trans_lvalue(module, val);
-        let mut indirect = match base {
+        let mut indirect = match self.trans_lvalue(module, val) {
             asm::Operand::Indirect(indirect) => indirect,
             x => unimplemented!("{:?}", x),
         };
-        let disp = match indirect.disp {
-            asm::Displacement::Immediate(imm) => imm,
-            x => unimplemented!("{:?}", x),
-        };
+
         let index = match indices[1] {
             ssa::Value::Constant(ssa::Constant::I32(index)) => index,
             x => unimplemented!("{:?}", x),
         };
 
         let elm_typ = gep_elm_typ(module, function, val, indices);
-        let new_disp = disp + elm_typ.size(&function.types) as i32 * index;
-        indirect.disp = asm::Displacement::Immediate(new_disp);
+        let offset = elm_typ.size(&function.types) as i32 * index;
+        indirect.set_disp_offset(offset);
 
         self.geps.insert(inst_id, asm::Operand::Indirect(indirect));
     }
