@@ -1,6 +1,6 @@
 use super::{
-    BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId, InstructionKind,
-    Module, Type, Value,
+    gep_elm_typ, BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId,
+    InstructionKind, Module, Type, Value,
 };
 
 #[derive(Debug)]
@@ -20,6 +20,10 @@ impl<'a> FunctionBuilder<'a> {
 
     pub fn function(&self) -> &Function {
         &self.function
+    }
+
+    pub fn function_mut(&mut self) -> &mut Function {
+        &mut self.function
     }
 
     pub fn new_block(&mut self) -> BlockId {
@@ -73,6 +77,12 @@ impl<'a> FunctionBuilder<'a> {
     pub fn store(&mut self, dst: Value, src: Value) {
         let inst_id = self.function.add_inst(InstructionKind::Store(dst, src));
         self.current_block().add_inst(inst_id);
+    }
+
+    pub fn gep(&mut self, module: &Module, val: Value, indices: Vec<Value>) -> Value {
+        let elm_typ = gep_elm_typ(module, self.function, &val, &indices);
+        let ptr_elm_typ = self.function.types.ptr_to(elm_typ);
+        self.add_inst(InstructionKind::Gep(val, indices), ptr_elm_typ)
     }
 
     pub fn ret_void(&mut self) {

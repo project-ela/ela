@@ -122,6 +122,16 @@ impl Function {
                 src.dump(module, self)
             ),
 
+            Gep(val, indices) => {
+                let indices_str = indices
+                    .iter()
+                    .map(|index| format!("{}", index.dump(module, self)))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                format!("gep {}, {}", val.dump(module, self), indices_str)
+            }
+
             Ret(Some(val)) => format!("  ret {}", val.dump(module, func)),
             Ret(None) => format!("  ret"),
             Br(dst) => format!("  br b{}", dst.index()),

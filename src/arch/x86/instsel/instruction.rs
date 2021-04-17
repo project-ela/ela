@@ -1,3 +1,5 @@
+use ssa::gep_elm_typ;
+
 use crate::{arch::x86::asm, ssa};
 
 use super::InstructionSelector;
@@ -15,6 +17,7 @@ impl InstructionSelector {
     pub(crate) fn trans_inst(
         &mut self,
         module: &ssa::Module,
+        function: &ssa::Function,
         inst_id: &ssa::InstructionId,
         inst_kind: &ssa::InstructionKind,
     ) -> Vec<asm::Instruction> {
@@ -66,6 +69,11 @@ impl InstructionSelector {
                 asm::Mnemonic::Mov,
                 vec![self.trans_lvalue(module, dst), self.trans_value(src)],
             )],
+
+            Gep(val, indices) => {
+                self.trans_gep(module, function, *inst_id, val, indices);
+                vec![]
+            }
 
             x => unreachable!("{:?}", x),
         }
@@ -221,6 +229,39 @@ impl InstructionSelector {
         inst
     }
 
+    fn trans_gep(
+        &mut self,
+        module: &ssa::Module,
+        function: &ssa::Function,
+        inst_id: ssa::InstructionId,
+        val: &ssa::Value,
+        indices: &[ssa::Value],
+    ) {
+        if indices.len() != 2 {
+            unimplemented!();
+        }
+
+        let base = self.trans_lvalue(module, val);
+        let mut indirect = match base {
+            asm::Operand::Indirect(indirect) => indirect,
+            x => unimplemented!("{:?}", x),
+        };
+        let disp = match indirect.disp {
+            asm::Displacement::Immediate(imm) => imm,
+            x => unimplemented!("{:?}", x),
+        };
+        let index = match indices[1] {
+            ssa::Value::Constant(ssa::Constant::I32(index)) => index,
+            x => unimplemented!("{:?}", x),
+        };
+
+        let elm_typ = gep_elm_typ(module, function, val, indices);
+        let new_disp = disp + elm_typ.size(&function.types) as i32 * index;
+        indirect.disp = asm::Displacement::Immediate(new_disp);
+
+        self.geps.insert(inst_id, asm::Operand::Indirect(indirect));
+    }
+
     pub(crate) fn trans_term(
         &mut self,
         inst_id: ssa::InstructionId,
@@ -296,7 +337,12 @@ impl InstructionSelector {
         use ssa::Value::*;
 
         match val {
-            Instruction(inst_val) => self.stack_offsets.get(&inst_val.inst_id).unwrap().clone(),
+            Instruction(inst_val) => {
+                if let Some(gep) = self.geps.get(&inst_val.inst_id) {
+                    return gep.clone();
+                }
+                self.stack_offsets.get(&inst_val.inst_id).unwrap().clone()
+            }
             Global(ssa::GlobalValue { global_id, .. }) => {
                 let global = module.global(*global_id).unwrap();
                 asm::Operand::Indirect(asm::Indirect::new_label(

@@ -25,6 +25,8 @@ pub enum InstructionKind {
     Load(Value),
     Store(Value, Value),
 
+    Gep(Value, Vec<Value>),
+
     // terminators
     Ret(Option<Value>),
     Br(BlockId),
@@ -94,6 +96,13 @@ impl Instruction {
             Load(src) => vec![src],
             Store(dst, src) => vec![dst, src],
 
+            Gep(val, indices) => {
+                let mut v = Vec::new();
+                v.push(val);
+                v.extend(indices);
+                v
+            }
+
             Ret(None) => vec![],
             Ret(Some(val)) => vec![val],
             Br(_) => vec![],
@@ -114,6 +123,13 @@ impl Instruction {
             Alloc(_) => vec![],
             Load(src) => vec![src],
             Store(dst, src) => vec![dst, src],
+
+            Gep(val, indices) => {
+                let mut v = Vec::new();
+                v.push(val);
+                v.extend(indices);
+                v
+            }
 
             Ret(None) => vec![],
             Ret(Some(val)) => vec![val],

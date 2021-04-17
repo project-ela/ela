@@ -17,6 +17,8 @@ struct InstructionSelector {
 
     stack_offsets: HashMap<ssa::InstructionId, asm::Operand>,
     cur_func_name: String,
+
+    geps: HashMap<ssa::InstructionId, asm::Operand>,
 }
 
 impl InstructionSelector {
@@ -26,6 +28,7 @@ impl InstructionSelector {
             func: asm::Function::new(),
             stack_offsets: HashMap::new(),
             cur_func_name: "".into(),
+            geps: HashMap::new(),
         }
     }
 
@@ -143,7 +146,7 @@ impl InstructionSelector {
     fn trans_block(&mut self, module: &ssa::Module, function: &ssa::Function, block: &ssa::Block) {
         for inst_id in &block.instructions {
             let ssa_inst = function.inst(*inst_id).unwrap();
-            let asm_inst = self.trans_inst(module, inst_id, &ssa_inst.kind);
+            let asm_inst = self.trans_inst(module, function, inst_id, &ssa_inst.kind);
             for inst in asm_inst {
                 self.func.add_inst(inst);
             }

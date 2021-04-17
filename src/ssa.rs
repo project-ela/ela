@@ -13,6 +13,9 @@ pub use dump::*;
 mod function;
 pub use function::*;
 
+mod gep;
+pub use gep::*;
+
 mod global;
 pub use global::*;
 
