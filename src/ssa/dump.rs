@@ -221,6 +221,10 @@ impl Type {
                 let elm_typ = types.elm_typ(*self);
                 format!("*{}", elm_typ.dump(types))
             }
+            Array(_, len) => {
+                let elm_typ = types.elm_typ(*self);
+                format!("[{}]{}", len, elm_typ.dump(types))
+            }
         }
     }
 }

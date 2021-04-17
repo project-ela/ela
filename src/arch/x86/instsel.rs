@@ -65,27 +65,7 @@ impl InstructionSelector {
             ],
         ));
 
-        // TODO
-        let mut stack_offset = 0;
-        self.stack_offsets.clear();
-        for block_id in &function.block_order {
-            let block = function.block(*block_id).unwrap();
-            for inst_id in &block.instructions {
-                let inst = function.inst(*inst_id).unwrap();
-
-                if let ssa::InstructionKind::Alloc(_) = inst.kind {
-                    stack_offset += 8;
-                    self.stack_offsets.insert(
-                        *inst_id,
-                        asm::Operand::Indirect(asm::Indirect::new_imm(
-                            asm::MachineRegister::Rbp.into(),
-                            -stack_offset,
-                        )),
-                    );
-                }
-            }
-        }
-
+        let stack_offset = self.calc_stack_offset(function);
         self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Sub,
             vec![
@@ -133,6 +113,31 @@ impl InstructionSelector {
         let mut new_func = asm::Function::new();
         std::mem::swap(&mut self.func, &mut new_func);
         self.assembly.text.add_function(new_func);
+    }
+
+    fn calc_stack_offset(&mut self, function: &ssa::Function) -> i32 {
+        // TODO
+        let mut stack_offset = 0;
+        self.stack_offsets.clear();
+        for block_id in &function.block_order {
+            let block = function.block(*block_id).unwrap();
+            for inst_id in &block.instructions {
+                let inst = function.inst(*inst_id).unwrap();
+
+                if let ssa::InstructionKind::Alloc(typ) = inst.kind {
+                    stack_offset += typ.size(&function.types) as i32;
+                    self.stack_offsets.insert(
+                        *inst_id,
+                        asm::Operand::Indirect(asm::Indirect::new_imm(
+                            asm::MachineRegister::Rbp.into(),
+                            -stack_offset,
+                        )),
+                    );
+                }
+            }
+        }
+
+        stack_offset
     }
 
     fn trans_block(&mut self, module: &ssa::Module, function: &ssa::Function, block: &ssa::Block) {

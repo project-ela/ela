@@ -17,11 +17,17 @@ impl Types {
         Type::Pointer(typ_id)
     }
 
+    pub fn array_of(&mut self, typ: Type, len: usize) -> Type {
+        let typ_id = self.types.alloc(typ);
+        Type::Array(typ_id, len)
+    }
+
     pub fn elm_typ(&self, typ: Type) -> Type {
         use self::Type::*;
 
         match typ {
-            Pointer(typ_id) => *self.types.get(typ_id).unwrap(),
+            Pointer(typ_id) | Array(typ_id, _) => *self.types.get(typ_id).unwrap(),
+
             _ => panic!(),
         }
     }
@@ -37,4 +43,21 @@ pub enum Type {
     I32,
 
     Pointer(TypeId),
+    Array(TypeId, usize),
+}
+
+impl Type {
+    pub fn size(&self, types: &Types) -> usize {
+        use self::Type::*;
+
+        match self {
+            Void => 0,
+            // TODO
+            I1 => 8,
+            I32 => 8,
+
+            Pointer(_) => 8,
+            Array(_, len) => types.elm_typ(*self).size(types) * len,
+        }
+    }
 }
