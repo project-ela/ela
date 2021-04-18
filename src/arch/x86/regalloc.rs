@@ -36,18 +36,20 @@ impl DummyRegisterAllocator {
             };
 
             for j in 0..inst.operands.len() {
-                match inst.operands[j].virt_reg_mut() {
-                    Some(reg) => {
-                        let id = match reg {
-                            Register::Virtual(id) => *id,
-                            x => unreachable!("{:?}", x),
-                        };
-                        let next_reg = self.find_next_reg();
-                        let next_reg = self.reg_map.entry(id).or_insert(next_reg).clone();
+                let regs = match inst.operands[j].virt_regs_mut() {
+                    Some(regs) => regs,
+                    _ => continue,
+                };
 
-                        *reg = next_reg.into();
-                    }
-                    _ => {}
+                for reg in regs {
+                    let id = match reg {
+                        Register::Virtual(id) => *id,
+                        x => unreachable!("{:?}", x),
+                    };
+                    let next_reg = self.find_next_reg();
+                    let next_reg = self.reg_map.entry(id).or_insert(next_reg).clone();
+
+                    *reg = next_reg.into();
                 }
             }
 
@@ -70,17 +72,24 @@ impl DummyRegisterAllocator {
             };
 
             for j in 0..inst.operands.len() {
-                let id = match inst.operands[j].virt_reg() {
-                    Some(Register::Virtual(id)) => *id,
+                let regs = match inst.operands[j].virt_regs() {
+                    Some(regs) => regs,
                     _ => continue,
                 };
 
-                if current_regs.contains(&id) {
-                    continue;
-                }
+                for reg in regs {
+                    let id = match reg {
+                        Register::Virtual(id) => *id,
+                        _ => continue,
+                    };
 
-                lifetimes.entry(i).or_insert(HashSet::new()).insert(id);
-                current_regs.insert(id);
+                    if current_regs.contains(&id) {
+                        continue;
+                    }
+
+                    lifetimes.entry(i).or_insert(HashSet::new()).insert(id);
+                    current_regs.insert(id);
+                }
             }
         }
 

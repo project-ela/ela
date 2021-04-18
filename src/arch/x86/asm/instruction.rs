@@ -50,24 +50,36 @@ pub enum Operand {
 }
 
 impl Operand {
-    pub fn virt_reg(&self) -> Option<&Register> {
+    pub fn virt_regs(&self) -> Option<Vec<&Register>> {
         match self {
-            Self::Register(reg @ Register::Virtual(_)) => Some(reg),
-            Self::Indirect(Indirect {
-                index: Some(reg @ Register::Virtual(_)),
-                ..
-            }) => Some(reg),
+            Self::Register(reg @ Register::Virtual(_)) => Some(vec![reg]),
+            Self::Indirect(Indirect { base, index, .. }) => {
+                let mut regs = vec![];
+                if let Register::Virtual(_) = base {
+                    regs.push(base);
+                }
+                if let Some(reg @ Register::Virtual(_)) = index {
+                    regs.push(reg);
+                }
+                Some(regs)
+            }
             _ => None,
         }
     }
 
-    pub fn virt_reg_mut(&mut self) -> Option<&mut Register> {
+    pub fn virt_regs_mut(&mut self) -> Option<Vec<&mut Register>> {
         match self {
-            Self::Register(ref mut reg @ Register::Virtual(_)) => Some(reg),
-            Self::Indirect(Indirect {
-                index: Some(ref mut reg @ Register::Virtual(_)),
-                ..
-            }) => Some(reg),
+            Self::Register(ref mut reg @ Register::Virtual(_)) => Some(vec![reg]),
+            Self::Indirect(Indirect { base, index, .. }) => {
+                let mut regs = vec![];
+                if let Register::Virtual(_) = base {
+                    regs.push(base);
+                }
+                if let Some(reg @ Register::Virtual(_)) = index {
+                    regs.push(reg);
+                }
+                Some(regs)
+            }
             _ => None,
         }
     }
