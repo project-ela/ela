@@ -345,7 +345,13 @@ impl InstructionSelector {
                 if let Some(gep) = self.geps.get(&inst_val.inst_id) {
                     return gep.clone();
                 }
-                self.stack_offsets.get(&inst_val.inst_id).unwrap().clone()
+
+                if let Some(offset) = self.stack_offsets.get(&inst_val.inst_id) {
+                    return offset.clone();
+                }
+
+                let base = inst_val.inst_id.into();
+                asm::Operand::Indirect(asm::Indirect::new_imm(base, 0))
             }
             Global(ssa::GlobalValue { global_id, .. }) => {
                 let global = module.global(*global_id).unwrap();
