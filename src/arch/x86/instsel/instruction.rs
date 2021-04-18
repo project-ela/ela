@@ -65,10 +65,31 @@ impl InstructionSelector {
                     self.trans_lvalue(module, src),
                 ],
             )],
-            Store(dst, src) => vec![asm::Instruction::new(
-                asm::Mnemonic::Mov,
-                vec![self.trans_lvalue(module, dst), self.trans_value(src)],
-            )],
+            Store(dst, src) => {
+                let is_address = match src {
+                    ssa::Value::Instruction(inst_val) => {
+                        self.stack_offsets.contains_key(&inst_val.inst_id)
+                    }
+                    _ => false,
+                };
+
+                let dst = self.trans_lvalue(module, dst);
+                if is_address {
+                    let reg = asm::Operand::Register(inst_id.into());
+                    vec![
+                        asm::Instruction::new(
+                            asm::Mnemonic::Lea,
+                            vec![reg.clone(), self.trans_lvalue(module, src)],
+                        ),
+                        asm::Instruction::new(asm::Mnemonic::Mov, vec![dst, reg]),
+                    ]
+                } else {
+                    vec![asm::Instruction::new(
+                        asm::Mnemonic::Mov,
+                        vec![dst, self.trans_value(src)],
+                    )]
+                }
+            }
 
             Gep(val, indices) => {
                 self.trans_gep(module, function, *inst_id, val, indices);
