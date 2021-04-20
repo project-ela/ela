@@ -62,15 +62,12 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn alloc(&mut self, typ: Type) -> Value {
-        let ptr_typ = self.function.types.ptr_to(typ);
+        let ptr_typ = self.function.types.borrow_mut().ptr_to(typ);
         self.add_inst(InstructionKind::Alloc(typ), ptr_typ)
     }
 
-    pub fn load(&mut self, module: &Module, src: Value) -> Value {
-        let elm_typ = match src {
-            Value::Global(_) | Value::Parameter(_) => module.types.elm_typ(src.typ()),
-            _ => self.function.types.elm_typ(src.typ()),
-        };
+    pub fn load(&mut self, src: Value) -> Value {
+        let elm_typ = self.function.types.borrow().elm_typ(src.typ());
         self.add_inst(InstructionKind::Load(src), elm_typ)
     }
 
@@ -79,9 +76,9 @@ impl<'a> FunctionBuilder<'a> {
         self.current_block().add_inst(inst_id);
     }
 
-    pub fn gep(&mut self, module: &Module, val: Value, indices: Vec<Value>) -> Value {
-        let elm_typ = gep_elm_typ(module, self.function, &val, &indices);
-        let ptr_elm_typ = self.function.types.ptr_to(elm_typ);
+    pub fn gep(&mut self, val: Value, indices: Vec<Value>) -> Value {
+        let elm_typ = gep_elm_typ(&self.function.types.borrow(), &val, &indices);
+        let ptr_elm_typ = self.function.types.borrow_mut().ptr_to(elm_typ);
         self.add_inst(InstructionKind::Gep(val, indices), ptr_elm_typ)
     }
 

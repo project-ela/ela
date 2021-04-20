@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use id_arena::Arena;
 
 use super::{Function, FunctionId, Global, GlobalId, Types};
@@ -8,7 +10,7 @@ pub struct Module {
 
     pub globals: Arena<Global>,
 
-    pub types: Types,
+    pub types: Rc<RefCell<Types>>,
 }
 
 impl Module {
@@ -16,7 +18,7 @@ impl Module {
         Self {
             functions: Arena::new(),
             globals: Arena::new(),
-            types: Types::new(),
+            types: Rc::new(RefCell::new(Types::new())),
         }
     }
 

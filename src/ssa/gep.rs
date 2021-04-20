@@ -1,17 +1,9 @@
-use super::{Function, Module, Type, Value};
+use super::{Type, Types, Value};
 
-pub(crate) fn gep_elm_typ(
-    module: &Module,
-    function: &Function,
-    val: &Value,
-    indices: &[Value],
-) -> Type {
+pub(crate) fn gep_elm_typ(types: &Types, val: &Value, indices: &[Value]) -> Type {
     let mut typ = val.typ();
     for _ in 0..indices.len() {
-        typ = match val {
-            Value::Global(_) | Value::Parameter(_) => module.types.elm_typ(typ),
-            _ => function.types.elm_typ(typ),
-        };
+        typ = types.elm_typ(typ);
     }
 
     typ

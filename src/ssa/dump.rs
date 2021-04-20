@@ -28,7 +28,7 @@ impl Global {
         format!(
             "@{} = {} {}",
             self.name,
-            self.typ.dump(&module.types),
+            self.typ.dump(&module.types.borrow()),
             self.init_value.dump()
         )
     }
@@ -40,7 +40,7 @@ impl Function {
             .param_typ
             .iter()
             .enumerate()
-            .map(|(i, typ)| format!("{} %{}", typ.dump(&module.types), i))
+            .map(|(i, typ)| format!("{} %{}", typ.dump(&self.types.borrow()), i))
             .collect::<Vec<String>>()
             .join(", ");
 
@@ -55,7 +55,7 @@ impl Function {
             "func @{}({}) {} {{\n{}\n}}\n",
             self.name,
             param_str,
-            self.ret_typ.dump(&module.types),
+            self.ret_typ.dump(&self.types.borrow()),
             block_str
         )
     }
@@ -66,12 +66,12 @@ impl Function {
         let inst_str = block
             .instructions
             .iter()
-            .map(|inst_id| self.dump_inst(module, self, *inst_id))
+            .map(|inst_id| self.dump_inst(module, *inst_id))
             .collect::<Vec<String>>()
             .join("\n");
 
         let term_str = match block.terminator {
-            Some(inst_id) => self.dump_inst(module, self, inst_id),
+            Some(inst_id) => self.dump_inst(module, inst_id),
             None => "".into(),
         };
 
@@ -81,28 +81,22 @@ impl Function {
         }
     }
 
-    fn dump_inst(&self, module: &Module, func: &Function, inst_id: InstructionId) -> String {
+    fn dump_inst(&self, module: &Module, inst_id: InstructionId) -> String {
         use super::InstructionKind::*;
 
         let inst = self.instructions.get(inst_id).unwrap();
         let inst_str = match &inst.kind {
-            BinOp(op, lhs, rhs) => format!(
-                "{} {}, {}",
-                op.dump(),
-                lhs.dump(module, self),
-                rhs.dump(module, self)
-            ),
-            Cmp(op, lhs, rhs) => format!(
-                "{} {}, {}",
-                op.dump(),
-                lhs.dump(module, self),
-                rhs.dump(module, self)
-            ),
+            BinOp(op, lhs, rhs) => {
+                format!("{} {}, {}", op.dump(), lhs.dump(module), rhs.dump(module))
+            }
+            Cmp(op, lhs, rhs) => {
+                format!("{} {}, {}", op.dump(), lhs.dump(module), rhs.dump(module))
+            }
 
             Call(func_id, args) => {
                 let args_str = args
                     .iter()
-                    .map(|arg| arg.dump(module, self))
+                    .map(|arg| arg.dump(module))
                     .collect::<Vec<String>>()
                     .join(", ");
 
@@ -114,31 +108,27 @@ impl Function {
             }
             Param(index) => format!("param {}", index),
 
-            Alloc(typ) => format!("alloc {}", typ.dump(&self.types)),
-            Load(src) => format!("load {}", src.dump(module, self)),
-            Store(dst, src) => format!(
-                "store {}, {}",
-                dst.dump(module, self),
-                src.dump(module, self)
-            ),
+            Alloc(typ) => format!("alloc {}", typ.dump(&self.types.borrow())),
+            Load(src) => format!("load {}", src.dump(module)),
+            Store(dst, src) => format!("store {}, {}", dst.dump(module), src.dump(module)),
 
             Gep(val, indices) => {
                 let indices_str = indices
                     .iter()
-                    .map(|index| format!("{}", index.dump(module, self)))
+                    .map(|index| format!("{}", index.dump(module)))
                     .collect::<Vec<String>>()
                     .join(", ");
 
-                format!("gep {}, {}", val.dump(module, self), indices_str)
+                format!("gep {}, {}", val.dump(module), indices_str)
             }
 
-            Ret(Some(val)) => format!("  ret {}", val.dump(module, func)),
+            Ret(Some(val)) => format!("  ret {}", val.dump(module)),
             Ret(None) => format!("  ret"),
             Br(dst) => format!("  br b{}", dst.index()),
             CondBr(cond, con, alt) => {
                 format!(
                     "  br {} -> b{} b{} ",
-                    cond.dump(module, func),
+                    cond.dump(module),
                     con.index(),
                     alt.index()
                 )
@@ -195,13 +185,10 @@ impl ComparisonOperator {
 }
 
 impl Value {
-    fn dump(&self, module: &Module, func: &Function) -> String {
+    fn dump(&self, module: &Module) -> String {
         use super::Value::*;
 
-        let typ_str = match self {
-            Global(_) | Parameter(_) => self.typ().dump(&module.types),
-            _ => self.typ().dump(&func.types),
-        };
+        let typ_str = self.typ().dump(&module.types.borrow());
 
         match self {
             Constant(r#const) => format!("{} {}", typ_str, r#const.dump()),

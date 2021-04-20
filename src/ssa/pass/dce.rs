@@ -58,7 +58,8 @@ mod tests {
 
     #[test]
     fn dce_1() {
-        let mut func_main = Function::new("main", Type::I32, vec![]);
+        let module = Module::new();
+        let mut func_main = Function::new(&module, "main", Type::I32, vec![]);
         let mut builder = FunctionBuilder::new(&mut func_main);
         let block_0 = builder.new_block();
         let block_1 = builder.new_block();
@@ -84,9 +85,9 @@ mod tests {
     #[test]
     fn dce_2() {
         let mut module = Module::new();
-        let func_hoge = module.add_function(Function::new("hoge", Type::Void, vec![]));
+        let func_hoge = module.add_function(Function::new(&module, "hoge", Type::Void, vec![]));
 
-        let mut func_main = Function::new("main", Type::Void, vec![]);
+        let mut func_main = Function::new(&module, "main", Type::Void, vec![]);
         let mut builder = FunctionBuilder::new(&mut func_main);
         let block_0 = builder.new_block();
 

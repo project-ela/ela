@@ -17,7 +17,6 @@ impl InstructionSelector {
     pub(crate) fn trans_inst(
         &mut self,
         module: &ssa::Module,
-        function: &ssa::Function,
         inst_id: &ssa::InstructionId,
         inst_kind: &ssa::InstructionKind,
     ) -> Vec<asm::Instruction> {
@@ -92,7 +91,7 @@ impl InstructionSelector {
             }
 
             Gep(val, indices) => {
-                self.trans_gep(module, function, *inst_id, val, indices);
+                self.trans_gep(module, *inst_id, val, indices);
                 vec![]
             }
 
@@ -253,7 +252,6 @@ impl InstructionSelector {
     fn trans_gep(
         &mut self,
         module: &ssa::Module,
-        function: &ssa::Function,
         inst_id: ssa::InstructionId,
         val: &ssa::Value,
         indices: &[ssa::Value],
@@ -269,8 +267,8 @@ impl InstructionSelector {
 
         match indices[1] {
             ssa::Value::Constant(ssa::Constant::I32(index)) => {
-                let elm_typ = gep_elm_typ(module, function, val, indices);
-                let offset = elm_typ.size(&function.types) as i32 * index;
+                let elm_typ = gep_elm_typ(&module.types.borrow(), val, indices);
+                let offset = elm_typ.size(&module.types.borrow()) as i32 * index;
                 indirect.set_disp_offset(offset);
             }
             ssa::Value::Instruction(inst_val) => {

@@ -128,7 +128,7 @@ impl InstructionSelector {
                 let inst = function.inst(*inst_id).unwrap();
 
                 if let ssa::InstructionKind::Alloc(typ) = inst.kind {
-                    stack_offset += typ.size(&function.types) as i32;
+                    stack_offset += typ.size(&function.types.borrow()) as i32;
                     self.stack_offsets.insert(
                         *inst_id,
                         asm::Operand::Indirect(asm::Indirect::new_imm(
@@ -146,7 +146,7 @@ impl InstructionSelector {
     fn trans_block(&mut self, module: &ssa::Module, function: &ssa::Function, block: &ssa::Block) {
         for inst_id in &block.instructions {
             let ssa_inst = function.inst(*inst_id).unwrap();
-            let asm_inst = self.trans_inst(module, function, inst_id, &ssa_inst.kind);
+            let asm_inst = self.trans_inst(module, inst_id, &ssa_inst.kind);
             for inst in asm_inst {
                 self.func.add_inst(inst);
             }

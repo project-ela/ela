@@ -46,7 +46,7 @@ impl Value {
 
     pub fn new_global(module: &mut Module, global_id: GlobalId) -> Self {
         let typ = module.global(global_id).unwrap().typ;
-        let ptr_typ = module.types.ptr_to(typ);
+        let ptr_typ = module.types.borrow_mut().ptr_to(typ);
         Self::Global(GlobalValue {
             global_id,
             typ: ptr_typ,
