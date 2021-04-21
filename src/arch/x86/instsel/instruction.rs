@@ -256,31 +256,32 @@ impl InstructionSelector {
         val: &ssa::Value,
         indices: &[ssa::Value],
     ) {
-        if indices.len() != 2 {
-            unimplemented!();
-        }
-
         let mut indirect = match self.trans_lvalue(module, val) {
             asm::Operand::Indirect(indirect) => indirect,
             x => unimplemented!("{:?}", x),
         };
 
-        match indices[1] {
-            ssa::Value::Constant(ssa::Constant::I32(index)) => {
-                let elm_typ = gep_elm_typ(&module.types.borrow(), val, indices);
-                let offset = elm_typ.size(&module.types.borrow()) as i32 * index;
-                indirect.set_disp_offset(offset);
+        let mut disp_offset = 0;
+        for i in 0..indices.len() {
+            match indices[i] {
+                ssa::Value::Constant(ssa::Constant::I32(index)) => {
+                    let types = module.types.borrow();
+                    let elm_typ = gep_elm_typ(&types, val, &indices[..=i]);
+                    let offset = elm_typ.size(&types) as i32 * index;
+                    disp_offset += offset;
+                }
+                ssa::Value::Instruction(inst_val) => {
+                    let index = inst_val.inst_id.into();
+                    indirect.set_index(index);
+                }
+                ssa::Value::Parameter(ssa::ParameterValue { index, .. }) => {
+                    let index = self.arg_reg(index).into();
+                    indirect.set_index(index);
+                }
+                x => unimplemented!("{:?}", x),
             }
-            ssa::Value::Instruction(inst_val) => {
-                let index = inst_val.inst_id.into();
-                indirect.set_index(index);
-            }
-            ssa::Value::Parameter(ssa::ParameterValue { index, .. }) => {
-                let index = self.arg_reg(index).into();
-                indirect.set_index(index);
-            }
-            x => unimplemented!("{:?}", x),
-        };
+        }
+        indirect.set_disp_offset(disp_offset);
 
         self.geps.insert(inst_id, asm::Operand::Indirect(indirect));
     }

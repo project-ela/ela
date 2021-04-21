@@ -1,5 +1,5 @@
 use super::{
-    gep_elm_typ, BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId,
+    gep_return_typ, BinaryOperator, Block, BlockId, ComparisonOperator, Function, FunctionId,
     InstructionKind, Module, Type, Value,
 };
 
@@ -77,9 +77,8 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn gep(&mut self, val: Value, indices: Vec<Value>) -> Value {
-        let elm_typ = gep_elm_typ(&self.function.types.borrow(), &val, &indices);
-        let ptr_elm_typ = self.function.types.borrow_mut().ptr_to(elm_typ);
-        self.add_inst(InstructionKind::Gep(val, indices), ptr_elm_typ)
+        let return_typ = gep_return_typ(&mut self.function.types.borrow_mut(), &val, &indices);
+        self.add_inst(InstructionKind::Gep(val, indices), return_typ)
     }
 
     pub fn ret_void(&mut self) {
