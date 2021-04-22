@@ -30,13 +30,13 @@ impl InstructionSelector {
                 let func = module.function(*func_id).unwrap();
                 let mut inst = Vec::new();
                 for (i, arg) in args.iter().enumerate() {
-                    inst.push(asm::Instruction::new(
-                        asm::Mnemonic::Mov,
-                        vec![
-                            asm::Operand::Register(self.arg_reg(i)),
-                            self.trans_value(arg),
-                        ],
-                    ))
+                    let arg_reg = self.arg_reg(i);
+                    inst.extend(self.trans_mov(
+                        module,
+                        *inst_id,
+                        asm::Operand::Register(arg_reg),
+                        arg,
+                    ));
                 }
 
                 inst.push(asm::Instruction::new(
@@ -65,29 +65,8 @@ impl InstructionSelector {
                 ],
             )],
             Store(dst, src) => {
-                let is_address = match src {
-                    ssa::Value::Instruction(inst_val) => {
-                        self.stack_offsets.contains_key(&inst_val.inst_id)
-                    }
-                    _ => false,
-                };
-
                 let dst = self.trans_lvalue(module, dst);
-                if is_address {
-                    let reg = asm::Operand::Register(inst_id.into());
-                    vec![
-                        asm::Instruction::new(
-                            asm::Mnemonic::Lea,
-                            vec![reg.clone(), self.trans_lvalue(module, src)],
-                        ),
-                        asm::Instruction::new(asm::Mnemonic::Mov, vec![dst, reg]),
-                    ]
-                } else {
-                    vec![asm::Instruction::new(
-                        asm::Mnemonic::Mov,
-                        vec![dst, self.trans_value(src)],
-                    )]
-                }
+                self.trans_mov(module, *inst_id, dst, src)
             }
 
             Gep(val, indices) => {
@@ -96,6 +75,35 @@ impl InstructionSelector {
             }
 
             x => unreachable!("{:?}", x),
+        }
+    }
+
+    fn trans_mov(
+        &mut self,
+        module: &ssa::Module,
+        inst_id: ssa::InstructionId,
+        dst: asm::Operand,
+        src: &ssa::Value,
+    ) -> Vec<asm::Instruction> {
+        let is_address = match src {
+            ssa::Value::Instruction(inst_val) => self.stack_offsets.contains_key(&inst_val.inst_id),
+            _ => false,
+        };
+
+        if is_address {
+            let reg = asm::Operand::Register(inst_id.into());
+            vec![
+                asm::Instruction::new(
+                    asm::Mnemonic::Lea,
+                    vec![reg.clone(), self.trans_lvalue(module, src)],
+                ),
+                asm::Instruction::new(asm::Mnemonic::Mov, vec![dst, reg]),
+            ]
+        } else {
+            vec![asm::Instruction::new(
+                asm::Mnemonic::Mov,
+                vec![dst, self.trans_value(src)],
+            )]
         }
     }
 
