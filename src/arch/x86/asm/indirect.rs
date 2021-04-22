@@ -1,4 +1,4 @@
-use super::Register;
+use super::{RegSize, Register};
 
 #[derive(Debug, Clone)]
 pub struct Indirect {
@@ -6,6 +6,7 @@ pub struct Indirect {
     pub index: Option<Register>,
     pub disp_base: Displacement,
     pub disp_offset: i32,
+    pub size: RegSize,
 }
 
 #[derive(Debug, Clone)]
@@ -15,21 +16,23 @@ pub enum Displacement {
 }
 
 impl Indirect {
-    pub fn new_imm(base: Register, disp: i32) -> Self {
+    pub fn new_imm(base: Register, disp: i32, size: RegSize) -> Self {
         Self {
             base,
             index: None,
             disp_base: Displacement::Immediate(disp),
             disp_offset: 0,
+            size,
         }
     }
 
-    pub fn new_label(base: Register, disp: String) -> Self {
+    pub fn new_label(base: Register, disp: String, size: RegSize) -> Self {
         Self {
             base,
             index: None,
             disp_base: Displacement::Label(disp),
             disp_offset: 0,
+            size,
         }
     }
 
@@ -43,6 +46,12 @@ impl Indirect {
 
     pub fn stringify(&self) -> String {
         // TODO
+        let size_str = match self.size {
+            RegSize::QWord => "qword ptr",
+            RegSize::DWord => "dword ptr",
+            RegSize::Word => "word ptr",
+            RegSize::Byte => "byte ptr",
+        };
 
         let index_str = match &self.index {
             Some(index) => format!("+{}*8", index.stringify()),
@@ -50,7 +59,8 @@ impl Indirect {
         };
 
         format!(
-            "qword ptr [{}{}{}{:+}]",
+            "{} [{}{}{}{:+}]",
+            size_str,
             self.base.stringify(),
             index_str,
             self.disp_base.stringify(),

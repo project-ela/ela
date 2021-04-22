@@ -49,6 +49,14 @@ pub enum MachineRegister {
     Cl,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum RegSize {
+    QWord,
+    DWord,
+    Word,
+    Byte,
+}
+
 pub const REGS: [MachineRegister; 7] = [
     MachineRegister::R10,
     MachineRegister::R11,

@@ -31,7 +31,7 @@ impl InstructionSelector {
                 let mut inst = Vec::new();
                 for (i, arg) in args.iter().enumerate() {
                     let arg_reg = self.arg_reg(i);
-                    inst.extend(self.trans_mov(
+                    inst.extend(self.trans_move_value(
                         module,
                         *inst_id,
                         asm::Operand::Register(arg_reg),
@@ -57,16 +57,13 @@ impl InstructionSelector {
 
             // do nothing
             Alloc(_) => vec![],
-            Load(src) => vec![asm::Instruction::new(
-                asm::Mnemonic::Mov,
-                vec![
-                    asm::Operand::Register(inst_id.into()),
-                    self.trans_lvalue(module, src),
-                ],
+            Load(src) => vec![Self::trans_mov(
+                asm::Operand::Register(inst_id.into()),
+                self.trans_lvalue(module, src),
             )],
             Store(dst, src) => {
                 let dst = self.trans_lvalue(module, dst);
-                self.trans_mov(module, *inst_id, dst, src)
+                self.trans_move_value(module, *inst_id, dst, src)
             }
 
             Gep(val, indices) => {
@@ -78,7 +75,7 @@ impl InstructionSelector {
         }
     }
 
-    fn trans_mov(
+    fn trans_move_value(
         &mut self,
         module: &ssa::Module,
         inst_id: ssa::InstructionId,
@@ -368,6 +365,8 @@ impl InstructionSelector {
     fn trans_lvalue(&mut self, module: &ssa::Module, val: &ssa::Value) -> asm::Operand {
         use ssa::Value::*;
 
+        let reg_size = val.typ().reg_size();
+
         match val {
             Instruction(inst_val) => {
                 if let Some(gep) = self.geps.get(&inst_val.inst_id) {
@@ -379,20 +378,31 @@ impl InstructionSelector {
                 }
 
                 let base = inst_val.inst_id.into();
-                asm::Operand::Indirect(asm::Indirect::new_imm(base, 0))
+                asm::Operand::Indirect(asm::Indirect::new_imm(base, 0, reg_size))
             }
             Global(ssa::GlobalValue { global_id, .. }) => {
                 let global = module.global(*global_id).unwrap();
                 asm::Operand::Indirect(asm::Indirect::new_label(
                     asm::MachineRegister::Rip.into(),
                     global.name.clone(),
+                    reg_size,
                 ))
             }
-            Parameter(param_val) => {
-                asm::Operand::Indirect(asm::Indirect::new_imm(self.arg_reg(param_val.index), 0))
-            }
+            Parameter(param_val) => asm::Operand::Indirect(asm::Indirect::new_imm(
+                self.arg_reg(param_val.index),
+                0,
+                reg_size,
+            )),
             x => panic!("{:?}", x),
         }
+    }
+
+    fn trans_mov(dst: asm::Operand, src: asm::Operand) -> asm::Instruction {
+        let mnemonic = match (dst.size(), src.size()) {
+            (asm::RegSize::QWord, asm::RegSize::Byte) => asm::Mnemonic::Movzx,
+            _ => asm::Mnemonic::Mov,
+        };
+        asm::Instruction::new(mnemonic, vec![dst, src])
     }
 
     fn arg_reg(&mut self, index: usize) -> asm::Register {

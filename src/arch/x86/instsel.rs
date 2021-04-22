@@ -128,12 +128,15 @@ impl InstructionSelector {
                 let inst = function.inst(*inst_id).unwrap();
 
                 if let ssa::InstructionKind::Alloc(typ) = inst.kind {
-                    stack_offset += typ.size(&function.types.borrow()) as i32;
+                    let typ_size = typ.size(&function.types.borrow()) as i32;
+                    stack_offset = Self::align_to(stack_offset, typ_size) + typ_size;
+
                     self.stack_offsets.insert(
                         *inst_id,
                         asm::Operand::Indirect(asm::Indirect::new_imm(
                             asm::MachineRegister::Rbp.into(),
                             -stack_offset,
+                            typ.reg_size(),
                         )),
                     );
                 }
@@ -141,6 +144,10 @@ impl InstructionSelector {
         }
 
         stack_offset
+    }
+
+    fn align_to(x: i32, align: i32) -> i32 {
+        (x + align - 1) & !(align - 1)
     }
 
     fn trans_block(&mut self, module: &ssa::Module, function: &ssa::Function, block: &ssa::Block) {

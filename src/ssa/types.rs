@@ -1,5 +1,7 @@
 use id_arena::{Arena, Id};
 
+use crate::arch::x86::asm::RegSize;
+
 #[derive(Debug)]
 pub struct Types {
     pub types: Arena<Type>,
@@ -47,13 +49,26 @@ pub enum Type {
 }
 
 impl Type {
+    pub fn reg_size(&self) -> RegSize {
+        use self::Type::*;
+
+        match self {
+            I1 => RegSize::Byte,
+            I32 => RegSize::QWord,
+
+            Pointer(_) | Array(_, _) => RegSize::QWord,
+
+            x => panic!("{:?}", x),
+        }
+    }
+
     pub fn size(&self, types: &Types) -> usize {
         use self::Type::*;
 
         match self {
             Void => 0,
             // TODO
-            I1 => 8,
+            I1 => 1,
             I32 => 8,
 
             Pointer(_) => 8,

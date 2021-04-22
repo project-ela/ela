@@ -150,6 +150,32 @@ fn gep_3() {
     run(assembly, 5).unwrap();
 }
 
+#[test]
+fn byte_1() {
+    let mut module = ssa::Module::new();
+    let mut func_main = ssa::Function::new(&module, "main", ssa::Type::I32, vec![]);
+    let mut builder = ssa::FunctionBuilder::new(&mut func_main);
+    let block_0 = builder.new_block();
+    builder.set_block(block_0);
+
+    let v0 = builder.alloc(ssa::Type::I1);
+    let v1 = builder.alloc(ssa::Type::I32);
+
+    builder.store(v0, ssa::Value::new_i1(true));
+    builder.store(v1, ssa::Value::new_i32(42));
+
+    let v2 = builder.load(v0);
+    builder.ret(v2);
+
+    module.add_function(func_main);
+    println!("{}", module.dump());
+
+    let mut assembly = x86::instsel::translate(module);
+    regalloc::allocate(&mut assembly);
+    println!("{}", assembly.stringify());
+    run(assembly, 5).unwrap();
+}
+
 fn run(assembly: asm::Assembly, expected: i32) -> io::Result<()> {
     let mut file = File::create("./tmp.s")?;
     file.write_all(assembly.stringify().as_bytes())?;

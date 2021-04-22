@@ -1,4 +1,4 @@
-use super::{Immediate, Indirect, Register};
+use super::{Immediate, Indirect, RegSize, Register};
 
 #[derive(Debug)]
 pub struct Instruction {
@@ -82,6 +82,15 @@ impl Operand {
                 Some(regs)
             }
             _ => None,
+        }
+    }
+
+    pub fn size(&self) -> RegSize {
+        match self {
+            Self::Register(_) => RegSize::QWord,
+            Self::Immediate(_) => RegSize::QWord,
+            Self::Indirect(indirect) => indirect.size,
+            x => panic!("{:?}", x),
         }
     }
 }
