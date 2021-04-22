@@ -263,7 +263,10 @@ impl TypeCheck {
     }
 
     fn apply_call(&mut self, name: &String, args: &[Expression]) -> Option<Type> {
-        let sig = self.table.find_function(self.cur_node(), name)?;
+        let sig = match self.table.find_function(self.cur_node(), name) {
+            Some(sig) => sig,
+            None => return self.issue_here(PassError::NotDefinedFunction(name.clone())),
+        };
 
         if args.len() != sig.params.len() {
             self.issue_here::<()>(PassError::FunctionArgNum(
