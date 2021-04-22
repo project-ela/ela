@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use super::asm::{Assembly, AssemblyItem, Function, MachineRegister, Register, REGS};
+use super::asm::{Assembly, AssemblyItem, Function, MachineRegisterKind, RegisterKind, REGS};
 
 pub fn allocate(assembly: &mut Assembly) {
     let mut allocator = DummyRegisterAllocator::new();
@@ -8,7 +8,7 @@ pub fn allocate(assembly: &mut Assembly) {
 }
 
 struct DummyRegisterAllocator {
-    reg_map: HashMap<usize, MachineRegister>,
+    reg_map: HashMap<usize, MachineRegisterKind>,
 }
 
 // TODO
@@ -42,8 +42,8 @@ impl DummyRegisterAllocator {
                 };
 
                 for reg in regs {
-                    let id = match reg {
-                        Register::Virtual(id) => *id,
+                    let id = match &reg.kind {
+                        RegisterKind::Virtual(id) => *id,
                         x => unreachable!("{:?}", x),
                     };
                     let next_reg = self.find_next_reg();
@@ -78,8 +78,8 @@ impl DummyRegisterAllocator {
                 };
 
                 for reg in regs {
-                    let id = match reg {
-                        Register::Virtual(id) => *id,
+                    let id = match &reg.kind {
+                        RegisterKind::Virtual(id) => *id,
                         _ => continue,
                     };
 
@@ -96,8 +96,11 @@ impl DummyRegisterAllocator {
         lifetimes
     }
 
-    fn find_next_reg(&self) -> MachineRegister {
-        let mut regs = REGS.iter().cloned().collect::<HashSet<MachineRegister>>();
+    fn find_next_reg(&self) -> MachineRegisterKind {
+        let mut regs = REGS
+            .iter()
+            .cloned()
+            .collect::<HashSet<MachineRegisterKind>>();
 
         for reg in self.reg_map.values() {
             regs.remove(reg);

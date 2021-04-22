@@ -1,4 +1,4 @@
-use super::{Immediate, Indirect, RegSize, Register};
+use super::{Immediate, Indirect, Register, RegisterKind, RegisterSize};
 
 #[derive(Debug)]
 pub struct Instruction {
@@ -53,13 +53,28 @@ pub enum Operand {
 impl Operand {
     pub fn virt_regs(&self) -> Option<Vec<&Register>> {
         match self {
-            Self::Register(reg @ Register::Virtual(_)) => Some(vec![reg]),
+            Self::Register(
+                reg
+                @
+                Register {
+                    kind: RegisterKind::Virtual(_),
+                    ..
+                },
+            ) => Some(vec![reg]),
             Self::Indirect(Indirect { base, index, .. }) => {
                 let mut regs = vec![];
-                if let Register::Virtual(_) = base {
+                if let RegisterKind::Virtual(_) = base.kind {
                     regs.push(base);
                 }
-                if let Some(reg @ Register::Virtual(_)) = index {
+                if let Some(
+                    reg
+                    @
+                    Register {
+                        kind: RegisterKind::Virtual(_),
+                        ..
+                    },
+                ) = index
+                {
                     regs.push(reg);
                 }
                 Some(regs)
@@ -70,13 +85,29 @@ impl Operand {
 
     pub fn virt_regs_mut(&mut self) -> Option<Vec<&mut Register>> {
         match self {
-            Self::Register(ref mut reg @ Register::Virtual(_)) => Some(vec![reg]),
+            Self::Register(
+                ref mut
+                reg
+                @
+                Register {
+                    kind: RegisterKind::Virtual(_),
+                    ..
+                },
+            ) => Some(vec![reg]),
             Self::Indirect(Indirect { base, index, .. }) => {
                 let mut regs = vec![];
-                if let Register::Virtual(_) = base {
+                if let RegisterKind::Virtual(_) = base.kind {
                     regs.push(base);
                 }
-                if let Some(reg @ Register::Virtual(_)) = index {
+                if let Some(
+                    reg
+                    @
+                    Register {
+                        kind: RegisterKind::Virtual(_),
+                        ..
+                    },
+                ) = index
+                {
                     regs.push(reg);
                 }
                 Some(regs)
@@ -85,10 +116,10 @@ impl Operand {
         }
     }
 
-    pub fn size(&self) -> RegSize {
+    pub fn size(&self) -> RegisterSize {
         match self {
-            Self::Register(_) => RegSize::QWord,
-            Self::Immediate(_) => RegSize::QWord,
+            Self::Register(_) => RegisterSize::QWord,
+            Self::Immediate(_) => RegisterSize::QWord,
             Self::Indirect(indirect) => indirect.size,
             x => panic!("{:?}", x),
         }

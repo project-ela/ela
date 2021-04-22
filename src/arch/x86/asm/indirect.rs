@@ -1,4 +1,4 @@
-use super::{RegSize, Register};
+use super::{Register, RegisterSize};
 
 #[derive(Debug, Clone)]
 pub struct Indirect {
@@ -6,7 +6,7 @@ pub struct Indirect {
     pub index: Option<Register>,
     pub disp_base: Displacement,
     pub disp_offset: i32,
-    pub size: RegSize,
+    pub size: RegisterSize,
 }
 
 #[derive(Debug, Clone)]
@@ -16,7 +16,7 @@ pub enum Displacement {
 }
 
 impl Indirect {
-    pub fn new_imm(base: Register, disp: i32, size: RegSize) -> Self {
+    pub fn new_imm(base: Register, disp: i32, size: RegisterSize) -> Self {
         Self {
             base,
             index: None,
@@ -26,7 +26,7 @@ impl Indirect {
         }
     }
 
-    pub fn new_label(base: Register, disp: String, size: RegSize) -> Self {
+    pub fn new_label(base: Register, disp: String, size: RegisterSize) -> Self {
         Self {
             base,
             index: None,
@@ -47,10 +47,10 @@ impl Indirect {
     pub fn stringify(&self) -> String {
         // TODO
         let size_str = match self.size {
-            RegSize::QWord => "qword ptr",
-            RegSize::DWord => "dword ptr",
-            RegSize::Word => "word ptr",
-            RegSize::Byte => "byte ptr",
+            RegisterSize::QWord => "qword ptr",
+            RegisterSize::DWord => "dword ptr",
+            RegisterSize::Word => "word ptr",
+            RegisterSize::Byte => "byte ptr",
         };
 
         let index_str = match &self.index {

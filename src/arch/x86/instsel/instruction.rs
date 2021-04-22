@@ -4,13 +4,13 @@ use crate::{arch::x86::asm, ssa};
 
 use super::InstructionSelector;
 
-const ARG_REGS: [asm::MachineRegister; 6] = [
-    asm::MachineRegister::Rdi,
-    asm::MachineRegister::Rsi,
-    asm::MachineRegister::Rdx,
-    asm::MachineRegister::Rcx,
-    asm::MachineRegister::R8,
-    asm::MachineRegister::R9,
+const ARG_REGS: [asm::MachineRegisterKind; 6] = [
+    asm::MachineRegisterKind::Rdi,
+    asm::MachineRegisterKind::Rsi,
+    asm::MachineRegisterKind::Rdx,
+    asm::MachineRegisterKind::Rcx,
+    asm::MachineRegisterKind::R8,
+    asm::MachineRegisterKind::R9,
 ];
 
 impl InstructionSelector {
@@ -47,7 +47,7 @@ impl InstructionSelector {
                     asm::Mnemonic::Mov,
                     vec![
                         asm::Operand::Register(inst_id.into()),
-                        asm::Operand::Register(asm::MachineRegister::Rax.into()),
+                        asm::Operand::Register(asm::MachineRegisterKind::Rax.into()),
                     ],
                 ));
                 inst
@@ -97,10 +97,7 @@ impl InstructionSelector {
                 asm::Instruction::new(asm::Mnemonic::Mov, vec![dst, reg]),
             ]
         } else {
-            vec![asm::Instruction::new(
-                asm::Mnemonic::Mov,
-                vec![dst, self.trans_value(src)],
-            )]
+            vec![Self::trans_mov(dst, self.trans_value(src))]
         }
     }
 
@@ -134,7 +131,7 @@ impl InstructionSelector {
                 asm::Instruction::new(
                     asm::Mnemonic::Mov,
                     vec![
-                        asm::Operand::Register(asm::MachineRegister::Rax.into()),
+                        asm::Operand::Register(asm::MachineRegisterKind::Rax.into()),
                         lhs,
                     ],
                 ),
@@ -145,7 +142,7 @@ impl InstructionSelector {
                     asm::Mnemonic::Mov,
                     vec![
                         reg,
-                        asm::Operand::Register(asm::MachineRegister::Rax.into()),
+                        asm::Operand::Register(asm::MachineRegisterKind::Rax.into()),
                     ],
                 ),
             ],
@@ -153,7 +150,7 @@ impl InstructionSelector {
                 asm::Instruction::new(
                     asm::Mnemonic::Mov,
                     vec![
-                        asm::Operand::Register(asm::MachineRegister::Rax.into()),
+                        asm::Operand::Register(asm::MachineRegisterKind::Rax.into()),
                         lhs,
                     ],
                 ),
@@ -163,7 +160,7 @@ impl InstructionSelector {
                     asm::Mnemonic::Mov,
                     vec![
                         reg,
-                        asm::Operand::Register(asm::MachineRegister::Rdx.into()),
+                        asm::Operand::Register(asm::MachineRegisterKind::Rdx.into()),
                     ],
                 ),
             ],
@@ -173,24 +170,33 @@ impl InstructionSelector {
                 asm::Instruction::new(
                     asm::Mnemonic::Mov,
                     vec![
-                        asm::Operand::Register(asm::MachineRegister::Rcx.into()),
+                        asm::Operand::Register(asm::MachineRegisterKind::Rcx.into()),
                         rhs,
                     ],
                 ),
                 asm::Instruction::new(
                     asm::Mnemonic::Shl,
-                    vec![reg, asm::Operand::Register(asm::MachineRegister::Cl.into())],
+                    vec![
+                        reg,
+                        asm::Operand::Register(asm::MachineRegisterKind::Cl.into()),
+                    ],
                 ),
             ],
             Shr => vec![
                 asm::Instruction::new(asm::Mnemonic::Mov, vec![reg.clone(), lhs]),
                 asm::Instruction::new(
                     asm::Mnemonic::Mov,
-                    vec![asm::Operand::Register(asm::MachineRegister::Cl.into()), rhs],
+                    vec![
+                        asm::Operand::Register(asm::MachineRegisterKind::Cl.into()),
+                        rhs,
+                    ],
                 ),
                 asm::Instruction::new(
                     asm::Mnemonic::Shr,
-                    vec![reg, asm::Operand::Register(asm::MachineRegister::Cl.into())],
+                    vec![
+                        reg,
+                        asm::Operand::Register(asm::MachineRegisterKind::Cl.into()),
+                    ],
                 ),
             ],
 
@@ -243,12 +249,15 @@ impl InstructionSelector {
         };
         inst.push(asm::Instruction::new(
             mnemonic,
-            vec![asm::Operand::Register(asm::MachineRegister::Cl.into())],
+            vec![asm::Operand::Register(asm::MachineRegisterKind::Cl.into())],
         ));
 
         inst.push(asm::Instruction::new(
             asm::Mnemonic::Movzx,
-            vec![reg, asm::Operand::Register(asm::MachineRegister::Cl.into())],
+            vec![
+                reg,
+                asm::Operand::Register(asm::MachineRegisterKind::Cl.into()),
+            ],
         ));
 
         inst
@@ -309,7 +318,7 @@ impl InstructionSelector {
                         inst.push(asm::Instruction::new(
                             asm::Mnemonic::Mov,
                             vec![
-                                asm::Operand::Register(asm::MachineRegister::Rax.into()),
+                                asm::Operand::Register(asm::MachineRegisterKind::Rax.into()),
                                 self.trans_value(val),
                             ],
                         ));
@@ -383,7 +392,7 @@ impl InstructionSelector {
             Global(ssa::GlobalValue { global_id, .. }) => {
                 let global = module.global(*global_id).unwrap();
                 asm::Operand::Indirect(asm::Indirect::new_label(
-                    asm::MachineRegister::Rip.into(),
+                    asm::MachineRegisterKind::Rip.into(),
                     global.name.clone(),
                     reg_size,
                 ))
@@ -397,9 +406,15 @@ impl InstructionSelector {
         }
     }
 
-    fn trans_mov(dst: asm::Operand, src: asm::Operand) -> asm::Instruction {
+    fn trans_mov(dst: asm::Operand, mut src: asm::Operand) -> asm::Instruction {
         let mnemonic = match (dst.size(), src.size()) {
-            (asm::RegSize::QWord, asm::RegSize::Byte) => asm::Mnemonic::Movzx,
+            (asm::RegisterSize::QWord, asm::RegisterSize::Byte) => asm::Mnemonic::Movzx,
+            (asm::RegisterSize::Byte, asm::RegisterSize::QWord) => {
+                if let asm::Operand::Register(ref mut reg) = src {
+                    reg.set_size(asm::RegisterSize::Byte);
+                }
+                asm::Mnemonic::Mov
+            }
             _ => asm::Mnemonic::Mov,
         };
         asm::Instruction::new(mnemonic, vec![dst, src])

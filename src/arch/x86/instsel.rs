@@ -58,13 +58,13 @@ impl InstructionSelector {
         // prologue
         self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Push,
-            vec![asm::Operand::Register(asm::MachineRegister::Rbp.into())],
+            vec![asm::Operand::Register(asm::MachineRegisterKind::Rbp.into())],
         ));
         self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Mov,
             vec![
-                asm::Operand::Register(asm::MachineRegister::Rbp.into()),
-                asm::Operand::Register(asm::MachineRegister::Rsp.into()),
+                asm::Operand::Register(asm::MachineRegisterKind::Rbp.into()),
+                asm::Operand::Register(asm::MachineRegisterKind::Rsp.into()),
             ],
         ));
 
@@ -72,7 +72,7 @@ impl InstructionSelector {
         self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Sub,
             vec![
-                asm::Operand::Register(asm::MachineRegister::Rsp.into()),
+                asm::Operand::Register(asm::MachineRegisterKind::Rsp.into()),
                 asm::Operand::Immediate(asm::Immediate::I32(stack_offset)),
             ],
         ));
@@ -102,13 +102,13 @@ impl InstructionSelector {
         self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Mov,
             vec![
-                asm::Operand::Register(asm::MachineRegister::Rsp.into()),
-                asm::Operand::Register(asm::MachineRegister::Rbp.into()),
+                asm::Operand::Register(asm::MachineRegisterKind::Rsp.into()),
+                asm::Operand::Register(asm::MachineRegisterKind::Rbp.into()),
             ],
         ));
         self.func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Pop,
-            vec![asm::Operand::Register(asm::MachineRegister::Rbp.into())],
+            vec![asm::Operand::Register(asm::MachineRegisterKind::Rbp.into())],
         ));
         self.func
             .add_inst(asm::Instruction::new(asm::Mnemonic::Ret, vec![]));
@@ -134,7 +134,7 @@ impl InstructionSelector {
                     self.stack_offsets.insert(
                         *inst_id,
                         asm::Operand::Indirect(asm::Indirect::new_imm(
-                            asm::MachineRegister::Rbp.into(),
+                            asm::MachineRegisterKind::Rbp.into(),
                             -stack_offset,
                             typ.reg_size(),
                         )),
