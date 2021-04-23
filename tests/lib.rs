@@ -173,7 +173,7 @@ fn byte_1() {
     let mut assembly = x86::instsel::translate(module);
     regalloc::allocate(&mut assembly);
     println!("{}", assembly.stringify());
-    run(assembly, 5).unwrap();
+    run(assembly, 1).unwrap();
 }
 
 fn run(assembly: asm::Assembly, expected: i32) -> io::Result<()> {
