@@ -374,7 +374,9 @@ impl InstructionSelector {
     fn trans_lvalue(&mut self, module: &ssa::Module, val: &ssa::Value) -> asm::Operand {
         use ssa::Value::*;
 
-        let reg_size = val.typ().reg_size();
+        let types = module.types.borrow();
+        let elm_typ = types.elm_typ(val.typ());
+        let reg_size = elm_typ.reg_size();
 
         match val {
             Instruction(inst_val) => {
