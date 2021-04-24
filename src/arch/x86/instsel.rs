@@ -36,6 +36,9 @@ impl InstructionSelector {
         }
 
         for (_, function) in &module.functions {
+            if function.block_order.is_empty() {
+                continue;
+            }
             self.trans_function(&module, function);
         }
 
