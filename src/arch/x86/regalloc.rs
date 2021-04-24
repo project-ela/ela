@@ -87,7 +87,7 @@ impl DummyRegisterAllocator {
                         continue;
                     }
 
-                    lifetimes.entry(i).or_insert(HashSet::new()).insert(id);
+                    lifetimes.entry(i).or_insert_with(HashSet::new).insert(id);
                     current_regs.insert(id);
                 }
             }

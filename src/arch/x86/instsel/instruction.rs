@@ -293,8 +293,7 @@ impl InstructionSelector {
                     indirect.set_index(index);
                 }
                 ssa::Value::Parameter(ssa::ParameterValue { index, .. }) => {
-                    let index = self.arg_reg(index).into();
-                    indirect.set_index(index);
+                    indirect.set_index(self.arg_reg(index));
                 }
                 x => unimplemented!("{:?}", x),
             }

@@ -115,7 +115,7 @@ impl Function {
             Gep(val, indices) => {
                 let indices_str = indices
                     .iter()
-                    .map(|index| format!("{}", index.dump(module)))
+                    .map(|index| index.dump(module))
                     .collect::<Vec<String>>()
                     .join(", ");
 
@@ -123,7 +123,7 @@ impl Function {
             }
 
             Ret(Some(val)) => format!("  ret {}", val.dump(module)),
-            Ret(None) => format!("  ret"),
+            Ret(None) => "  ret".into(),
             Br(dst) => format!("  br b{}", dst.index()),
             CondBr(cond, con, alt) => {
                 format!(

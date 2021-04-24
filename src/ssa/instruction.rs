@@ -141,18 +141,12 @@ impl Instruction {
     pub fn is_terminator(&self) -> bool {
         use self::InstructionKind::*;
 
-        match self.kind {
-            Ret(_) | Br(_) | CondBr(_, _, _) => true,
-            _ => false,
-        }
+        matches!(self.kind, Ret(_) | Br(_) | CondBr(_, _, _))
     }
 
     pub fn has_side_effects(&self) -> bool {
         use self::InstructionKind::*;
 
-        match self.kind {
-            Call(_, _) | Param(_) => true,
-            _ => false,
-        }
+        matches!(self.kind, Call(_, _) | Param(_))
     }
 }

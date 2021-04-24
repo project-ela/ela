@@ -29,7 +29,7 @@ impl DeadCodeElimination {
                 let new_users: HashSet<InstructionId> =
                     inst.users.difference(&ids_to_eliminate).copied().collect();
 
-                let can_be_eliminated = new_users.len() == 0 && !inst.has_side_effects();
+                let can_be_eliminated = new_users.is_empty() && !inst.has_side_effects();
                 if can_be_eliminated {
                     ids_to_eliminate.insert(*inst_id);
                 } else {

@@ -40,7 +40,7 @@ impl Value {
     }
 
     pub fn new_param(function: &Function, index: usize) -> Self {
-        let typ = function.param_typ.get(index).unwrap().clone();
+        let typ = *function.param_typ.get(index).unwrap();
         Self::Parameter(ParameterValue { index, typ })
     }
 

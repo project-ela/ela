@@ -14,7 +14,7 @@ mod function;
 pub use function::*;
 
 mod gep;
-pub use gep::*;
+pub(crate) use gep::*;
 
 mod global;
 pub use global::*;
