@@ -213,6 +213,7 @@ impl Type {
         match self {
             Void => "void".into(),
             I1 => "i1".into(),
+            I8 => "i8".into(),
             I32 => "i32".into(),
             Pointer(_) => {
                 let elm_typ = types.elm_typ(*self);
@@ -232,6 +233,7 @@ impl Constant {
 
         match self {
             I1(x) => format!("{}", *x as u32),
+            I8(x) => format!("{}", x),
             I32(x) => format!("{}", x),
         }
     }

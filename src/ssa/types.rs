@@ -42,6 +42,7 @@ pub enum Type {
     Void,
 
     I1,
+    I8,
     I32,
 
     Pointer(TypeId),
@@ -53,7 +54,7 @@ impl Type {
         use self::Type::*;
 
         match self {
-            I1 => RegisterSize::Byte,
+            I1 | I8 => RegisterSize::Byte,
             I32 => RegisterSize::QWord,
 
             Pointer(_) | Array(_, _) => RegisterSize::QWord,
@@ -67,8 +68,7 @@ impl Type {
 
         match self {
             Void => 0,
-            // TODO
-            I1 => 1,
+            I1 | I8 => 1,
             I32 => 8,
 
             Pointer(_) => 8,

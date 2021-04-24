@@ -31,6 +31,10 @@ impl Value {
         Self::Constant(Constant::I1(val))
     }
 
+    pub fn new_i8(val: i8) -> Self {
+        Self::Constant(Constant::I8(val))
+    }
+
     pub fn new_i32(val: i32) -> Self {
         Self::Constant(Constant::I32(val))
     }
