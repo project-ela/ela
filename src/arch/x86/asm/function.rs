@@ -2,12 +2,16 @@ use super::{AssemblyItem, Instruction, PseudoOp};
 
 #[derive(Debug)]
 pub struct Function {
+    pub name: String,
     pub items: Vec<AssemblyItem>,
 }
 
 impl Function {
-    pub fn new() -> Self {
-        Self { items: Vec::new() }
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            items: Vec::new(),
+        }
     }
 
     pub fn add_inst(&mut self, inst: Instruction) {
@@ -25,6 +29,8 @@ impl Function {
     pub fn stringify(&self) -> String {
         let mut s = String::new();
 
+        s.push_str(&format!(".global {}\n", self.name));
+        s.push_str(&format!("{}:\n", self.name));
         for item in &self.items {
             s.push_str(&item.stringify());
             s.push('\n');
