@@ -275,6 +275,10 @@ impl InstructionSelector {
             x => unimplemented!("{:?}", x),
         };
 
+        let types = module.types.borrow();
+        let ret_typ = gep_elm_typ(&types, val, indices);
+        indirect.size = ret_typ.reg_size();
+
         let mut disp_offset = 0;
         for i in 0..indices.len() {
             match indices[i] {

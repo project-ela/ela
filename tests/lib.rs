@@ -158,13 +158,11 @@ fn byte_1() {
     let block_0 = builder.new_block();
     builder.set_block(block_0);
 
-    let v0 = builder.alloc(ssa::Type::I1);
-    let v1 = builder.alloc(ssa::Type::I32);
-
-    builder.store(v0, ssa::Value::new_i1(true));
-    builder.store(v1, ssa::Value::new_i32(42));
-
-    let v2 = builder.load(v0);
+    let array_typ = module.types.borrow_mut().array_of(ssa::Type::I1, 4);
+    let v0 = builder.alloc(array_typ);
+    let v1 = builder.gep(v0, vec![ssa::Value::new_i32(0), ssa::Value::new_i32(1)]);
+    builder.store(v1, ssa::Value::new_i1(true));
+    let v2 = builder.load(v1);
     builder.ret(v2);
 
     module.add_function(func_main);
