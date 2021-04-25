@@ -81,6 +81,19 @@ pub enum RegisterSize {
     Byte,
 }
 
+impl RegisterSize {
+    pub fn size(&self) -> usize {
+        use self::RegisterSize::*;
+
+        match self {
+            QWord => 8,
+            DWord => 4,
+            Word => 2,
+            Byte => 1,
+        }
+    }
+}
+
 pub const REGS: [MachineRegisterKind; 7] = [
     MachineRegisterKind::R10,
     MachineRegisterKind::R11,

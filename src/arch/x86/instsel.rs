@@ -124,8 +124,9 @@ impl InstructionSelector {
                 let inst = function.inst(*inst_id).unwrap();
 
                 if let ssa::InstructionKind::Alloc(typ) = inst.kind {
+                    let align = typ.reg_size().size() as i32;
                     let typ_size = typ.size(&function.types.borrow()) as i32;
-                    stack_offset = Self::align_to(stack_offset, typ_size) + typ_size;
+                    stack_offset = Self::align_to(stack_offset, align) + typ_size;
 
                     self.stack_offsets.insert(
                         *inst_id,
