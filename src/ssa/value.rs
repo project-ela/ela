@@ -27,6 +27,10 @@ pub struct GlobalValue {
 }
 
 impl Value {
+    pub fn new_zero() -> Self {
+        Self::Constant(Constant::ZeroInitializer)
+    }
+
     pub fn new_i1(val: bool) -> Self {
         Self::Constant(Constant::I1(val))
     }

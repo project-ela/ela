@@ -61,17 +61,57 @@ impl InstructionSelector {
                 asm::Operand::Register(inst_id.into()),
                 self.trans_lvalue(module, src),
             )],
-            Store(dst, src) => {
-                let dst = self.trans_lvalue(module, dst);
-                self.trans_move_value(module, *inst_id, dst, src)
-            }
+            Store(dst, src) => match src {
+                ssa::Value::Constant(ssa::Constant::ZeroInitializer) => {
+                    self.trans_zero_init(module, dst)
+                }
+                x => {
+                    let dst = self.trans_lvalue(module, dst);
+                    self.trans_move_value(module, *inst_id, dst, x)
+                }
+            },
 
             Gep(val, indices) => {
-                self.trans_gep(module, *inst_id, val, indices);
+                let dst = self.trans_gep(module, val, indices);
+                self.geps.insert(*inst_id, dst);
                 vec![]
             }
 
             x => unreachable!("{:?}", x),
+        }
+    }
+
+    fn trans_zero_init(&mut self, module: &ssa::Module, dst: &ssa::Value) -> Vec<asm::Instruction> {
+        let types = module.types.borrow();
+        let elm_typ = types.elm_typ(dst.typ());
+
+        let asm_dst = self.trans_lvalue(module, dst);
+        match elm_typ {
+            ssa::Type::I1 | ssa::Type::I8 => vec![asm::Instruction::new(
+                asm::Mnemonic::Mov,
+                vec![asm_dst, asm::Operand::Immediate(asm::Immediate::I8(0))],
+            )],
+            ssa::Type::I32 => vec![asm::Instruction::new(
+                asm::Mnemonic::Mov,
+                vec![asm_dst, asm::Operand::Immediate(asm::Immediate::I32(0))],
+            )],
+            ssa::Type::Array(_, len) => {
+                let zero = ssa::Value::new_i32(0);
+
+                let mut inst = Vec::new();
+                for i in 0..len {
+                    let indices = vec![zero, ssa::Value::new_i32(i as i32)];
+                    let dst = self.trans_gep(module, dst, &indices);
+
+                    inst.push(asm::Instruction::new(
+                        asm::Mnemonic::Mov,
+                        vec![dst, asm::Operand::Immediate(asm::Immediate::I32(0))],
+                    ));
+                }
+
+                inst
+            }
+            x => unimplemented!("{:?}", x),
         }
     }
 
@@ -267,10 +307,9 @@ impl InstructionSelector {
     fn trans_gep(
         &mut self,
         module: &ssa::Module,
-        inst_id: ssa::InstructionId,
         val: &ssa::Value,
         indices: &[ssa::Value],
-    ) {
+    ) -> asm::Operand {
         let mut indirect = match self.trans_lvalue(module, val) {
             asm::Operand::Indirect(indirect) => indirect,
             x => unimplemented!("{:?}", x),
@@ -301,7 +340,7 @@ impl InstructionSelector {
         }
         indirect.set_disp_offset(disp_offset);
 
-        self.geps.insert(inst_id, asm::Operand::Indirect(indirect));
+        asm::Operand::Indirect(indirect)
     }
 
     pub(crate) fn trans_term(

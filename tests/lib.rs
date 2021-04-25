@@ -174,6 +174,36 @@ fn byte_1() {
     run(assembly, 1).unwrap();
 }
 
+#[test]
+fn zero_1() {
+    let mut module = ssa::Module::new();
+    let mut func_main = ssa::Function::new(&module, "main", ssa::Type::I32, vec![]);
+    let mut builder = ssa::FunctionBuilder::new(&mut func_main);
+    let block_0 = builder.new_block();
+    builder.set_block(block_0);
+
+    let v0 = builder.alloc(ssa::Type::I1);
+    let v1 = builder.alloc(ssa::Type::I8);
+    let v2 = builder.alloc(ssa::Type::I32);
+    let array_typ = module.types.borrow_mut().array_of(ssa::Type::I8, 4);
+    let v3 = builder.alloc(array_typ);
+
+    builder.store(v0, ssa::Value::new_zero());
+    builder.store(v1, ssa::Value::new_zero());
+    builder.store(v2, ssa::Value::new_zero());
+    builder.store(v3, ssa::Value::new_zero());
+
+    builder.ret(v2);
+
+    module.add_function(func_main);
+    println!("{}", module.dump());
+
+    let mut assembly = x86::instsel::translate(module);
+    regalloc::allocate(&mut assembly);
+    println!("{}", assembly.stringify());
+    run(assembly, 1).unwrap();
+}
+
 fn run(assembly: asm::Assembly, expected: i32) -> io::Result<()> {
     let mut file = File::create("./tmp.s")?;
     file.write_all(assembly.stringify().as_bytes())?;

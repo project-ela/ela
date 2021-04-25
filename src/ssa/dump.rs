@@ -232,6 +232,8 @@ impl Constant {
         use super::Constant::*;
 
         match self {
+            ZeroInitializer => "zero".into(),
+
             I1(x) => format!("{}", *x as u32),
             I8(x) => format!("{}", x),
             I32(x) => format!("{}", x),
