@@ -83,21 +83,21 @@ fn trans_inst(i: Instruction, fb: &mut ssa::FunctionBuilder) {
             let v = trans_value(&i.src[0], fb);
             fb.ret(v)
         }
-        _ => panic!(),
+        _ => unimplemented!(),
     }
 }
 
 fn trans_value(v: &Value, _fb: &mut ssa::FunctionBuilder) -> ssa::Value {
     match v.kind {
         ValueKind::Const(r#const) => ssa::Value::new_i32(r#const as i32),
-        _ => panic!(),
+        _ => unimplemented!(),
     }
 }
 
 fn trans_typ(t: String) -> ssa::Type {
     match t.as_str() {
         "i32" => ssa::Type::I32,
-        _ => panic!(),
+        _ => unimplemented!(),
     }
 }
 
