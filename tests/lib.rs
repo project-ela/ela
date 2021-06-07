@@ -1,12 +1,13 @@
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{self, Write},
+    path::Path,
     process::Command,
 };
 
 use siderow::{
     arch::x86::{self, asm, regalloc},
-    ssa,
+    ssa::{self, parser},
 };
 
 #[test]
@@ -42,13 +43,7 @@ fn do_test() {
 
     // ---
 
-    let mut assembly = x86::instsel::translate(module);
-    regalloc::allocate(&mut assembly);
-    println!("{}", assembly.stringify());
-
-    // ---
-
-    run(assembly, 4).unwrap();
+    run(module, 4).unwrap();
 }
 
 #[test]
@@ -73,10 +68,7 @@ fn gep_1() {
     module.add_function(func_main);
     println!("{}", module.dump());
 
-    let mut assembly = x86::instsel::translate(module);
-    regalloc::allocate(&mut assembly);
-    println!("{}", assembly.stringify());
-    run(assembly, 63).unwrap();
+    run(module, 63).unwrap();
 }
 #[test]
 fn gep_2() {
@@ -105,10 +97,7 @@ fn gep_2() {
     module.add_function(func_main);
     println!("{}", module.dump());
 
-    let mut assembly = x86::instsel::translate(module);
-    regalloc::allocate(&mut assembly);
-    println!("{}", assembly.stringify());
-    run(assembly, 63).unwrap();
+    run(module, 63).unwrap();
 }
 
 #[test]
@@ -144,10 +133,7 @@ fn gep_3() {
     module.add_function(func_main);
     println!("{}", module.dump());
 
-    let mut assembly = x86::instsel::translate(module);
-    regalloc::allocate(&mut assembly);
-    println!("{}", assembly.stringify());
-    run(assembly, 5).unwrap();
+    run(module, 5).unwrap();
 }
 
 #[test]
@@ -168,10 +154,7 @@ fn byte_1() {
     module.add_function(func_main);
     println!("{}", module.dump());
 
-    let mut assembly = x86::instsel::translate(module);
-    regalloc::allocate(&mut assembly);
-    println!("{}", assembly.stringify());
-    run(assembly, 1).unwrap();
+    run(module, 1).unwrap();
 }
 
 #[test]
@@ -198,13 +181,14 @@ fn zero_1() {
     module.add_function(func_main);
     println!("{}", module.dump());
 
+    run(module, 1).unwrap();
+}
+
+fn run(module: ssa::Module, expected: i32) -> io::Result<()> {
     let mut assembly = x86::instsel::translate(module);
     regalloc::allocate(&mut assembly);
     println!("{}", assembly.stringify());
-    run(assembly, 1).unwrap();
-}
 
-fn run(assembly: asm::Assembly, expected: i32) -> io::Result<()> {
     let mut file = File::create("./tmp.s")?;
     file.write_all(assembly.stringify().as_bytes())?;
 
@@ -226,6 +210,36 @@ fn run(assembly: asm::Assembly, expected: i32) -> io::Result<()> {
     println!("==> exited with {}, expected {}", status_code, expected);
 
     assert_eq!(status_code, expected);
+
+    Ok(())
+}
+
+#[test]
+fn test_all() {
+    let path = "tests/testcases/";
+    for entry in fs::read_dir(path).unwrap() {
+        let entry = entry.unwrap();
+        if entry.path().is_dir() {
+            continue;
+        }
+
+        test_file(&entry.path()).unwrap();
+    }
+}
+
+fn test_file(path: &Path) -> io::Result<()> {
+    println!("Parsing: {:?}", path);
+    let input = fs::read_to_string(path)?;
+
+    let mut input_lines = input.lines();
+    let first_line = input_lines.next().unwrap();
+    let program = input_lines.collect::<String>();
+
+    let module = parser::parse(&program);
+    println!("{}", module.dump());
+
+    let expected = first_line.strip_prefix("// ").unwrap().parse().unwrap();
+    run(module, expected).unwrap();
 
     Ok(())
 }

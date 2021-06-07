@@ -25,6 +25,8 @@ pub use instruction::*;
 mod module;
 pub use module::*;
 
+pub mod parser;
+
 pub mod pass;
 
 mod types;
