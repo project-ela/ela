@@ -40,6 +40,13 @@ pub struct Register {
     pub id: usize,
 }
 
+#[derive(Debug, Default)]
+struct Context {
+    registers: HashMap<usize, ssa::Value>,
+}
+
+use std::collections::HashMap;
+
 use crate::ssa;
 
 pub fn parse(input: &str) -> ssa::Module {
@@ -62,35 +69,42 @@ fn trans_func(f: Function, sm: &ssa::Module) -> ssa::Function {
     let mut sf = ssa::Function::new(sm, f.name, typ, vec![]);
     let mut fb = ssa::FunctionBuilder::new(&mut sf);
 
+    let mut ctx = Context::default();
     for block in f.body {
-        trans_block(block, &mut fb);
+        trans_block(block, &mut ctx, &mut fb);
     }
 
     sf
 }
 
-fn trans_block(b: Block, fb: &mut ssa::FunctionBuilder) {
+fn trans_block(b: Block, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) {
     let block = fb.new_block();
     fb.set_block(block);
     for i in b.inst {
-        trans_inst(i, fb);
+        trans_inst(i, ctx, fb);
     }
 }
 
-fn trans_inst(i: Instruction, fb: &mut ssa::FunctionBuilder) {
+fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) {
     match i.op.as_str() {
+        "add" => {
+            let id = i.dst.unwrap().id;
+            let lhs = trans_value(&i.src[0], ctx);
+            let rhs = trans_value(&i.src[1], ctx);
+            ctx.registers.insert(id, fb.add(lhs, rhs));
+        }
         "ret" => {
-            let v = trans_value(&i.src[0], fb);
+            let v = trans_value(&i.src[0], ctx);
             fb.ret(v)
         }
         _ => unimplemented!(),
     }
 }
 
-fn trans_value(v: &Value, _fb: &mut ssa::FunctionBuilder) -> ssa::Value {
+fn trans_value(v: &Value, ctx: &mut Context) -> ssa::Value {
     match v.kind {
         ValueKind::Const(r#const) => ssa::Value::new_i32(r#const as i32),
-        _ => unimplemented!(),
+        ValueKind::Register(Register { id }) => *ctx.registers.get(&id).unwrap(),
     }
 }
 
