@@ -86,13 +86,24 @@ fn trans_block(b: Block, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) {
 }
 
 fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) {
+    macro_rules! binop {
+        ($($op: ident),*) => {
+            match i.op.as_str() {
+                $(stringify!($op) => {
+                    let id = i.dst.unwrap().id;
+                    let lhs = trans_value(&i.src[0], ctx);
+                    let rhs = trans_value(&i.src[1], ctx);
+                    ctx.registers.insert(id, fb.$op(lhs, rhs));
+                    return;
+                }),*
+                _ => {}
+            }
+        };
+    }
+
+    binop!(add, sub, mul, div, rem, shl, shr, and, or, xor, eq, neq, gt, gte, lt, lte);
+
     match i.op.as_str() {
-        "add" => {
-            let id = i.dst.unwrap().id;
-            let lhs = trans_value(&i.src[0], ctx);
-            let rhs = trans_value(&i.src[1], ctx);
-            ctx.registers.insert(id, fb.add(lhs, rhs));
-        }
         "ret" => {
             let v = trans_value(&i.src[0], ctx);
             fb.ret(v)
