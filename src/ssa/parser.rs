@@ -94,12 +94,21 @@ fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) 
         Instruction::O { op, src } => match op.as_str() {
             "ret" => {
                 let v = trans_value(&src[0], ctx);
-                fb.ret(v)
+                fb.ret(v);
             }
-            "br" => {
-                let dst = trans_label(&src[0]);
-                fb.br(*ctx.blocks.get(dst).unwrap())
-            }
+            "br" => match src.len() {
+                1 => {
+                    let dst = trans_label(&src[0], ctx);
+                    fb.br(dst);
+                }
+                3 => {
+                    let cond = trans_value(&src[0], ctx);
+                    let con = trans_label(&src[1], ctx);
+                    let alt = trans_label(&src[2], ctx);
+                    fb.cond_br(cond, con, alt);
+                }
+                _ => panic!(),
+            },
             _ => unimplemented!(),
         },
         Instruction::OD { dst, op, src } => {
@@ -126,7 +135,7 @@ fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) 
     }
 }
 
-fn trans_value(v: &Value, ctx: &mut Context) -> ssa::Value {
+fn trans_value(v: &Value, ctx: &Context) -> ssa::Value {
     match v.kind {
         ValueKind::Const(r#const) => ssa::Value::new_i32(r#const as i32),
         ValueKind::Register(Register { id }) => *ctx.registers.get(&id).unwrap(),
@@ -134,9 +143,9 @@ fn trans_value(v: &Value, ctx: &mut Context) -> ssa::Value {
     }
 }
 
-fn trans_label(v: &Value) -> &String {
+fn trans_label(v: &Value, ctx: &Context) -> ssa::BlockId {
     match v.kind {
-        ValueKind::Label(ref l) => l,
+        ValueKind::Label(ref l) => *ctx.blocks.get(l).unwrap(),
         _ => panic!(),
     }
 }
