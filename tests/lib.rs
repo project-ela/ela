@@ -233,7 +233,7 @@ fn test_file(path: &Path) -> io::Result<()> {
 
     let mut input_lines = input.lines();
     let first_line = input_lines.next().unwrap();
-    let program = input_lines.collect::<String>();
+    let program = input_lines.collect::<Vec<&str>>().join("\n");
 
     let module = parser::parse(&program);
     println!("{}", module.dump());
