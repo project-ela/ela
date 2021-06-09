@@ -21,6 +21,11 @@ pub enum Instruction {
         op: String,
         src: Vec<Value>,
     },
+    OT {
+        dst: Register,
+        op: String,
+        typ: String,
+    },
     L {
         name: String,
     },
@@ -92,6 +97,11 @@ fn trans_func(f: Function, sm: &ssa::Module) -> ssa::Function {
 fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) {
     match i {
         Instruction::O { op, src } => match op.as_str() {
+            "store" => {
+                let dst = trans_value(&src[0], ctx);
+                let src = trans_value(&src[1], ctx);
+                fb.store(dst, src);
+            }
             "ret" => {
                 let v = trans_value(&src[0], ctx);
                 fb.ret(v);
@@ -112,6 +122,15 @@ fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) 
             _ => unimplemented!(),
         },
         Instruction::OD { dst, op, src } => {
+            match op.as_str() {
+                "load" => {
+                    let src = trans_value(&src[0], ctx);
+                    ctx.registers.insert(dst.id, fb.load(src));
+                    return;
+                }
+                _ => {}
+            }
+
             let lhs = trans_value(&src[0], ctx);
             let rhs = trans_value(&src[1], ctx);
 
@@ -121,13 +140,20 @@ fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) 
                         $(stringify!($op) => {
                             ctx.registers.insert(dst.id, fb.$op(lhs, rhs));
                         }),*
-                        _ => {}
+                        _ => panic!(),
                     }
                 };
             }
 
             binop!(add, sub, mul, div, rem, shl, shr, and, or, xor, eq, neq, gt, gte, lt, lte);
         }
+        Instruction::OT { dst, op, typ } => match op.as_str() {
+            "alloc" => {
+                let typ = trans_typ(typ);
+                ctx.registers.insert(dst.id, fb.alloc(typ));
+            }
+            _ => panic!(),
+        },
         Instruction::L { name } => {
             let block = ctx.blocks.get(&name).unwrap();
             fb.set_block(*block);
@@ -170,7 +196,7 @@ peg::parser! {
             }
 
         rule function() -> Function
-            = "func" _ "@" name:ident() "(" _ ")" _ typ:ident() _"{" _ body:inst() ** _ _ "}"{
+            = "func" _ "@" name:ident() "(" _ ")" _ typ:typ() _"{" _ body:inst() ** _ _ "}"{
                 Function {
                     name,
                     typ,
@@ -185,6 +211,13 @@ peg::parser! {
                 Instruction::O {
                     op,
                     src,
+                }
+            }
+            / dst:reg() _ "=" _ "alloc" _ typ:typ() {
+                Instruction::OT {
+                    dst,
+                    op: "alloc".into(),
+                    typ,
                 }
             }
             / dst:reg() _ "=" _ op:ident() src:(_ src:value() {src}) ** "," {
@@ -202,13 +235,13 @@ peg::parser! {
                     kind: ValueKind::Label(name),
                 }
             }
-            / typ:ident() _ r#const:number() {
+            / typ:typ() _ r#const:number() {
                 Value {
                     typ,
                     kind: ValueKind::Const(r#const),
                 }
             }
-            / typ:ident() _ reg:reg() {
+            / typ:typ() _ reg:reg() {
                 Value {
                     typ,
                     kind: ValueKind::Register(reg),
@@ -219,6 +252,9 @@ peg::parser! {
             = "%" id:number() {
                 Register { id }
             }
+
+        rule typ() -> String
+            = s:$(['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']+) { s.to_string() }
 
         rule ident() -> String
             = s:$(['a'..='z' | 'A'..='Z' | '0'..='9' | '_']+) { s.to_string() }
