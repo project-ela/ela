@@ -187,7 +187,6 @@ fn zero_1() {
 fn run(module: ssa::Module, expected: i32) -> io::Result<()> {
     let mut assembly = x86::instsel::translate(module);
     regalloc::allocate(&mut assembly);
-    println!("{}", assembly.stringify());
 
     let mut file = File::create("./tmp.s")?;
     file.write_all(assembly.stringify().as_bytes())?;
@@ -199,15 +198,11 @@ fn run(module: ssa::Module, expected: i32) -> io::Result<()> {
         .status()?;
 
     if !status.success() {
-        println!("==> failed to compile");
-        panic!();
+        panic!("failed to compile");
     }
-
-    println!("==> finished compiling successfully");
 
     let status = Command::new("./tmp").status()?;
     let status_code = status.code().unwrap();
-    println!("==> exited with {}, expected {}", status_code, expected);
 
     assert_eq!(status_code, expected);
 
@@ -228,7 +223,7 @@ fn test_all() {
 }
 
 fn test_file(path: &Path) -> io::Result<()> {
-    println!("Parsing: {:?}", path);
+    println!("Processing: {:?}", path);
     let input = fs::read_to_string(path)?;
 
     let mut input_lines = input.lines();
@@ -236,7 +231,6 @@ fn test_file(path: &Path) -> io::Result<()> {
     let program = input_lines.collect::<Vec<&str>>().join("\n");
 
     let module = parser::parse(&program);
-    println!("{}", module.dump());
 
     let expected = first_line.strip_prefix("// ").unwrap().parse().unwrap();
     run(module, expected).unwrap();
