@@ -141,6 +141,12 @@ fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) 
                     ctx.registers.insert(dst.id, fb.load(src));
                     return;
                 }
+                "gep" => {
+                    let val = trans_value(&src[0], ctx);
+                    let indices = src[1..].iter().map(|v| trans_value(v, ctx)).collect();
+                    ctx.registers.insert(dst.id, fb.gep(val, indices));
+                    return;
+                }
                 _ => {}
             }
 
