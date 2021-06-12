@@ -6,7 +6,7 @@ pub struct Module {
 #[derive(Debug)]
 pub struct Function {
     pub name: String,
-    pub typ: String,
+    pub typ: Type,
     pub body: Vec<Instruction>,
 }
 
@@ -24,7 +24,7 @@ pub enum Instruction {
     OT {
         dst: Register,
         op: String,
-        typ: String,
+        typ: Type,
     },
     L {
         name: String,
@@ -33,7 +33,7 @@ pub enum Instruction {
 
 #[derive(Debug)]
 pub struct Value {
-    pub typ: String,
+    pub typ: Type,
     pub kind: ValueKind,
 }
 
@@ -47,6 +47,14 @@ pub enum ValueKind {
 #[derive(Debug)]
 pub struct Register {
     pub id: usize,
+}
+
+#[derive(Debug)]
+pub enum Type {
+    Void,
+
+    I1,
+    I32,
 }
 
 #[derive(Debug, Default)]
@@ -176,9 +184,10 @@ fn trans_label(v: &Value, ctx: &Context) -> ssa::BlockId {
     }
 }
 
-fn trans_typ(t: String) -> ssa::Type {
-    match t.as_str() {
-        "i32" => ssa::Type::I32,
+fn trans_typ(t: Type) -> ssa::Type {
+    match t {
+        Type::I1 => ssa::Type::I1,
+        Type::I32 => ssa::Type::I32,
         _ => unimplemented!(),
     }
 }
@@ -231,7 +240,7 @@ peg::parser! {
         rule value() -> Value
             = "label" _ name:ident() {
                 Value {
-                    typ: "label".into(),
+                    typ: Type::Void,
                     kind: ValueKind::Label(name),
                 }
             }
@@ -253,8 +262,14 @@ peg::parser! {
                 Register { id }
             }
 
-        rule typ() -> String
-            = s:$(['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']+) { s.to_string() }
+        rule typ() -> Type
+            = s:$(['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']+) {
+                match s {
+                    "i1" => Type::I1,
+                    "i32" => Type::I32,
+                    _ => unimplemented!(),
+                }
+             }
 
         rule ident() -> String
             = s:$(['a'..='z' | 'A'..='Z' | '0'..='9' | '_']+) { s.to_string() }
