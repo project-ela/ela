@@ -56,6 +56,7 @@ pub enum Type {
     I1,
     I32,
     Pointer(Box<Type>),
+    Array(usize, Box<Type>),
 }
 
 #[derive(Debug, Default)]
@@ -199,6 +200,10 @@ fn trans_typ(t: Type, types: &mut ssa::Types) -> ssa::Type {
             let elm = trans_typ(*elm, types);
             types.ptr_to(elm)
         }
+        Type::Array(len, elm) => {
+            let elm = trans_typ(*elm, types);
+            types.array_of(elm, len)
+        }
         _ => unimplemented!(),
     }
 }
@@ -275,6 +280,7 @@ peg::parser! {
 
         rule comp_typ() -> Type
             = "*" _ elm:comp_typ() { Type::Pointer(Box::new(elm)) }
+            / "[" _ len:number() _ "]" _ elm:comp_typ() { Type::Array(len, Box::new(elm)) }
             / elm:typ() { elm }
 
         rule typ() -> Type
