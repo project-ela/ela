@@ -55,6 +55,7 @@ pub enum Type {
 
     I1,
     I32,
+    Pointer(Box<Type>),
 }
 
 #[derive(Debug, Default)]
@@ -83,7 +84,10 @@ fn translate(m: Module) -> ssa::Module {
 }
 
 fn trans_func(f: Function, sm: &ssa::Module) -> ssa::Function {
-    let typ = trans_typ(f.typ);
+    let typ = {
+        let mut types = sm.types.borrow_mut();
+        trans_typ(f.typ, &mut types)
+    };
     let mut sf = ssa::Function::new(sm, f.name, typ, vec![]);
     let mut fb = ssa::FunctionBuilder::new(&mut sf);
 
@@ -157,7 +161,10 @@ fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) 
         }
         Instruction::OT { dst, op, typ } => match op.as_str() {
             "alloc" => {
-                let typ = trans_typ(typ);
+                let typ = {
+                    let mut types = fb.function_mut().types.borrow_mut();
+                    trans_typ(typ, &mut types)
+                };
                 ctx.registers.insert(dst.id, fb.alloc(typ));
             }
             _ => panic!(),
@@ -184,10 +191,14 @@ fn trans_label(v: &Value, ctx: &Context) -> ssa::BlockId {
     }
 }
 
-fn trans_typ(t: Type) -> ssa::Type {
+fn trans_typ(t: Type, types: &mut ssa::Types) -> ssa::Type {
     match t {
         Type::I1 => ssa::Type::I1,
         Type::I32 => ssa::Type::I32,
+        Type::Pointer(elm) => {
+            let elm = trans_typ(*elm, types);
+            types.ptr_to(elm)
+        }
         _ => unimplemented!(),
     }
 }
@@ -205,7 +216,7 @@ peg::parser! {
             }
 
         rule function() -> Function
-            = "func" _ "@" name:ident() "(" _ ")" _ typ:typ() _"{" _ body:inst() ** _ _ "}"{
+            = "func" _ "@" name:ident() "(" _ ")" _ typ:comp_typ() _"{" _ body:inst() ** _ _ "}"{
                 Function {
                     name,
                     typ,
@@ -222,7 +233,7 @@ peg::parser! {
                     src,
                 }
             }
-            / dst:reg() _ "=" _ "alloc" _ typ:typ() {
+            / dst:reg() _ "=" _ "alloc" _ typ:comp_typ() {
                 Instruction::OT {
                     dst,
                     op: "alloc".into(),
@@ -244,13 +255,13 @@ peg::parser! {
                     kind: ValueKind::Label(name),
                 }
             }
-            / typ:typ() _ r#const:number() {
+            / typ:comp_typ() _ r#const:number() {
                 Value {
                     typ,
                     kind: ValueKind::Const(r#const),
                 }
             }
-            / typ:typ() _ reg:reg() {
+            / typ:comp_typ() _ reg:reg() {
                 Value {
                     typ,
                     kind: ValueKind::Register(reg),
@@ -261,6 +272,10 @@ peg::parser! {
             = "%" id:number() {
                 Register { id }
             }
+
+        rule comp_typ() -> Type
+            = "*" _ elm:comp_typ() { Type::Pointer(Box::new(elm)) }
+            / elm:typ() { elm }
 
         rule typ() -> Type
             = s:$(['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']+) {
