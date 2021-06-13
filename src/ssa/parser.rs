@@ -42,6 +42,7 @@ pub enum ValueKind {
     Register(Register),
     Const(usize),
     Label(String),
+    Zero,
 }
 
 #[derive(Debug)]
@@ -187,6 +188,7 @@ fn trans_value(v: &Value, ctx: &Context) -> ssa::Value {
     match v.kind {
         ValueKind::Const(r#const) => ssa::Value::new_i32(r#const as i32),
         ValueKind::Register(Register { id }) => *ctx.registers.get(&id).unwrap(),
+        ValueKind::Zero => ssa::Value::new_zero(),
         _ => panic!(),
     }
 }
@@ -276,6 +278,12 @@ peg::parser! {
                 Value {
                     typ,
                     kind: ValueKind::Register(reg),
+                }
+            }
+            / typ:comp_typ() _ "zero" {
+                Value {
+                    typ,
+                    kind: ValueKind::Zero,
                 }
             }
 

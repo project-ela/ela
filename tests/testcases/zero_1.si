@@ -1,0 +1,8 @@
+// 0
+func @main() i32 {
+  b0:
+    %0 = alloc i32
+    store *i32 %0, i32 zero
+    %1 = load *i32 %0
+    ret i32 %1
+}
