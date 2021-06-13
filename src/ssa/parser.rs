@@ -61,7 +61,9 @@ pub enum Type {
     Void,
 
     I1,
+    I8,
     I32,
+
     Pointer(Box<Type>),
     Array(usize, Box<Type>),
 }
@@ -136,10 +138,14 @@ fn trans_inst(i: Instruction, sm: &ssa::Module, ctx: &mut Context, fb: &mut ssa:
                 let src = trans_value(&src[1], ctx);
                 fb.store(dst, src);
             }
-            "ret" => {
-                let v = trans_value(&src[0], ctx);
-                fb.ret(v);
-            }
+            "ret" => match src.len() {
+                0 => fb.ret_void(),
+                1 => {
+                    let v = trans_value(&src[0], ctx);
+                    fb.ret(v);
+                }
+                _ => panic!(),
+            },
             "br" => match src.len() {
                 1 => {
                     let dst = trans_label(&src[0], ctx);
@@ -230,7 +236,9 @@ fn trans_label(v: &Value, ctx: &Context) -> ssa::BlockId {
 
 fn trans_typ(t: Type, types: &mut ssa::Types) -> ssa::Type {
     match t {
+        Type::Void => ssa::Type::Void,
         Type::I1 => ssa::Type::I1,
+        Type::I8 => ssa::Type::I8,
         Type::I32 => ssa::Type::I32,
         Type::Pointer(elm) => {
             let elm = trans_typ(*elm, types);
@@ -240,7 +248,6 @@ fn trans_typ(t: Type, types: &mut ssa::Types) -> ssa::Type {
             let elm = trans_typ(*elm, types);
             types.array_of(elm, len)
         }
-        _ => unimplemented!(),
     }
 }
 
@@ -271,6 +278,13 @@ peg::parser! {
 
         rule inst() -> Instruction
             = name:ident() ":" { Instruction::L{name} }
+            / dst:(dst:reg() _ "=" { dst })? _ "call" _ "@" name:ident() _ "(" args:values() _ ")" {
+                Instruction::Call {
+                    dst,
+                    name,
+                    args,
+                }
+            }
             / op:ident() src:values() {
                 Instruction::O {
                     op,
@@ -282,13 +296,6 @@ peg::parser! {
                     dst,
                     op: "alloc".into(),
                     typ,
-                }
-            }
-            / dst:(dst:reg() _ "=" { dst })? _ "call" _ "@" name:ident() _ "(" args:values() _ ")" {
-                Instruction::Call {
-                    dst,
-                    name,
-                    args,
                 }
             }
             / dst:reg() _ "=" _ op:ident() src:values() {
@@ -342,7 +349,9 @@ peg::parser! {
         rule typ() -> Type
             = s:$(['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']+) {
                 match s {
+                    "void" => Type::Void,
                     "i1" => Type::I1,
+                    "i8" => Type::I8,
                     "i32" => Type::I32,
                     _ => unimplemented!(),
                 }
