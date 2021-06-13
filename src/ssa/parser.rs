@@ -7,6 +7,7 @@ pub struct Module {
 pub struct Function {
     pub name: String,
     pub typ: Type,
+    pub params: Vec<Type>,
     pub body: Vec<Instruction>,
 }
 
@@ -25,6 +26,11 @@ pub enum Instruction {
         dst: Register,
         op: String,
         typ: Type,
+    },
+    Call {
+        dst: Option<Register>,
+        name: String,
+        args: Vec<Value>,
     },
     L {
         name: String,
@@ -62,6 +68,7 @@ pub enum Type {
 
 #[derive(Debug, Default)]
 struct Context {
+    functions: HashMap<String, ssa::FunctionId>,
     registers: HashMap<usize, ssa::Value>,
     blocks: HashMap<String, ssa::BlockId>,
 }
@@ -76,24 +83,37 @@ pub fn parse(input: &str) -> ssa::Module {
 
 fn translate(m: Module) -> ssa::Module {
     let mut sm = ssa::Module::new();
+    let mut ctx = Context::default();
 
     for f in m.functions {
-        let sf = trans_func(f, &sm);
-        sm.add_function(sf);
+        let name = f.name.clone();
+        let sf = trans_func(f, &sm, &mut ctx);
+        ctx.functions.insert(name, sm.add_function(sf));
     }
 
     sm
 }
 
-fn trans_func(f: Function, sm: &ssa::Module) -> ssa::Function {
-    let typ = {
+fn trans_func(f: Function, sm: &ssa::Module, ctx: &mut Context) -> ssa::Function {
+    let (ret_typ, param_typ) = {
         let mut types = sm.types.borrow_mut();
-        trans_typ(f.typ, &mut types)
-    };
-    let mut sf = ssa::Function::new(sm, f.name, typ, vec![]);
-    let mut fb = ssa::FunctionBuilder::new(&mut sf);
 
-    let mut ctx = Context::default();
+        let ret_typ = trans_typ(f.typ, &mut types);
+        let param_typ = f
+            .params
+            .into_iter()
+            .map(|param| trans_typ(param, &mut types))
+            .collect();
+
+        (ret_typ, param_typ)
+    };
+
+    let mut sf = ssa::Function::new(sm, f.name, ret_typ, param_typ);
+    for i in 0..sf.param_typ.len() {
+        ctx.registers.insert(i, ssa::Value::new_param(&sf, i));
+    }
+
+    let mut fb = ssa::FunctionBuilder::new(&mut sf);
 
     for inst in &f.body {
         if let Instruction::L { name } = inst {
@@ -102,13 +122,13 @@ fn trans_func(f: Function, sm: &ssa::Module) -> ssa::Function {
     }
 
     for inst in f.body {
-        trans_inst(inst, &mut ctx, &mut fb);
+        trans_inst(inst, sm, ctx, &mut fb);
     }
 
     sf
 }
 
-fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) {
+fn trans_inst(i: Instruction, sm: &ssa::Module, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) {
     match i {
         Instruction::O { op, src } => match op.as_str() {
             "store" => {
@@ -177,6 +197,14 @@ fn trans_inst(i: Instruction, ctx: &mut Context, fb: &mut ssa::FunctionBuilder) 
             }
             _ => panic!(),
         },
+        Instruction::Call { dst, name, args } => {
+            let func_id = ctx.functions.get(&name).unwrap();
+            let args = args.iter().map(|v| trans_value(&v, ctx)).collect();
+            let ret_val = fb.call(sm, *func_id, args);
+            if let Some(dst) = dst {
+                ctx.registers.insert(dst.id, ret_val);
+            }
+        }
         Instruction::L { name } => {
             let block = ctx.blocks.get(&name).unwrap();
             fb.set_block(*block);
@@ -222,25 +250,28 @@ peg::parser! {
         rule _ = [' ' | '\n']*
 
         pub rule module() -> Module
-            = f:function()* {
+            = f:function() ** _ {
                 Module {
                     functions:f,
                 }
             }
 
         rule function() -> Function
-            = "func" _ "@" name:ident() "(" _ ")" _ typ:comp_typ() _"{" _ body:inst() ** _ _ "}"{
+            = "func" _ "@" name:ident() "(" _ params:params() _ ")" _ typ:comp_typ() _"{" _ body:inst() ** _ _ "}"{
                 Function {
                     name,
                     typ,
+                    params,
                     body,
                 }
             }
 
+        rule params() -> Vec<Type>
+            = (_ typ:comp_typ() {typ}) ** ","
 
         rule inst() -> Instruction
             = name:ident() ":" { Instruction::L{name} }
-            / op:ident() src:(_ src:value() {src})** "," {
+            / op:ident() src:values() {
                 Instruction::O {
                     op,
                     src,
@@ -253,13 +284,24 @@ peg::parser! {
                     typ,
                 }
             }
-            / dst:reg() _ "=" _ op:ident() src:(_ src:value() {src}) ** "," {
+            / dst:(dst:reg() _ "=" { dst })? _ "call" _ "@" name:ident() _ "(" args:values() _ ")" {
+                Instruction::Call {
+                    dst,
+                    name,
+                    args,
+                }
+            }
+            / dst:reg() _ "=" _ op:ident() src:values() {
                 Instruction::OD{
                     dst,
                     op,
                     src,
                 }
             }
+
+
+        rule values() -> Vec<Value>
+            = (_ value:value() {value}) ** ","
 
         rule value() -> Value
             = "label" _ name:ident() {
