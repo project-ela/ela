@@ -1,0 +1,5 @@
+func main(): int {
+  var buf: byte[2]
+  buf[0] = 1
+  return buf[0]
+}

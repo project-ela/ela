@@ -1,0 +1,7 @@
+func main(): int {
+  var a: int
+  var b: byte[8]
+
+  // cause a tse fault
+  return b[8]
+}

@@ -1,0 +1,13 @@
+func exit(c: int)
+
+func assertb(a: bool, b: bool) {
+  if a != b {
+    exit(1)
+  }
+}
+
+func main(): int {
+  assertb(false, false)
+  assertb(true, true)
+  return 0
+}

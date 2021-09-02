@@ -1,0 +1,15 @@
+func read(fd: int, buf: *byte, count: int): int 
+func write(fd: int, buf: *byte, count: int): int
+
+func main(): int {
+  write(1, "What is your name?\n", 19)
+
+  var name: byte[10]
+  var len: int = read(0, name, 10)
+
+  write(1, "Hello, ", 7)
+  write(1, name, len - 1)
+  write(1, "!\n", 2)
+
+  return 0
+}

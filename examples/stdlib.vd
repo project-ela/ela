@@ -1,0 +1,26 @@
+func read(fd: int, buf: *byte, count: int): int
+func write(fd: int, buf: *byte, count: int): int
+func exit(code: int)
+
+func printi(x: int) {
+  var x: int = x
+  var buf: byte[32]
+  var i: int = 31
+  while true {
+    buf[i] = x % 10 + '0'
+    x /= 10
+    i -= 1
+    if x == 0 {
+      write(1, buf, 32)
+      return
+    }
+  }
+}
+
+func printlni(x: int) {
+  printi(x)
+
+  var buf: byte[1]
+  buf[0] = '\n'
+  write(1, buf, 1)
+}

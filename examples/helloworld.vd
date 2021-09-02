@@ -1,0 +1,6 @@
+func write(fd: int, buf: *byte, count: int): int
+
+func main(): int {
+  write(1, "Hello world!\n", 13)
+  return 0
+}
