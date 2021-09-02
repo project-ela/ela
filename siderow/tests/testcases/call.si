@@ -1,0 +1,19 @@
+// 62
+func @hoge() i32 {
+  b0:
+    ret i32 42
+}
+
+func @fuga(i32) i32 {
+  b0:
+    %1 = mul i32 %0, i32 2
+    ret i32 %1
+}
+
+func @main() i32 {
+  b0:
+    %0 = call @hoge()
+    %1 = call @fuga(i32 10)
+    %2 = add i32 %0, i32 %1
+    ret i32 %2
+}

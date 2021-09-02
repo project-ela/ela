@@ -1,0 +1,9 @@
+// 1
+func @main() i32 {
+  b0:
+    br i1 1, label b1, label b2
+  b1:
+    ret i32 1
+  b2:
+    ret i32 2
+}

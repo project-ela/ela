@@ -1,0 +1,11 @@
+// 1
+func @hoge() void {
+  b0:
+    ret
+}
+
+func @main() i32 {
+  b0:
+    call @hoge()
+    ret i32 1
+}
