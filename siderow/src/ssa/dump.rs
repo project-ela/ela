@@ -235,6 +235,15 @@ impl Constant {
             I1(x) => format!("{}", *x as u32),
             I8(x) => format!("{}", x),
             I32(x) => format!("{}", x),
+
+            Array(elems) => {
+                let elems_str = elems
+                    .iter()
+                    .map(|elem| elem.dump())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                format!("[{}]", elems_str)
+            }
         }
     }
 }
