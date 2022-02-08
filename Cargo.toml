@@ -1,0 +1,11 @@
+[workspace]
+
+members = [
+	"eir",
+	"elfen",
+	"herja",
+	"rota",
+	"siderow",
+	"sigrun",
+	"x86asm",
+]

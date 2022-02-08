@@ -7,5 +7,5 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-elfen = { git = "https://github.com/Project-Norn/elfen" }
-x86asm = { git = "https://github.com/Project-Norn/x86asm" }
+elfen = { path = "../elfen" }
+x86asm = { path = "../x86asm" }
