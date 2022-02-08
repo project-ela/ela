@@ -45,9 +45,25 @@ impl InstructionSelector {
         self.assembly
     }
 
-    // TODO
     fn trans_global(&mut self, global: &ssa::Global) {
-        self.assembly.data.add_data(global.name.clone(), 8);
+        fn const2dataitem(r#const: ssa::Constant) -> asm::DataItem {
+            match r#const {
+                ssa::Constant::ZeroInitializer => asm::DataItem::Zero(r#const.typ().size()),
+                ssa::Constant::I1(val) => asm::DataItem::Byte(val as i8),
+                ssa::Constant::I8(val) => asm::DataItem::Byte(val),
+                ssa::Constant::I32(val) => asm::DataItem::Long(val),
+                ssa::Constant::Array(_) => panic!(),
+            }
+        }
+
+        let bytes = match global.init_value {
+            ssa::Constant::Array(ref elems) => elems
+                .iter()
+                .map(|elem| const2dataitem(elem.clone()))
+                .collect::<Vec<asm::DataItem>>(),
+            ref val => vec![const2dataitem(val.clone())],
+        };
+        self.assembly.data.add_data(global.name.clone(), bytes);
     }
 
     fn trans_function(&mut self, module: &ssa::Module, ssa_func: &ssa::Function) {
@@ -123,9 +139,9 @@ impl InstructionSelector {
             for inst_id in &block.instructions {
                 let inst = function.inst(*inst_id).unwrap();
 
-                if let ssa::InstructionKind::Alloc(typ) = inst.kind {
+                if let ssa::InstructionKind::Alloc(ref typ) = inst.kind {
                     let align = typ.reg_size().size() as i32;
-                    let typ_size = typ.size(&function.types.borrow()) as i32;
+                    let typ_size = typ.size() as i32;
                     stack_offset = Self::align_to(stack_offset, align) + typ_size;
 
                     self.stack_offsets.insert(

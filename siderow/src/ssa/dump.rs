@@ -1,6 +1,6 @@
 use super::{
     BinaryOperator, BlockId, ComparisonOperator, Constant, Function, Global, GlobalValue,
-    InstructionId, InstructionValue, Module, ParameterValue, Type, Types, Value,
+    InstructionId, InstructionValue, Module, ParameterValue, Type, Value,
 };
 
 impl Module {
@@ -8,7 +8,7 @@ impl Module {
         let global_str = self
             .globals
             .iter()
-            .map(|(_, global)| global.dump(self))
+            .map(|(_, global)| global.dump())
             .collect::<Vec<String>>()
             .join("\n");
 
@@ -24,11 +24,11 @@ impl Module {
 }
 
 impl Global {
-    fn dump(&self, module: &Module) -> String {
+    fn dump(&self) -> String {
         format!(
             "@{} = {} {}",
             self.name,
-            self.typ.dump(&module.types.borrow()),
+            self.typ.dump(),
             self.init_value.dump()
         )
     }
@@ -40,7 +40,7 @@ impl Function {
             .param_typ
             .iter()
             .enumerate()
-            .map(|(i, typ)| format!("{} %{}", typ.dump(&self.types.borrow()), i))
+            .map(|(i, typ)| format!("{} %{}", typ.dump(), i))
             .collect::<Vec<String>>()
             .join(", ");
 
@@ -55,7 +55,7 @@ impl Function {
             "func @{}({}) {} {{\n{}\n}}\n",
             self.name,
             param_str,
-            self.ret_typ.dump(&self.types.borrow()),
+            self.ret_typ.dump(),
             block_str
         )
     }
@@ -108,7 +108,7 @@ impl Function {
             }
             Param(index) => format!("param {}", index),
 
-            Alloc(typ) => format!("alloc {}", typ.dump(&self.types.borrow())),
+            Alloc(typ) => format!("alloc {}", typ.dump()),
             Load(src) => format!("load {}", src.dump(module)),
             Store(dst, src) => format!("store {}, {}", dst.dump(module), src.dump(module)),
 
@@ -188,7 +188,7 @@ impl Value {
     fn dump(&self, module: &Module) -> String {
         use super::Value::*;
 
-        let typ_str = self.typ().dump(&module.types.borrow());
+        let typ_str = self.typ().dump();
 
         match self {
             Constant(r#const) => format!("{} {}", typ_str, r#const.dump()),
@@ -207,7 +207,7 @@ impl Value {
 }
 
 impl Type {
-    fn dump(&self, types: &Types) -> String {
+    fn dump(&self) -> String {
         use super::Type::*;
 
         match self {
@@ -215,13 +215,11 @@ impl Type {
             I1 => "i1".into(),
             I8 => "i8".into(),
             I32 => "i32".into(),
-            Pointer(_) => {
-                let elm_typ = types.elm_typ(*self);
-                format!("*{}", elm_typ.dump(types))
+            Pointer(elm_typ) => {
+                format!("*{}", elm_typ.dump())
             }
-            Array(_, len) => {
-                let elm_typ = types.elm_typ(*self);
-                format!("[{}]{}", len, elm_typ.dump(types))
+            Array(elm_typ, len) => {
+                format!("[{}]{}", len, elm_typ.dump())
             }
         }
     }
@@ -237,6 +235,15 @@ impl Constant {
             I1(x) => format!("{}", *x as u32),
             I8(x) => format!("{}", x),
             I32(x) => format!("{}", x),
+
+            Array(elems) => {
+                let elems_str = elems
+                    .iter()
+                    .map(|elem| elem.dump())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                format!("[{}]", elems_str)
+            }
         }
     }
 }

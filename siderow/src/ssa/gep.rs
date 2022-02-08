@@ -1,8 +1,8 @@
-use super::{Type, Types, Value};
+use super::{Type, Value};
 
-pub(crate) fn gep_elm_typ(types: &Types, val: &Value, indices: &[Value]) -> Type {
+pub(crate) fn gep_elm_typ(val: &Value, indices: &[Value]) -> Type {
     let src_typ = val.typ();
-    let mut elm_typ = types.elm_typ(src_typ);
+    let mut elm_typ = src_typ.elm_typ();
 
     for i in 0..indices.len() {
         if i == 0 {
@@ -10,7 +10,7 @@ pub(crate) fn gep_elm_typ(types: &Types, val: &Value, indices: &[Value]) -> Type
         }
 
         match elm_typ {
-            Type::Array(_, _) => elm_typ = types.elm_typ(elm_typ),
+            Type::Array(_, _) => elm_typ = elm_typ.elm_typ(),
             x => unimplemented!("{:?}", x),
         }
     }
@@ -18,7 +18,7 @@ pub(crate) fn gep_elm_typ(types: &Types, val: &Value, indices: &[Value]) -> Type
     elm_typ
 }
 
-pub(crate) fn gep_return_typ(types: &mut Types, val: &Value, indices: &[Value]) -> Type {
-    let elm_typ = gep_elm_typ(types, val, indices);
-    types.ptr_to(elm_typ)
+pub(crate) fn gep_return_typ(val: &Value, indices: &[Value]) -> Type {
+    let elm_typ = gep_elm_typ(val, indices);
+    elm_typ.ptr_to()
 }

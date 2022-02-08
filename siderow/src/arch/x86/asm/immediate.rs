@@ -16,6 +16,8 @@ impl From<&ssa::Constant> for Immediate {
             I1(x) => Self::I8(*x as i8),
             I8(x) => Self::I8(*x),
             I32(x) => Self::I32(*x),
+
+            Array(_) => panic!(),
         }
     }
 }

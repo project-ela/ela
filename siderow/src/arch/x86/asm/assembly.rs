@@ -13,7 +13,14 @@ pub struct DataSection {
 
 #[derive(Debug)]
 pub enum DataSectionItem {
-    Data { name: String, size: usize },
+    Data { name: String, bytes: Vec<DataItem> },
+}
+
+#[derive(Debug)]
+pub enum DataItem {
+    Zero(usize),
+    Byte(i8),
+    Long(i32),
 }
 
 #[derive(Debug)]
@@ -35,8 +42,8 @@ impl DataSection {
         Self { items: Vec::new() }
     }
 
-    pub fn add_data(&mut self, name: String, size: usize) {
-        self.items.push(DataSectionItem::Data { name, size });
+    pub fn add_data(&mut self, name: String, bytes: Vec<DataItem>) {
+        self.items.push(DataSectionItem::Data { name, bytes });
     }
 }
 
@@ -85,13 +92,25 @@ impl DataSectionItem {
         let mut s = String::new();
 
         match self {
-            Data { name, size } => {
+            Data { name, bytes } => {
                 s.push_str(&format!("{}:\n", name));
-                s.push_str(&format!(".zero {}\n", size));
+                s.extend(bytes.iter().map(|item| item.stringify()));
             }
         }
 
         s
+    }
+}
+
+impl DataItem {
+    pub fn stringify(&self) -> String {
+        use self::DataItem::*;
+
+        match self {
+            Zero(size) => format!(".zero {}\n", size),
+            Byte(val) => format!(".byte {}\n", val),
+            Long(val) => format!(".long {}\n", val),
+        }
     }
 }
 

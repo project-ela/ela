@@ -1,8 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
-
 use id_arena::{Arena, Id};
 
-use super::{Block, BlockId, Instruction, InstructionId, InstructionKind, Module, Type, Types};
+use super::{Block, BlockId, Instruction, InstructionId, InstructionKind, Type};
 
 pub type FunctionId = Id<Function>;
 
@@ -19,17 +17,10 @@ pub struct Function {
     pub block_order: Vec<BlockId>,
 
     pub instructions: Arena<Instruction>,
-
-    pub types: Rc<RefCell<Types>>,
 }
 
 impl Function {
-    pub fn new<S: Into<String>>(
-        module: &Module,
-        name: S,
-        ret_typ: Type,
-        param_typ: Vec<Type>,
-    ) -> Self {
+    pub fn new<S: Into<String>>(name: S, ret_typ: Type, param_typ: Vec<Type>) -> Self {
         let mut instructions = Arena::new();
         for (i, _) in param_typ.iter().enumerate() {
             instructions.alloc(Instruction::new(InstructionKind::Param(i)));
@@ -42,7 +33,6 @@ impl Function {
             blocks: Arena::new(),
             block_order: Vec::new(),
             instructions,
-            types: Rc::clone(&module.types),
         }
     }
 
