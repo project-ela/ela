@@ -9,7 +9,7 @@ try() {
     echo "compiling failed"
     exit 1
   fi
-  gcc tmp.s -o tmp
+  ${CC:-gcc} tmp.s -o tmp
   ./tmp
   actual=$?
   if [ "$actual" == "0" ]; then

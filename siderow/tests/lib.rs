@@ -1,4 +1,5 @@
 use std::{
+    env,
     fs::{self, File},
     io::{self, Write},
     path::Path,
@@ -44,7 +45,8 @@ fn exec(module: ssa::Module, expected: i32) -> io::Result<()> {
     let mut file = File::create("./tmp.s")?;
     file.write_all(assembly.stringify().as_bytes())?;
 
-    let status = Command::new("gcc")
+    let cc = env::var("CC").unwrap_or(String::from("gcc"));
+    let status = Command::new(cc)
         .arg("./tmp.s")
         .arg("-o")
         .arg("./tmp")

@@ -7,4 +7,4 @@ build:
 .PHONY: build
 test:
 	${CARGO} test
-
+	cd sigrun && ./test.sh
