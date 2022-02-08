@@ -1,0 +1,10 @@
+func read(fd: int, buf: *int, count: int): int
+func write(fd: int, buf: *int, count: int): int
+
+func main(): int {
+  var buf: int[128]
+  read(0, buf, 128)
+  write(1, buf, 128)
+  return 0
+}
+
