@@ -1,0 +1,13 @@
+// 63
+func @main() i32 {
+  b0:
+    %0 = alloc [4]i32
+    %1 = gep *[4]i32 %0, i32 0, i32 1
+    %2 = gep *[4]i32 %0, i32 0, i32 2
+    store *i32 %1, i32 42
+    store *i32 %2, i32 21
+    %3 = load *i32 %1
+    %4 = load *i32 %2
+    %5 = add i32 %3, i32 %4
+    ret i32 %5
+}
