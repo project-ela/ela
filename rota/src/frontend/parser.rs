@@ -152,6 +152,8 @@ impl Parser {
             }
             PseudoOp::Zero => vec![PseudoOpArg::Integer(self.consume_integer()?)],
             PseudoOp::Ascii => vec![PseudoOpArg::String(self.consume_string()?)],
+            PseudoOp::Byte => vec![PseudoOpArg::Integer(self.consume_signed_integer()?)],
+            PseudoOp::Long => vec![PseudoOpArg::Integer(self.consume_signed_integer()?)],
             _ => vec![],
         };
 
@@ -254,6 +256,8 @@ fn find_pseudoop(ident: Token) -> Result<PseudoOp, Error> {
         ".zero" => Ok(PseudoOp::Zero),
         ".ascii" => Ok(PseudoOp::Ascii),
         ".tse" => Ok(PseudoOp::Tse),
+        ".byte" => Ok(PseudoOp::Byte),
+        ".long" => Ok(PseudoOp::Long),
         x => Err(Error::new(
             ident.pos,
             ErrorKind::UnknownPseudoOp {

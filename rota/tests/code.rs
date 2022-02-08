@@ -317,6 +317,20 @@ fn ascii() {
     do_test(r#".ascii "\r\n""#, "0d 0a"); // skip
 }
 
+#[test]
+fn byte() {
+    do_test(".byte 0", "00"); // skip
+    do_test(".byte 42", "2a"); // skip
+    do_test(".byte 255", "ff"); // skip
+}
+
+#[test]
+fn long() {
+    do_test(".long 0", "00 00 00 00"); // skip
+    do_test(".long 305419896", "78 56 34 12"); // skip
+    do_test(".long -1", "ff ff ff ff"); // skip
+}
+
 fn do_test(source: &str, expected_output: &str) {
     let source_file = SourceFile {
         filename: "".to_string(),
