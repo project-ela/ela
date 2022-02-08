@@ -98,19 +98,13 @@ fn translate(m: Module) -> ssa::Module {
 
 fn trans_func(f: Function, sm: &ssa::Module, ctx: &mut Context) -> ssa::Function {
     let (ret_typ, param_typ) = {
-        let mut types = sm.types.borrow_mut();
-
-        let ret_typ = trans_typ(f.typ, &mut types);
-        let param_typ = f
-            .params
-            .into_iter()
-            .map(|param| trans_typ(param, &mut types))
-            .collect();
+        let ret_typ = trans_typ(f.typ);
+        let param_typ = f.params.into_iter().map(|param| trans_typ(param)).collect();
 
         (ret_typ, param_typ)
     };
 
-    let mut sf = ssa::Function::new(sm, f.name, ret_typ, param_typ);
+    let mut sf = ssa::Function::new(f.name, ret_typ, param_typ);
     for i in 0..sf.param_typ.len() {
         ctx.registers.insert(i, ssa::Value::new_param(&sf, i));
     }
@@ -195,10 +189,7 @@ fn trans_inst(i: Instruction, sm: &ssa::Module, ctx: &mut Context, fb: &mut ssa:
         }
         Instruction::OT { dst, op, typ } => match op.as_str() {
             "alloc" => {
-                let typ = {
-                    let mut types = fb.function_mut().types.borrow_mut();
-                    trans_typ(typ, &mut types)
-                };
+                let typ = trans_typ(typ);
                 ctx.registers.insert(dst.id, fb.alloc(typ));
             }
             _ => panic!(),
@@ -221,7 +212,7 @@ fn trans_inst(i: Instruction, sm: &ssa::Module, ctx: &mut Context, fb: &mut ssa:
 fn trans_value(v: &Value, ctx: &Context) -> ssa::Value {
     match v.kind {
         ValueKind::Const(r#const) => ssa::Value::new_i32(r#const as i32),
-        ValueKind::Register(Register { id }) => *ctx.registers.get(&id).unwrap(),
+        ValueKind::Register(Register { id }) => ctx.registers.get(&id).unwrap().clone(),
         ValueKind::Zero => ssa::Value::new_zero(),
         _ => panic!(),
     }
@@ -234,20 +225,14 @@ fn trans_label(v: &Value, ctx: &Context) -> ssa::BlockId {
     }
 }
 
-fn trans_typ(t: Type, types: &mut ssa::Types) -> ssa::Type {
+fn trans_typ(t: Type) -> ssa::Type {
     match t {
         Type::Void => ssa::Type::Void,
         Type::I1 => ssa::Type::I1,
         Type::I8 => ssa::Type::I8,
         Type::I32 => ssa::Type::I32,
-        Type::Pointer(elm) => {
-            let elm = trans_typ(*elm, types);
-            types.ptr_to(elm)
-        }
-        Type::Array(len, elm) => {
-            let elm = trans_typ(*elm, types);
-            types.array_of(elm, len)
-        }
+        Type::Pointer(elm) => trans_typ(*elm).ptr_to(),
+        Type::Array(len, elm) => trans_typ(*elm).array_of(len),
     }
 }
 

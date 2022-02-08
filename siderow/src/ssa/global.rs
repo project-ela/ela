@@ -17,8 +17,8 @@ impl Global {
     pub fn new<S: Into<String>>(name: S, init_value: Constant) -> Self {
         Self {
             name: name.into(),
-            init_value,
             typ: init_value.typ(),
+            init_value,
         }
     }
 }

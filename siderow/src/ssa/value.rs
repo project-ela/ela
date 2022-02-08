@@ -1,6 +1,6 @@
 use super::{Constant, Function, GlobalId, InstructionId, Module, Type};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Constant(Constant),
     Instruction(InstructionValue),
@@ -8,19 +8,19 @@ pub enum Value {
     Global(GlobalValue),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct InstructionValue {
     pub inst_id: InstructionId,
     pub typ: Type,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ParameterValue {
     pub index: usize,
     pub typ: Type,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct GlobalValue {
     pub global_id: GlobalId,
     pub typ: Type,
@@ -48,16 +48,15 @@ impl Value {
     }
 
     pub fn new_param(function: &Function, index: usize) -> Self {
-        let typ = *function.param_typ.get(index).unwrap();
+        let typ = function.param_typ.get(index).unwrap().clone();
         Self::Parameter(ParameterValue { index, typ })
     }
 
-    pub fn new_global(module: &mut Module, global_id: GlobalId) -> Self {
-        let typ = module.global(global_id).unwrap().typ;
-        let ptr_typ = module.types.borrow_mut().ptr_to(typ);
+    pub fn new_global(module: &Module, global_id: GlobalId) -> Self {
+        let typ = module.global(global_id).unwrap().typ.clone();
         Self::Global(GlobalValue {
             global_id,
-            typ: ptr_typ,
+            typ: typ.ptr_to(),
         })
     }
 
@@ -80,9 +79,9 @@ impl Value {
 
         match self {
             Constant(r#const) => r#const.typ(),
-            Instruction(InstructionValue { typ, .. }) => *typ,
-            Parameter(ParameterValue { typ, .. }) => *typ,
-            Global(GlobalValue { typ, .. }) => *typ,
+            Instruction(InstructionValue { typ, .. }) => typ.clone(),
+            Parameter(ParameterValue { typ, .. }) => typ.clone(),
+            Global(GlobalValue { typ, .. }) => typ.clone(),
         }
     }
 }

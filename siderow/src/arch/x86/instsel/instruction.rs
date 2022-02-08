@@ -82,10 +82,8 @@ impl InstructionSelector {
     }
 
     fn trans_zero_init(&mut self, module: &ssa::Module, dst: &ssa::Value) -> Vec<asm::Instruction> {
-        let types = module.types.borrow();
-        let elm_typ = types.elm_typ(dst.typ());
-
         let asm_dst = self.trans_lvalue(module, dst);
+        let elm_typ = dst.typ().elm_typ();
         match elm_typ {
             ssa::Type::I1 | ssa::Type::I8 => vec![asm::Instruction::new(
                 asm::Mnemonic::Mov,
@@ -100,7 +98,7 @@ impl InstructionSelector {
 
                 let mut inst = Vec::new();
                 for i in 0..len {
-                    let indices = vec![zero, ssa::Value::new_i32(i as i32)];
+                    let indices = vec![zero.clone(), ssa::Value::new_i32(i as i32)];
                     let dst = self.trans_gep(module, dst, &indices);
 
                     inst.push(asm::Instruction::new(
@@ -315,27 +313,25 @@ impl InstructionSelector {
             x => unimplemented!("{:?}", x),
         };
 
-        let types = module.types.borrow();
-        let ret_typ = gep_elm_typ(&types, val, indices);
+        let ret_typ = gep_elm_typ(val, indices);
         indirect.size = ret_typ.reg_size();
 
         let mut disp_offset = 0;
         for i in 0..indices.len() {
             match indices[i] {
                 ssa::Value::Constant(ssa::Constant::I32(index)) => {
-                    let types = module.types.borrow();
-                    let elm_typ = gep_elm_typ(&types, val, &indices[..=i]);
-                    let offset = elm_typ.size(&types) as i32 * index;
+                    let elm_typ = gep_elm_typ(val, &indices[..=i]);
+                    let offset = elm_typ.size() as i32 * index;
                     disp_offset += offset;
                 }
-                ssa::Value::Instruction(inst_val) => {
+                ssa::Value::Instruction(ref inst_val) => {
                     let index = inst_val.inst_id.into();
                     indirect.set_index(index);
                 }
                 ssa::Value::Parameter(ssa::ParameterValue { index, .. }) => {
                     indirect.set_index(self.arg_reg(index));
                 }
-                x => unimplemented!("{:?}", x),
+                ref x => unimplemented!("{:?}", x),
             }
         }
         indirect.set_disp_offset(disp_offset);
@@ -417,8 +413,7 @@ impl InstructionSelector {
     fn trans_lvalue(&mut self, module: &ssa::Module, val: &ssa::Value) -> asm::Operand {
         use ssa::Value::*;
 
-        let types = module.types.borrow();
-        let elm_typ = types.elm_typ(val.typ());
+        let elm_typ = val.typ().elm_typ();
         let reg_size = elm_typ.reg_size();
 
         match val {

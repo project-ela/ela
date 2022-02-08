@@ -54,7 +54,7 @@ impl ConstantFolding {
             let users = std::mem::take(&mut inst.users);
             for user_id in users {
                 let user_inst = function.inst_mut(user_id).unwrap();
-                self.replace_value(user_inst, inst_id, val);
+                self.replace_value(user_inst, inst_id, val.clone());
             }
         }
 
@@ -74,7 +74,7 @@ impl ConstantFolding {
         for value in inst.values_mut() {
             if let Value::Instruction(inst_val) = value {
                 if inst_val.inst_id == find_id {
-                    *value = replace_value;
+                    *value = replace_value.clone();
                 }
             }
         }
@@ -88,8 +88,8 @@ impl ConstantFolding {
         use InstructionKind::*;
 
         match inst.kind {
-            CondBr(cond, con, alt) => {
-                let cond = self.unwrap_i1(&cond, foldables)?;
+            CondBr(ref cond, con, alt) => {
+                let cond = self.unwrap_i1(cond, foldables)?;
                 match cond {
                     true => Some(InstructionKind::Br(con)),
                     false => Some(InstructionKind::Br(alt)),
@@ -201,12 +201,11 @@ impl ConstantFolding {
 #[cfg(test)]
 mod tests {
     use super::ConstantFolding;
-    use crate::ssa::{Function, FunctionBuilder, InstructionKind, Module, Type, Value};
+    use crate::ssa::{Function, FunctionBuilder, InstructionKind, Type, Value};
 
     #[test]
     fn cf_1() {
-        let module = Module::new();
-        let mut func_main = Function::new(&module, "main", Type::I32, vec![]);
+        let mut func_main = Function::new("main", Type::I32, vec![]);
         let mut builder = FunctionBuilder::new(&mut func_main);
         let block_0 = builder.new_block();
 
@@ -228,8 +227,7 @@ mod tests {
 
     #[test]
     fn cf_2() {
-        let module = Module::new();
-        let mut func_main = Function::new(&module, "main", Type::I32, vec![]);
+        let mut func_main = Function::new("main", Type::I32, vec![]);
         let mut builder = FunctionBuilder::new(&mut func_main);
         let block_0 = builder.new_block();
 
@@ -249,8 +247,7 @@ mod tests {
 
     #[test]
     fn cf_3() {
-        let module = Module::new();
-        let mut func_main = Function::new(&module, "main", Type::I32, vec![]);
+        let mut func_main = Function::new("main", Type::I32, vec![]);
         let mut builder = FunctionBuilder::new(&mut func_main);
         let block_0 = builder.new_block();
         let block_1 = builder.new_block();

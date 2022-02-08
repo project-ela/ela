@@ -57,17 +57,17 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn call(&mut self, module: &Module, func_id: FunctionId, args: Vec<Value>) -> Value {
-        let ret_typ = module.function(func_id).unwrap().ret_typ;
+        let ret_typ = module.function(func_id).unwrap().ret_typ.clone();
         self.add_inst(InstructionKind::Call(func_id, args), ret_typ)
     }
 
     pub fn alloc(&mut self, typ: Type) -> Value {
-        let ptr_typ = self.function.types.borrow_mut().ptr_to(typ);
+        let ptr_typ = typ.ptr_to();
         self.add_inst(InstructionKind::Alloc(typ), ptr_typ)
     }
 
     pub fn load(&mut self, src: Value) -> Value {
-        let elm_typ = self.function.types.borrow().elm_typ(src.typ());
+        let elm_typ = src.typ().elm_typ();
         self.add_inst(InstructionKind::Load(src), elm_typ)
     }
 
@@ -77,7 +77,7 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     pub fn gep(&mut self, val: Value, indices: Vec<Value>) -> Value {
-        let return_typ = gep_return_typ(&mut self.function.types.borrow_mut(), &val, &indices);
+        let return_typ = gep_return_typ(&val, &indices);
         self.add_inst(InstructionKind::Gep(val, indices), return_typ)
     }
 
@@ -102,8 +102,9 @@ macro_rules! binop {
     ($name: tt, $op: tt) => {
         impl<'a> FunctionBuilder<'a> {
             pub fn $name(&mut self, lhs: Value, rhs: Value) -> Value {
+                let lhs_typ = lhs.typ();
                 let inst_kind = InstructionKind::BinOp(BinaryOperator::$op, lhs, rhs);
-                self.add_inst(inst_kind, lhs.typ())
+                self.add_inst(inst_kind, lhs_typ)
             }
         }
     };

@@ -1,6 +1,6 @@
 use super::Type;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Constant {
     ZeroInitializer,
 

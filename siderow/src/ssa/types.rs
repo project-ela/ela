@@ -1,43 +1,6 @@
-use id_arena::{Arena, Id};
-
 use crate::arch::x86::asm::RegisterSize;
 
-#[derive(Debug)]
-pub struct Types {
-    pub types: Arena<Type>,
-}
-
-impl Types {
-    pub fn new() -> Self {
-        Self {
-            types: Arena::new(),
-        }
-    }
-
-    pub fn ptr_to(&mut self, typ: Type) -> Type {
-        let typ_id = self.types.alloc(typ);
-        Type::Pointer(typ_id)
-    }
-
-    pub fn array_of(&mut self, typ: Type, len: usize) -> Type {
-        let typ_id = self.types.alloc(typ);
-        Type::Array(typ_id, len)
-    }
-
-    pub fn elm_typ(&self, typ: Type) -> Type {
-        use self::Type::*;
-
-        match typ {
-            Pointer(typ_id) | Array(typ_id, _) => *self.types.get(typ_id).unwrap(),
-
-            _ => panic!(),
-        }
-    }
-}
-
-pub type TypeId = Id<Type>;
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Type {
     Void,
 
@@ -45,8 +8,8 @@ pub enum Type {
     I8,
     I32,
 
-    Pointer(TypeId),
-    Array(TypeId, usize),
+    Pointer(Box<Type>),
+    Array(Box<Type>, usize),
 }
 
 impl Type {
@@ -63,7 +26,7 @@ impl Type {
         }
     }
 
-    pub fn size(&self, types: &Types) -> usize {
+    pub fn size(&self) -> usize {
         use self::Type::*;
 
         match self {
@@ -72,7 +35,25 @@ impl Type {
             I32 => 8,
 
             Pointer(_) => 8,
-            Array(_, len) => types.elm_typ(*self).size(types) * len,
+            Array(elm_typ, len) => elm_typ.size() * len,
         }
+    }
+
+    pub fn elm_typ(&self) -> Type {
+        use self::Type::*;
+
+        match self {
+            Pointer(typ) | Array(typ, _) => *typ.clone(),
+
+            _ => panic!(),
+        }
+    }
+
+    pub fn ptr_to(&self) -> Type {
+        Type::Pointer(Box::new(self.clone()))
+    }
+
+    pub fn array_of(&self, len: usize) -> Type {
+        Type::Array(Box::new(self.clone()), len)
     }
 }
