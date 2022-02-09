@@ -32,7 +32,11 @@ pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String> {
     let mut symtab = frontend::type_check::apply(&module)?;
     frontend::sema_check::apply(&module)?;
 
-    let module = middleend::ssagen::translate(module, &mut symtab);
+    let mut module = middleend::ssagen::translate(module, &mut symtab);
+    if config.optimize {
+        siderow::ssa::pass::cf::apply(&mut module);
+        siderow::ssa::pass::dce::apply(&mut module);
+    }
     if config.dump_ir {
         println!("{}", module.dump());
     }
