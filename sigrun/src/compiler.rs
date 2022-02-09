@@ -18,13 +18,25 @@ pub fn compile_to_file(config: CompilerConfig) -> Result<()> {
     Ok(())
 }
 
-pub fn compile(source: SourceFile, _config: &CompilerConfig) -> Result<String> {
+pub fn compile(source: SourceFile, config: &CompilerConfig) -> Result<String> {
     let tokens = frontend::lexer::tokenize(source)?;
+    if config.dump_token {
+        println!("{:?}", tokens);
+    }
+
     let module = frontend::parser::parse(tokens)?;
+    if config.dump_ast {
+        println!("{:?}", module);
+    }
+
     let mut symtab = frontend::type_check::apply(&module)?;
     frontend::sema_check::apply(&module)?;
 
     let module = middleend::ssagen::translate(module, &mut symtab);
+    if config.dump_ir {
+        println!("{}", module.dump());
+    }
+
     let mut asm = x86::instsel::translate(module);
     x86::regalloc::allocate(&mut asm);
     Ok(asm.stringify())
