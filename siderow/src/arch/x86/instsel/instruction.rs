@@ -1,6 +1,9 @@
 use ssa::gep_elm_typ;
 
-use crate::{arch::x86::asm, ssa};
+use crate::{
+    arch::x86::{asm, instsel},
+    ssa,
+};
 
 use super::InstructionSelector;
 
@@ -317,7 +320,7 @@ impl InstructionSelector {
         };
 
         let ret_typ = gep_elm_typ(val, indices);
-        indirect.size = ret_typ.reg_size();
+        indirect.size = instsel::register_size(&ret_typ);
 
         let mut disp_offset = 0;
         for i in 0..indices.len() {
@@ -417,7 +420,7 @@ impl InstructionSelector {
         use ssa::Value::*;
 
         let elm_typ = val.typ().elm_typ();
-        let reg_size = elm_typ.reg_size();
+        let reg_size = instsel::register_size(&elm_typ);
 
         match val {
             Instruction(inst_val) => {

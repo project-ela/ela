@@ -1,5 +1,3 @@
-use crate::arch::x86::asm::RegisterSize;
-
 #[derive(Debug, Clone)]
 pub enum Type {
     Void,
@@ -13,19 +11,6 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn reg_size(&self) -> RegisterSize {
-        use self::Type::*;
-
-        match self {
-            I1 | I8 => RegisterSize::Byte,
-            I32 => RegisterSize::QWord,
-
-            Pointer(_) | Array(_, _) => RegisterSize::QWord,
-
-            x => panic!("{:?}", x),
-        }
-    }
-
     pub fn size(&self) -> usize {
         use self::Type::*;
 

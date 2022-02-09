@@ -141,7 +141,7 @@ impl InstructionSelector {
                 let inst = function.inst(*inst_id).unwrap();
 
                 if let ssa::InstructionKind::Alloc(ref typ) = inst.kind {
-                    let align = typ.reg_size().size() as i32;
+                    let align = register_size(typ).size() as i32;
                     let typ_size = typ.size() as i32;
                     stack_offset = Self::align_to(stack_offset, align) + typ_size;
 
@@ -150,7 +150,7 @@ impl InstructionSelector {
                         asm::Operand::Indirect(asm::Indirect::new_imm(
                             asm::MachineRegisterKind::Rbp.into(),
                             -stack_offset,
-                            typ.reg_size(),
+                            register_size(typ),
                         )),
                     );
                 }
@@ -196,5 +196,19 @@ impl InstructionSelector {
 
     fn return_label(&self) -> String {
         format!(".{}.ret", self.cur_func_name)
+    }
+}
+
+pub fn register_size(typ: &ssa::Type) -> asm::RegisterSize {
+    use asm::RegisterSize::*;
+    use ssa::Type::*;
+
+    match typ {
+        I1 | I8 => Byte,
+        I32 => QWord,
+
+        Pointer(_) | Array(_, _) => QWord,
+
+        x => panic!("{:?}", x),
     }
 }
