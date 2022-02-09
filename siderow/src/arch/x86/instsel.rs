@@ -46,9 +46,9 @@ impl InstructionSelector {
     }
 
     fn trans_global(&mut self, global: &ssa::Global) {
-        fn const2dataitem(r#const: ssa::Constant) -> asm::DataItem {
+        fn const2dataitem(r#const: ssa::Constant, typ: ssa::Type) -> asm::DataItem {
             match r#const {
-                ssa::Constant::ZeroInitializer => asm::DataItem::Zero(r#const.typ().size()),
+                ssa::Constant::ZeroInitializer => asm::DataItem::Zero(typ.size()),
                 ssa::Constant::I1(val) => asm::DataItem::Byte(val as i8),
                 ssa::Constant::I8(val) => asm::DataItem::Byte(val),
                 ssa::Constant::I32(val) => asm::DataItem::Long(val),
@@ -56,12 +56,13 @@ impl InstructionSelector {
             }
         }
 
+        let global_typ = global.typ.clone();
         let bytes = match global.init_value {
             ssa::Constant::Array(ref elems) => elems
                 .iter()
-                .map(|elem| const2dataitem(elem.clone()))
+                .map(|elem| const2dataitem(elem.clone(), global_typ.clone()))
                 .collect::<Vec<asm::DataItem>>(),
-            ref val => vec![const2dataitem(val.clone())],
+            ref val => vec![const2dataitem(val.clone(), global_typ)],
         };
         self.assembly.data.add_data(global.name.clone(), bytes);
     }
