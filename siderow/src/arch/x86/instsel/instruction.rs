@@ -1,11 +1,10 @@
-use ssa::gep_elm_typ;
-
 use crate::{
-    arch::x86::{asm, instsel},
+    arch::x86::{
+        asm,
+        instsel::{self, layout},
+    },
     ssa,
 };
-
-use super::InstructionSelector;
 
 const ARG_REGS: [asm::MachineRegisterKind; 6] = [
     asm::MachineRegisterKind::Rdi,
@@ -16,7 +15,7 @@ const ARG_REGS: [asm::MachineRegisterKind; 6] = [
     asm::MachineRegisterKind::R9,
 ];
 
-impl InstructionSelector {
+impl instsel::InstructionSelector {
     pub(crate) fn trans_inst(
         &mut self,
         module: &ssa::Module,
@@ -319,8 +318,8 @@ impl InstructionSelector {
             x => unimplemented!("{:?}", x),
         };
 
-        let ret_typ = gep_elm_typ(val, indices);
-        indirect.size = instsel::register_size(&ret_typ);
+        let ret_typ = ssa::gep_elm_typ(val, indices);
+        indirect.size = layout::register_size(&ret_typ);
 
         let mut disp_offset = 0;
         for i in 0..indices.len() {
@@ -420,7 +419,7 @@ impl InstructionSelector {
         use ssa::Value::*;
 
         let elm_typ = val.typ().elm_typ();
-        let reg_size = instsel::register_size(&elm_typ);
+        let reg_size = layout::register_size(&elm_typ);
 
         match val {
             Instruction(inst_val) => {

@@ -11,18 +11,6 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn size(&self) -> usize {
-        use self::Type::*;
-
-        match self {
-            Void => 0,
-            I1 | I8 => 1,
-            I32 => 8,
-
-            Pointer(_) => 8,
-            Array(elm_typ, len) => elm_typ.size() * len,
-        }
-    }
 
     pub fn elm_typ(&self) -> Type {
         use self::Type::*;

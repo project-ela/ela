@@ -82,7 +82,7 @@ pub enum RegisterSize {
 }
 
 impl RegisterSize {
-    pub fn size(&self) -> usize {
+    pub fn size_in_bits(&self) -> usize {
         use self::RegisterSize::*;
 
         match self {
