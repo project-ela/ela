@@ -147,6 +147,6 @@ impl Instruction {
     pub fn has_side_effects(&self) -> bool {
         use self::InstructionKind::*;
 
-        matches!(self.kind, Call(_, _) | Param(_))
+        matches!(self.kind, Call(_, _) | Param(_) | Store(_, _))
     }
 }

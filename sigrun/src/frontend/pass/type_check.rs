@@ -309,7 +309,7 @@ impl TypeCheck {
 
     fn add_func(&mut self, name: String, params: Vec<Parameter>, ret_typ: Type) {
         self.table
-            .add_function(self.cur_node(), name, SigFunc { params, ret_typ });
+            .add_function(self.cur_node(), name, SigFunc::new(params, ret_typ));
     }
 
     fn issue<T>(&mut self, pos: Pos, err: PassError) -> Option<T> {

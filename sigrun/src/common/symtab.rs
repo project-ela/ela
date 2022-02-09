@@ -1,5 +1,7 @@
 use std::{cell::RefCell, collections::HashMap};
 
+use siderow::ssa;
+
 use crate::frontend::ast::Parameter;
 
 use super::types::Type;
@@ -32,12 +34,11 @@ pub struct SymbolScope {
 }
 
 #[derive(Debug, Clone)]
-// typ, is_const
 pub struct SigVar {
     pub typ: Type,
     pub is_const: bool,
 
-    pub offset: Option<i32>,
+    pub val: Option<ssa::Value>,
 }
 
 impl SigVar {
@@ -46,20 +47,26 @@ impl SigVar {
             typ,
             is_const,
 
-            offset: None,
+            val: None,
         }
     }
 }
+
 #[derive(Debug, Clone)]
-// params, ret_typ
 pub struct SigFunc {
     pub params: Vec<Parameter>,
     pub ret_typ: Type,
+
+    pub id: Option<ssa::FunctionId>,
 }
 
 impl SigFunc {
     pub fn new(params: Vec<Parameter>, ret_typ: Type) -> Self {
-        Self { params, ret_typ }
+        Self {
+            params,
+            ret_typ,
+            id: None,
+        }
     }
 }
 
@@ -105,9 +112,9 @@ impl SymbolTable {
         None
     }
 
-    pub fn set_local(&mut self, node: NodeId, name: String, offset: i32) {
+    pub fn set_local(&mut self, node: NodeId, name: String, val: ssa::Value) {
         let mut var = self.find_variable(node, &name).unwrap();
-        var.offset = Some(offset);
+        var.val = Some(val);
         self.add_variable(node, name, var);
     }
 
@@ -135,5 +142,11 @@ impl SymbolTable {
         }
 
         None
+    }
+
+    pub fn set_id(&mut self, node: NodeId, name: String, id: ssa::FunctionId) {
+        let mut func = self.find_function(node, &name).unwrap();
+        func.id = Some(id);
+        self.add_function(node, name, func);
     }
 }

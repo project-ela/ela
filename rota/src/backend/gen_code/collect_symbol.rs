@@ -117,11 +117,12 @@ impl SymbolCollector {
 }
 
 fn is_inst(inst: &InstructionNode) -> bool {
-    matches!(inst,
+    matches!(
+        inst,
         InstructionNode::NullaryOp(_)
-        | InstructionNode::UnaryOp(_, _)
-        | InstructionNode::BinaryOp(_, _, _)
-        | InstructionNode::PseudoOp(PseudoOp::Zero, _)
-        | InstructionNode::PseudoOp(PseudoOp::Ascii, _)
+            | InstructionNode::UnaryOp(_, _)
+            | InstructionNode::BinaryOp(_, _, _)
+            | InstructionNode::PseudoOp(PseudoOp::Zero, _)
+            | InstructionNode::PseudoOp(PseudoOp::Ascii, _)
     )
 }

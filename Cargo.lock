@@ -148,6 +148,7 @@ name = "sigrun"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "siderow",
  "thiserror",
 ]
 

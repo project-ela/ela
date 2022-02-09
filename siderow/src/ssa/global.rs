@@ -8,16 +8,16 @@ pub type GlobalId = Id<Global>;
 pub struct Global {
     pub name: String,
 
-    pub init_value: Constant,
-
     pub typ: Type,
+
+    pub init_value: Constant,
 }
 
 impl Global {
-    pub fn new<S: Into<String>>(name: S, init_value: Constant) -> Self {
+    pub fn new<S: Into<String>>(name: S, typ: Type, init_value: Constant) -> Self {
         Self {
             name: name.into(),
-            typ: init_value.typ(),
+            typ,
             init_value,
         }
     }

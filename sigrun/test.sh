@@ -14,6 +14,8 @@ try() {
   actual=$?
   if [ "$actual" == "0" ]; then
     echo "test: PASSED"
+  else
+    echo "test: FAILED"
   fi
 }
 
