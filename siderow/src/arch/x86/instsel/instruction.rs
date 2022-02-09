@@ -121,7 +121,10 @@ impl InstructionSelector {
         src: &ssa::Value,
     ) -> Vec<asm::Instruction> {
         let is_address = match src {
-            ssa::Value::Instruction(inst_val) => self.stack_offsets.contains_key(&inst_val.inst_id),
+            ssa::Value::Instruction(inst_val) => {
+                self.geps.contains_key(&inst_val.inst_id)
+                    || self.stack_offsets.contains_key(&inst_val.inst_id)
+            }
             _ => false,
         };
 
