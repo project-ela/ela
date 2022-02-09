@@ -189,7 +189,7 @@ impl Tokenizer {
         }
         self.consume_char();
 
-        Ok(TokenKind::String(value.escape_default().to_string()))
+        Ok(TokenKind::String(value))
     }
 
     fn consume_escape_char(&mut self) -> char {
