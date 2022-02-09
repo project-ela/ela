@@ -11,6 +11,10 @@ pub(crate) fn gep_elm_typ(val: &Value, indices: &[Value]) -> Type {
 
         match elm_typ {
             Type::Array(_, _) => elm_typ = elm_typ.elm_typ(),
+            Type::Structure(s) => {
+                let member_index = indices[i].as_i32();
+                elm_typ = s.members[member_index as usize].clone();
+            }
             x => unimplemented!("{:?}", x),
         }
     }

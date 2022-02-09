@@ -8,10 +8,15 @@ pub enum Type {
 
     Pointer(Box<Type>),
     Array(Box<Type>, usize),
+    Structure(StructureType),
+}
+
+#[derive(Debug, Clone)]
+pub struct StructureType {
+    pub members: Vec<Type>,
 }
 
 impl Type {
-
     pub fn elm_typ(&self) -> Type {
         use self::Type::*;
 

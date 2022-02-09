@@ -325,9 +325,11 @@ impl instsel::InstructionSelector {
         for i in 0..indices.len() {
             match indices[i] {
                 ssa::Value::Constant(ssa::Constant::I32(index)) => {
-                    let elm_typ = gep_elm_typ(val, &indices[..=i]);
-                    let offset = elm_typ.size() as i32 * index;
-                    disp_offset += offset;
+                    let val_typ = match i {
+                        0 => val.typ(),
+                        _ => ssa::gep_elm_typ(val, &indices[..i]),
+                    };
+                    disp_offset += layout::member_offset_in_bits(&val_typ, index as usize);
                 }
                 ssa::Value::Instruction(ref inst_val) => {
                     let index = inst_val.inst_id.into();
@@ -339,7 +341,7 @@ impl instsel::InstructionSelector {
                 ref x => unimplemented!("{:?}", x),
             }
         }
-        indirect.set_disp_offset(disp_offset);
+        indirect.disp_offset += disp_offset as i32;
 
         asm::Operand::Indirect(indirect)
     }
