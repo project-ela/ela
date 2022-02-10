@@ -249,7 +249,7 @@ peg::parser! {
             }
 
         rule function() -> Function
-            = "func" _ "@" name:ident() "(" _ params:params() _ ")" _ typ:comp_typ() _"{" _ body:inst() ** _ _ "}"{
+            = "func" _ "@" name:ident() _ "(" _ params:params() _ ")" _ typ:comp_typ() _"{" _ body:inst() ** _ _ "}"{
                 Function {
                     name,
                     typ,
