@@ -17,6 +17,10 @@ pub struct StructType {
 }
 
 impl Type {
+    pub fn new_struct(members: Vec<Type>) -> Self {
+        Self::Structure(StructType { members })
+    }
+
     pub fn elm_typ(&self) -> Type {
         use self::Type::*;
 

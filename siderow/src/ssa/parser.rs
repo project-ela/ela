@@ -1,6 +1,18 @@
 #[derive(Debug)]
 pub struct Module {
-    pub functions: Vec<Function>,
+    pub items: Vec<ModuleItem>,
+}
+
+#[derive(Debug)]
+pub enum ModuleItem {
+    Structure(Structure),
+    Function(Function),
+}
+
+#[derive(Debug)]
+pub struct Structure {
+    pub name: String,
+    pub members: Vec<Type>,
 }
 
 #[derive(Debug)]
@@ -66,10 +78,12 @@ pub enum Type {
 
     Pointer(Box<Type>),
     Array(usize, Box<Type>),
+    Structure(String),
 }
 
 #[derive(Debug, Default)]
 struct Context {
+    structures: HashMap<String, ssa::Type>,
     functions: HashMap<String, ssa::FunctionId>,
     registers: HashMap<usize, ssa::Value>,
     blocks: HashMap<String, ssa::BlockId>,
@@ -87,19 +101,41 @@ fn translate(m: Module) -> ssa::Module {
     let mut sm = ssa::Module::new();
     let mut ctx = Context::default();
 
-    for f in m.functions {
-        let name = f.name.clone();
-        let sf = trans_func(f, &sm, &mut ctx);
-        ctx.functions.insert(name, sm.add_function(sf));
+    for item in m.items {
+        match item {
+            ModuleItem::Structure(s) => {
+                let name = s.name.clone();
+                let ss = trans_struct(s, &ctx);
+                ctx.structures.insert(name, ss);
+            }
+            ModuleItem::Function(f) => {
+                let name = f.name.clone();
+                let sf = trans_func(f, &sm, &mut ctx);
+                ctx.functions.insert(name, sm.add_function(sf));
+            }
+        }
     }
 
     sm
 }
 
+fn trans_struct(s: Structure, ctx: &Context) -> ssa::Type {
+    let members = s
+        .members
+        .into_iter()
+        .map(|member| trans_typ(member, ctx))
+        .collect();
+    ssa::Type::new_struct(members)
+}
+
 fn trans_func(f: Function, sm: &ssa::Module, ctx: &mut Context) -> ssa::Function {
     let (ret_typ, param_typ) = {
-        let ret_typ = trans_typ(f.typ);
-        let param_typ = f.params.into_iter().map(|param| trans_typ(param)).collect();
+        let ret_typ = trans_typ(f.typ, ctx);
+        let param_typ = f
+            .params
+            .into_iter()
+            .map(|param| trans_typ(param, ctx))
+            .collect();
 
         (ret_typ, param_typ)
     };
@@ -189,7 +225,7 @@ fn trans_inst(i: Instruction, sm: &ssa::Module, ctx: &mut Context, fb: &mut ssa:
         }
         Instruction::OT { dst, op, typ } => match op.as_str() {
             "alloc" => {
-                let typ = trans_typ(typ);
+                let typ = trans_typ(typ, ctx);
                 ctx.registers.insert(dst.id, fb.alloc(typ));
             }
             _ => panic!(),
@@ -225,14 +261,15 @@ fn trans_label(v: &Value, ctx: &Context) -> ssa::BlockId {
     }
 }
 
-fn trans_typ(t: Type) -> ssa::Type {
+fn trans_typ(t: Type, ctx: &Context) -> ssa::Type {
     match t {
         Type::Void => ssa::Type::Void,
         Type::I1 => ssa::Type::I1,
         Type::I8 => ssa::Type::I8,
         Type::I32 => ssa::Type::I32,
-        Type::Pointer(elm) => trans_typ(*elm).ptr_to(),
-        Type::Array(len, elm) => trans_typ(*elm).array_of(len),
+        Type::Pointer(elm) => trans_typ(*elm, ctx).ptr_to(),
+        Type::Array(len, elm) => trans_typ(*elm, ctx).array_of(len),
+        Type::Structure(name) => ctx.structures.get(&name).unwrap().clone(),
     }
 }
 
@@ -242,9 +279,17 @@ peg::parser! {
         rule _ = [' ' | '\n']*
 
         pub rule module() -> Module
-            = f:function() ** _ {
-                Module {
-                    functions:f,
+            = i:module_items() ** _ { Module { items: i } }
+
+        rule module_items() -> ModuleItem
+            = s:structure() { ModuleItem::Structure(s) }
+            / f:function() { ModuleItem::Function(f) }
+
+        rule structure() -> Structure
+            = "type" _ "%" name:ident() _ "{" _ members:(_ member:comp_typ() {member}) ** "," _ "}" {
+                Structure {
+                    name,
+                    members
                 }
             }
 
@@ -332,7 +377,8 @@ peg::parser! {
             / elm:typ() { elm }
 
         rule typ() -> Type
-            = s:$(['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']+) {
+            = "%" s:$(ident()+) { Type::Structure(s.to_string()) }
+            / s:$(ident()+) {
                 match s {
                     "void" => Type::Void,
                     "i1" => Type::I1,
