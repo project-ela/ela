@@ -8,11 +8,11 @@ pub enum Type {
 
     Pointer(Box<Type>),
     Array(Box<Type>, usize),
-    Structure(StructureType),
+    Structure(StructType),
 }
 
 #[derive(Debug, Clone)]
-pub struct StructureType {
+pub struct StructType {
     pub members: Vec<Type>,
 }
 

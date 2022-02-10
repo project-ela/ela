@@ -29,7 +29,7 @@ pub fn type_size_in_bits(typ: &ssa::Type) -> usize {
     }
 }
 
-pub fn struct_size_in_bits(typ: &ssa::StructureType) -> usize {
+pub fn struct_size_in_bits(typ: &ssa::StructType) -> usize {
     let mut total_size: usize = 0;
     for member in &typ.members {
         let align = register_size(member).size_in_bits();
@@ -93,7 +93,7 @@ mod tests {
     fn member_offset_in_bits_struct1() {
         use super::member_offset_in_bits;
 
-        let typ = ssa::Type::Structure(ssa::StructureType {
+        let typ = ssa::Type::Structure(ssa::StructType {
             members: vec![ssa::Type::I32, ssa::Type::I8, ssa::Type::I32],
         });
 
@@ -106,7 +106,7 @@ mod tests {
     fn member_offset_in_bits_struct2() {
         use super::member_offset_in_bits;
 
-        let typ = ssa::Type::Structure(ssa::StructureType {
+        let typ = ssa::Type::Structure(ssa::StructType {
             members: vec![ssa::Type::I32.array_of(2), ssa::Type::I32],
         });
 
