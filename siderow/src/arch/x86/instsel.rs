@@ -1,10 +1,9 @@
 mod instruction;
+mod layout;
 
 use std::collections::HashMap;
 
-use crate::ssa;
-
-use super::asm;
+use crate::{arch::x86::asm, ssa};
 
 pub fn translate(module: ssa::Module) -> asm::Assembly {
     let selector = InstructionSelector::new();
@@ -48,7 +47,9 @@ impl InstructionSelector {
     fn trans_global(&mut self, global: &ssa::Global) {
         fn const2dataitem(r#const: ssa::Constant, typ: ssa::Type) -> asm::DataItem {
             match r#const {
-                ssa::Constant::ZeroInitializer => asm::DataItem::Zero(typ.size()),
+                ssa::Constant::ZeroInitializer => {
+                    asm::DataItem::Zero(layout::type_size_in_bits(&typ))
+                }
                 ssa::Constant::I1(val) => asm::DataItem::Byte(val as i8),
                 ssa::Constant::I8(val) => asm::DataItem::Byte(val),
                 ssa::Constant::I32(val) => asm::DataItem::Long(val),
@@ -84,7 +85,7 @@ impl InstructionSelector {
             ],
         ));
 
-        let stack_offset = self.calc_stack_offset(ssa_func);
+        let stack_offset = self.calc_stack_offset(ssa_func) as i32;
         asm_func.add_inst(asm::Instruction::new(
             asm::Mnemonic::Sub,
             vec![
@@ -131,7 +132,7 @@ impl InstructionSelector {
         self.assembly.text.add_function(asm_func);
     }
 
-    fn calc_stack_offset(&mut self, function: &ssa::Function) -> i32 {
+    fn calc_stack_offset(&mut self, function: &ssa::Function) -> usize {
         // TODO
         let mut stack_offset = 0;
         self.stack_offsets.clear();
@@ -141,16 +142,16 @@ impl InstructionSelector {
                 let inst = function.inst(*inst_id).unwrap();
 
                 if let ssa::InstructionKind::Alloc(ref typ) = inst.kind {
-                    let align = typ.reg_size().size() as i32;
-                    let typ_size = typ.size() as i32;
-                    stack_offset = Self::align_to(stack_offset, align) + typ_size;
+                    let align = layout::register_size(typ).size_in_bits();
+                    let typ_size = layout::type_size_in_bits(typ);
+                    stack_offset = layout::align_to(stack_offset, align) + typ_size;
 
                     self.stack_offsets.insert(
                         *inst_id,
                         asm::Operand::Indirect(asm::Indirect::new_imm(
                             asm::MachineRegisterKind::Rbp.into(),
-                            -stack_offset,
-                            typ.reg_size(),
+                            -(stack_offset as i32),
+                            layout::register_size(typ),
                         )),
                     );
                 }
@@ -158,10 +159,6 @@ impl InstructionSelector {
         }
 
         stack_offset
-    }
-
-    fn align_to(x: i32, align: i32) -> i32 {
-        (x + align - 1) & !(align - 1)
     }
 
     fn trans_block(

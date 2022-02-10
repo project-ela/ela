@@ -1,0 +1,17 @@
+// 31
+type %type1 { i32, i8, i32 }
+type %type2 { i32, %type1 }
+
+func @main() i32 {
+  b0:
+    %0 = alloc %type2
+    %1 = gep *%type2 %0, i32 0, i32 1
+    %2 = gep *%type1 %1, i32 0, i32 0
+    %3 = gep *%type1 %1, i32 0, i32 2
+    store *i32 %2, i32 18
+    store *i32 %3, i32 13
+    %4 = load *i32 %2
+    %5 = load *i32 %3
+    %6 = add i32 %4, i32 %5
+    ret i32 %6
+}

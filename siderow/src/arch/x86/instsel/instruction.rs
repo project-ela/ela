@@ -1,8 +1,10 @@
-use ssa::gep_elm_typ;
-
-use crate::{arch::x86::asm, ssa};
-
-use super::InstructionSelector;
+use crate::{
+    arch::x86::{
+        asm,
+        instsel::{self, layout},
+    },
+    ssa,
+};
 
 const ARG_REGS: [asm::MachineRegisterKind; 6] = [
     asm::MachineRegisterKind::Rdi,
@@ -13,7 +15,7 @@ const ARG_REGS: [asm::MachineRegisterKind; 6] = [
     asm::MachineRegisterKind::R9,
 ];
 
-impl InstructionSelector {
+impl instsel::InstructionSelector {
     pub(crate) fn trans_inst(
         &mut self,
         module: &ssa::Module,
@@ -316,16 +318,18 @@ impl InstructionSelector {
             x => unimplemented!("{:?}", x),
         };
 
-        let ret_typ = gep_elm_typ(val, indices);
-        indirect.size = ret_typ.reg_size();
+        let ret_typ = ssa::gep_elm_typ(val, indices);
+        indirect.size = layout::register_size(&ret_typ);
 
         let mut disp_offset = 0;
         for i in 0..indices.len() {
             match indices[i] {
                 ssa::Value::Constant(ssa::Constant::I32(index)) => {
-                    let elm_typ = gep_elm_typ(val, &indices[..=i]);
-                    let offset = elm_typ.size() as i32 * index;
-                    disp_offset += offset;
+                    let val_typ = match i {
+                        0 => val.typ(),
+                        _ => ssa::gep_elm_typ(val, &indices[..i]),
+                    };
+                    disp_offset += layout::member_offset_in_bits(&val_typ, index as usize);
                 }
                 ssa::Value::Instruction(ref inst_val) => {
                     let index = inst_val.inst_id.into();
@@ -337,7 +341,7 @@ impl InstructionSelector {
                 ref x => unimplemented!("{:?}", x),
             }
         }
-        indirect.set_disp_offset(disp_offset);
+        indirect.disp_offset += disp_offset as i32;
 
         asm::Operand::Indirect(indirect)
     }
@@ -417,7 +421,7 @@ impl InstructionSelector {
         use ssa::Value::*;
 
         let elm_typ = val.typ().elm_typ();
-        let reg_size = elm_typ.reg_size();
+        let reg_size = layout::register_size(&elm_typ);
 
         match val {
             Instruction(inst_val) => {

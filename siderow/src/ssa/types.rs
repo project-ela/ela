@@ -1,5 +1,3 @@
-use crate::arch::x86::asm::RegisterSize;
-
 #[derive(Debug, Clone)]
 pub enum Type {
     Void,
@@ -10,33 +8,17 @@ pub enum Type {
 
     Pointer(Box<Type>),
     Array(Box<Type>, usize),
+    Structure(StructType),
+}
+
+#[derive(Debug, Clone)]
+pub struct StructType {
+    pub members: Vec<Type>,
 }
 
 impl Type {
-    pub fn reg_size(&self) -> RegisterSize {
-        use self::Type::*;
-
-        match self {
-            I1 | I8 => RegisterSize::Byte,
-            I32 => RegisterSize::QWord,
-
-            Pointer(_) | Array(_, _) => RegisterSize::QWord,
-
-            x => panic!("{:?}", x),
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        use self::Type::*;
-
-        match self {
-            Void => 0,
-            I1 | I8 => 1,
-            I32 => 8,
-
-            Pointer(_) => 8,
-            Array(elm_typ, len) => elm_typ.size() * len,
-        }
+    pub fn new_struct(members: Vec<Type>) -> Self {
+        Self::Structure(StructType { members })
     }
 
     pub fn elm_typ(&self) -> Type {

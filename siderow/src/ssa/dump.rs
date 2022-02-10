@@ -221,6 +221,15 @@ impl Type {
             Array(elm_typ, len) => {
                 format!("[{}]{}", len, elm_typ.dump())
             }
+            Structure(s) => {
+                let members = s
+                    .members
+                    .iter()
+                    .map(|member| member.dump())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                format!("{{ {} }}", members)
+            }
         }
     }
 }
