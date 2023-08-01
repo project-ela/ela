@@ -4,5 +4,8 @@ pub use assembly::*;
 mod function;
 pub use function::*;
 
+mod item;
+pub use item::*;
+
 mod printer;
 pub use printer::*;

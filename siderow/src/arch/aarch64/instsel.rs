@@ -1,4 +1,8 @@
+mod function;
+
 use crate::ssa;
+
+use self::function::FunctionTransrator;
 
 use super::asm;
 
@@ -24,14 +28,11 @@ impl InstructionSelector {
                 continue;
             }
 
-            self.trans_function(&module, function);
+            let translator = FunctionTransrator::new(&module, function);
+            let asm_func = translator.translate();
+            self.assembly.text.add_function(asm_func);
         }
 
         self.assembly
-    }
-
-    fn trans_function(&mut self, module: &ssa::Module, ssa_func: &ssa::Function) {
-        let asm_func = asm::Function::new(&ssa_func.name);
-        self.assembly.text.add_function(asm_func);
     }
 }
