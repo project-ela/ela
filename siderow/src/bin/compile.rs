@@ -1,6 +1,9 @@
 use std::{env, fs, path::Path};
 
-use siderow::{arch::aarch64, ssa::parser};
+use siderow::{
+    arch::aarch64::{self, asm::Printer},
+    ssa::parser,
+};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -14,7 +17,10 @@ fn main() {
     let module = parser::parse(&program);
     let mut assembly = aarch64::instsel::translate(module);
     aarch64::regalloc::allocate(&mut assembly);
-    println!("{}", assembly.stringify());
+
+    let mut asm = String::new();
+    assembly.print(&mut asm);
+    println!("{}", asm);
 }
 
 fn load_file(path: &Path) -> String {
