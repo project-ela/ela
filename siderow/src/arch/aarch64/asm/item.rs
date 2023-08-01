@@ -1,9 +1,10 @@
 use std::fmt::Write;
 
-use super::Printer;
+use super::{Instruction, Printer};
 
 #[derive(Debug)]
 pub enum AssemblyItem {
+    Instruction(Instruction),
     Label(String),
 }
 
@@ -12,6 +13,7 @@ impl Printer for AssemblyItem {
         use self::AssemblyItem::*;
 
         match self {
+            Instruction(inst) => inst.print(buf),
             Label(name) => {
                 writeln!(buf, "{}:", name);
             }

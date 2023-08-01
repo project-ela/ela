@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use super::{AssemblyItem, Printer};
+use super::{AssemblyItem, Instruction, Printer};
 
 #[derive(Debug)]
 pub struct Function {
@@ -14,6 +14,10 @@ impl Function {
             name: name.into(),
             items: Vec::new(),
         }
+    }
+
+    pub fn add_inst(&mut self, inst: Instruction) {
+        self.items.push(AssemblyItem::Instruction(inst));
     }
 
     pub fn add_label<S: Into<String>>(&mut self, name: S) {

@@ -18,6 +18,7 @@ impl<'a> FunctionTransrator<'a> {
         }
 
         asm_func.add_label(self.return_label());
+        asm_func.add_inst(asm::Instruction::new(asm::Mnemonic::Ret));
 
         asm_func
     }
