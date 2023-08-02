@@ -1,8 +1,16 @@
 use crate::{arch::aarch64::asm, ssa};
 
 macro_rules! operand {
+    ((reg $name:tt)) => {
+        $crate::arch::aarch64::asm::Operand::Register(
+            $crate::arch::aarch64::asm::MachineRegisterKind::$name,
+        )
+    };
     ((label $name:expr)) => {
         $crate::arch::aarch64::asm::Operand::Label($name)
+    };
+    ((value $value:expr)) => {
+        $value
     };
 }
 
@@ -69,12 +77,21 @@ impl<'a> FunctionTransrator<'a> {
                 let mut inst = Vec::new();
                 match val {
                     None => {}
-                    Some(val) => unimplemented!(),
+                    Some(value) => inst.push(inst!(Mov (reg X0) (value self.trans_value(value)))),
                 }
 
                 inst.push(inst!(B (label self.return_label())));
                 inst
             }
+            _ => unimplemented!(),
+        }
+    }
+
+    fn trans_value(&mut self, value: &ssa::Value) -> asm::Operand {
+        use ssa::Value::*;
+
+        match value {
+            Constant(value) => asm::Operand::Immediate(value.into()),
             _ => unimplemented!(),
         }
     }

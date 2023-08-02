@@ -4,6 +4,9 @@ pub use assembly::*;
 mod function;
 pub use function::*;
 
+mod immediate;
+pub use immediate::*;
+
 mod instruction;
 pub use instruction::*;
 
@@ -12,3 +15,6 @@ pub use item::*;
 
 mod printer;
 pub use printer::*;
+
+mod register;
+pub use register::*;

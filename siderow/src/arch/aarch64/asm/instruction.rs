@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use crate::arch::aarch64::asm::Result;
 
-use super::Printer;
+use super::{Immediate, MachineRegisterKind, Printer};
 
 #[derive(Debug)]
 pub struct Instruction {
@@ -33,6 +33,7 @@ impl Printer for Instruction {
 #[derive(Debug)]
 pub enum Mnemonic {
     B,
+    Mov,
     Ret,
 }
 
@@ -42,6 +43,7 @@ impl Printer for Mnemonic {
 
         let s = match self {
             B => "b",
+            Mov => "mov",
             Ret => "ret",
         };
         write!(buf, "{}", s)
@@ -50,7 +52,9 @@ impl Printer for Mnemonic {
 
 #[derive(Debug)]
 pub enum Operand {
+    Register(MachineRegisterKind),
     Label(String),
+    Immediate(Immediate),
 }
 
 impl Printer for Operand {
@@ -58,7 +62,9 @@ impl Printer for Operand {
         use self::Operand::*;
 
         match self {
+            Register(reg) => reg.print(buf),
             Label(name) => write!(buf, "{}", name),
+            Immediate(imm) => imm.print(buf),
         }
     }
 }
