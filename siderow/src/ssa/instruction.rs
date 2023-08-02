@@ -8,8 +8,8 @@ pub type InstructionId = Id<Instruction>;
 
 #[derive(Debug)]
 pub struct Instruction {
+    pub id: InstructionId,
     pub kind: InstructionKind,
-
     pub users: HashSet<InstructionId>,
 }
 
@@ -61,8 +61,9 @@ pub enum ComparisonOperator {
 }
 
 impl Instruction {
-    pub fn new(kind: InstructionKind) -> Self {
+    pub fn new(id: InstructionId, kind: InstructionKind) -> Self {
         Self {
+            id,
             kind,
             users: HashSet::new(),
         }

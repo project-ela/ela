@@ -23,7 +23,7 @@ impl Function {
     pub fn new<S: Into<String>>(name: S, ret_typ: Type, param_typ: Vec<Type>) -> Self {
         let mut instructions = Arena::new();
         for (i, _) in param_typ.iter().enumerate() {
-            instructions.alloc(Instruction::new(InstructionKind::Param(i)));
+            instructions.alloc_with_id(|id| Instruction::new(id, InstructionKind::Param(i)));
         }
 
         Self {
@@ -51,13 +51,19 @@ impl Function {
     }
 
     pub fn add_inst(&mut self, inst_kind: InstructionKind) -> InstructionId {
-        let inst = Instruction::new(inst_kind);
-        self.update_users_inst(&inst, self.instructions.next_id());
-        self.instructions.alloc(inst)
+        let inst_id = self.instructions.alloc_with_id(|id| {
+            let inst = Instruction::new(id, inst_kind);
+            inst
+        });
+
+        let inst = self.inst(inst_id).unwrap();
+        self.update_users_inst(inst.uses(), inst_id);
+
+        inst_id
     }
 
-    fn update_users_inst(&mut self, user: &Instruction, user_id: InstructionId) {
-        for inst_id in user.uses() {
+    fn update_users_inst(&mut self, uses: Vec<InstructionId>, user_id: InstructionId) {
+        for inst_id in uses {
             self.instructions
                 .get_mut(inst_id)
                 .unwrap()
