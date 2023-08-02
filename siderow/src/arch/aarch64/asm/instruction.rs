@@ -1,5 +1,7 @@
 use std::fmt::Write;
 
+use crate::arch::aarch64::asm::Result;
+
 use super::Printer;
 
 #[derive(Debug)]
@@ -15,16 +17,16 @@ impl Instruction {
 }
 
 impl Printer for Instruction {
-    fn print(&self, buf: &mut String) {
-        self.mnemonic.print(buf);
-        write!(buf, " ");
+    fn print(&self, buf: &mut String) -> Result {
+        self.mnemonic.print(buf)?;
+        write!(buf, " ")?;
         for (i, operand) in self.operands.iter().enumerate() {
             if i != 0 {
-                write!(buf, ", ");
+                write!(buf, ", ")?;
             }
-            operand.print(buf);
+            operand.print(buf)?;
         }
-        writeln!(buf, "");
+        writeln!(buf, "")
     }
 }
 
@@ -35,14 +37,14 @@ pub enum Mnemonic {
 }
 
 impl Printer for Mnemonic {
-    fn print(&self, buf: &mut String) {
+    fn print(&self, buf: &mut String) -> Result {
         use self::Mnemonic::*;
 
         let s = match self {
             B => "b",
             Ret => "ret",
         };
-        write!(buf, "{}", s);
+        write!(buf, "{}", s)
     }
 }
 
@@ -52,11 +54,11 @@ pub enum Operand {
 }
 
 impl Printer for Operand {
-    fn print(&self, buf: &mut String) {
+    fn print(&self, buf: &mut String) -> Result {
         use self::Operand::*;
 
         match self {
             Label(name) => write!(buf, "{}", name),
-        };
+        }
     }
 }

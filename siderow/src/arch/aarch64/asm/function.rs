@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use super::{AssemblyItem, Instruction, Printer};
+use super::{AssemblyItem, Instruction, Printer, Result};
 
 #[derive(Debug)]
 pub struct Function {
@@ -26,11 +26,12 @@ impl Function {
 }
 
 impl Printer for Function {
-    fn print(&self, buf: &mut String) {
-        writeln!(buf, ".global {}", self.name);
-        writeln!(buf, "{}:", self.name);
+    fn print(&self, buf: &mut String) -> Result {
+        writeln!(buf, ".global {}", self.name)?;
+        writeln!(buf, "{}:", self.name)?;
         for item in &self.items {
-            item.print(buf);
+            item.print(buf)?;
         }
+        Ok(())
     }
 }

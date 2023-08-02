@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use super::{Function, Printer};
+use super::{Function, Printer, Result};
 
 #[derive(Debug)]
 pub struct Assembly {
@@ -16,8 +16,8 @@ impl Assembly {
 }
 
 impl Printer for Assembly {
-    fn print(&self, buf: &mut String) {
-        self.text.print(buf);
+    fn print(&self, buf: &mut String) -> Result {
+        self.text.print(buf)
     }
 }
 
@@ -39,11 +39,12 @@ impl TextSection {
 }
 
 impl Printer for TextSection {
-    fn print(&self, buf: &mut String) {
-        writeln!(buf, ".text");
+    fn print(&self, buf: &mut String) -> Result {
+        writeln!(buf, ".text")?;
         for func in &self.function {
-            func.print(buf);
-            writeln!(buf);
+            func.print(buf)?;
+            writeln!(buf)?;
         }
+        Ok(())
     }
 }

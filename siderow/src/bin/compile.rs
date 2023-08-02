@@ -19,7 +19,7 @@ fn main() {
     aarch64::regalloc::allocate(&mut assembly);
 
     let mut asm = String::new();
-    assembly.print(&mut asm);
+    assembly.print(&mut asm).expect("failed to print");
     println!("{}", asm);
 }
 
