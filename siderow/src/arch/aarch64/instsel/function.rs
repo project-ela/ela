@@ -1,5 +1,20 @@
 use crate::{arch::aarch64::asm, ssa};
 
+macro_rules! operand {
+    ((label $name:expr)) => {
+        $crate::arch::aarch64::asm::Operand::Label($name)
+    };
+}
+
+macro_rules! inst {
+    ($inst:tt $($operand:tt)*) => {
+        $crate::arch::aarch64::asm::Instruction::new(
+            $crate::arch::aarch64::asm::Mnemonic::$inst,
+            vec![$(operand!($operand)),*],
+        )
+    };
+}
+
 pub struct FunctionTransrator<'a> {
     module: &'a ssa::Module,
     function: &'a ssa::Function,
@@ -20,7 +35,7 @@ impl<'a> FunctionTransrator<'a> {
         }
 
         asm_func.add_label(self.return_label());
-        asm_func.add_inst(asm::Instruction::new(asm::Mnemonic::Ret, vec![]));
+        asm_func.add_inst(inst!(Ret));
 
         asm_func
     }
@@ -57,10 +72,7 @@ impl<'a> FunctionTransrator<'a> {
                     Some(val) => unimplemented!(),
                 }
 
-                inst.push(asm::Instruction::new(
-                    asm::Mnemonic::B,
-                    vec![asm::Operand::Label(self.return_label())],
-                ));
+                inst.push(inst!(B (label self.return_label())));
                 inst
             }
             _ => unimplemented!(),
