@@ -1,9 +1,16 @@
 use crate::{arch::aarch64::asm, ssa};
 
 macro_rules! operand {
-    ((reg $name:tt)) => {
+    ((reg_virt $id:expr)) => {
         $crate::arch::aarch64::asm::Operand::Register(
-            $crate::arch::aarch64::asm::MachineRegisterKind::$name,
+            $crate::arch::aarch64::asm::Register::new_virtual($id),
+        )
+    };
+    ((reg_phys $name:tt)) => {
+        $crate::arch::aarch64::asm::Operand::Register(
+            $crate::arch::aarch64::asm::Register::new_physical(
+                $crate::arch::aarch64::asm::MachineRegisterKind::$name,
+            ),
         )
     };
     ((label $name:expr)) => {
@@ -66,20 +73,45 @@ impl<'a> FunctionTransrator<'a> {
     }
 
     fn trans_inst(&mut self, inst: &ssa::Instruction) -> Vec<asm::Instruction> {
-        vec![]
+        use ssa::InstructionKind::*;
+
+        match &inst.kind {
+            BinOp(op, lhs, rhs) => self.trans_binop(inst.id, op, lhs, rhs),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn trans_binop(
+        &mut self,
+        inst_id: ssa::InstructionId,
+        op: &ssa::BinaryOperator,
+        lhs: &ssa::Value,
+        rhs: &ssa::Value,
+    ) -> Vec<asm::Instruction> {
+        use ssa::BinaryOperator::*;
+
+        let reg: asm::Operand = inst_id.into();
+        let lhs = self.trans_value(lhs);
+        let rhs = self.trans_value(rhs);
+
+        match op {
+            Add => vec![
+                inst!(Mov (value reg.clone()) (value lhs)),
+                inst!(Add (value reg.clone()) (value reg) (value rhs)),
+            ],
+            _ => unimplemented!(),
+        }
     }
 
     fn trans_term(&mut self, inst: &ssa::Instruction) -> Vec<asm::Instruction> {
         use ssa::InstructionKind::*;
 
         match &inst.kind {
-            Ret(val) => {
+            Ret(value) => {
                 let mut inst = Vec::new();
-                match val {
-                    None => {}
-                    Some(value) => inst.push(inst!(Mov (reg X0) (value self.trans_value(value)))),
+                if let Some(value) = value {
+                    inst.push(inst!(Mov (reg_phys X0) (value self.trans_value(value))))
                 }
-
                 inst.push(inst!(B (label self.return_label())));
                 inst
             }
@@ -92,6 +124,7 @@ impl<'a> FunctionTransrator<'a> {
 
         match value {
             Constant(value) => asm::Operand::Immediate(value.into()),
+            Instruction(inst_val) => inst_val.inst_id.into(),
             _ => unimplemented!(),
         }
     }

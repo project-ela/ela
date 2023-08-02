@@ -4,7 +4,7 @@ use crate::ssa;
 
 use super::Printer;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Immediate {
     I32(i32),
 }
