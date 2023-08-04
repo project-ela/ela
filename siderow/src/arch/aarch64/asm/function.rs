@@ -1,27 +1,23 @@
 use std::fmt::Write;
 
-use super::{AssemblyItem, Instruction, Printer, Result};
+use super::{Block, Printer, Result};
 
 #[derive(Debug)]
 pub struct Function {
     pub name: String,
-    pub items: Vec<AssemblyItem>,
+    pub blocks: Vec<Block>,
 }
 
 impl Function {
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            items: Vec::new(),
+            blocks: Vec::new(),
         }
     }
 
-    pub fn add_inst(&mut self, inst: Instruction) {
-        self.items.push(AssemblyItem::Instruction(inst));
-    }
-
-    pub fn add_label<S: Into<String>>(&mut self, name: S) {
-        self.items.push(AssemblyItem::Label(name.into()));
+    pub fn add_block(&mut self, block: Block) {
+        self.blocks.push(block);
     }
 }
 
@@ -29,8 +25,8 @@ impl Printer for Function {
     fn print(&self, buf: &mut String) -> Result {
         writeln!(buf, ".global {}", self.name)?;
         writeln!(buf, "{}:", self.name)?;
-        for item in &self.items {
-            item.print(buf)?;
+        for block in &self.blocks {
+            block.print(buf)?;
         }
         Ok(())
     }

@@ -44,32 +44,40 @@ impl<'a> FunctionTransrator<'a> {
         let mut asm_func = asm::Function::new(&self.function.name);
 
         for block_id in &self.function.block_order {
-            asm_func.add_label(self.block_label(block_id));
             let block = self.function.block(*block_id).unwrap();
-            self.trans_block(block, &mut asm_func);
+            let asm_block = self.trans_block(block);
+            asm_func.add_block(asm_block);
         }
-
-        asm_func.add_label(self.return_label());
-        asm_func.add_inst(inst!(Ret));
+        asm_func.add_block(self.trans_epilogue());
 
         asm_func
     }
 
-    fn trans_block(&mut self, block: &ssa::Block, asm_func: &mut asm::Function) {
+    fn trans_epilogue(&mut self) -> asm::Block {
+        let mut asm_block = asm::Block::new(self.return_label());
+        asm_block.add_inst(inst!(Ret));
+        asm_block
+    }
+
+    fn trans_block(&mut self, block: &ssa::Block) -> asm::Block {
+        let mut asm_block = asm::Block::new(self.block_label(&block.id));
+
         for inst_id in &block.instructions {
             let ssa_inst = self.function.inst(*inst_id).unwrap();
             let asm_inst = self.trans_inst(ssa_inst);
             for inst in asm_inst {
-                asm_func.add_inst(inst);
+                asm_block.add_inst(inst);
             }
         }
 
-        let Some(term_id) = block.terminator else { return; };
+        let Some(term_id) = block.terminator else { return asm_block; };
         let ssa_inst = self.function.inst(term_id).unwrap();
         let asm_inst = self.trans_term(ssa_inst);
         for inst in asm_inst {
-            asm_func.add_inst(inst);
+            asm_block.add_inst(inst);
         }
+
+        asm_block
     }
 
     fn trans_inst(&mut self, inst: &ssa::Instruction) -> Vec<asm::Instruction> {
