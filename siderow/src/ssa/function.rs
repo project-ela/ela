@@ -37,7 +37,7 @@ impl Function {
     }
 
     pub fn new_block(&mut self) -> BlockId {
-        let block_id = self.blocks.alloc(Block::new());
+        let block_id = self.blocks.alloc_with_id(|id| Block::new(id));
         self.block_order.push(block_id);
         block_id
     }

@@ -6,14 +6,15 @@ pub type BlockId = Id<Block>;
 
 #[derive(Debug)]
 pub struct Block {
+    pub id: BlockId,
     pub instructions: Vec<InstructionId>,
-
     pub terminator: Option<InstructionId>,
 }
 
 impl Block {
-    pub fn new() -> Self {
+    pub fn new(id: BlockId) -> Self {
         Self {
+            id,
             instructions: Vec::new(),
             terminator: None,
         }
