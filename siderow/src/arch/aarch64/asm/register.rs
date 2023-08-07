@@ -20,6 +20,10 @@ impl Register {
             kind: RegisterKind::Physical(kind),
         }
     }
+
+    pub fn is_virtual(&self) -> bool {
+        matches!(self.kind, RegisterKind::Virtual(_))
+    }
 }
 
 impl Printer for Register {
@@ -48,7 +52,26 @@ impl Printer for RegisterKind {
 #[derive(Debug, Clone)]
 pub enum MachineRegisterKind {
     X0,
+    X8,
+    X9,
+    X10,
+    X11,
+    X12,
+    X13,
+    X14,
+    X15,
 }
+
+pub const REGS: [MachineRegisterKind; 8] = [
+    MachineRegisterKind::X8,
+    MachineRegisterKind::X9,
+    MachineRegisterKind::X10,
+    MachineRegisterKind::X11,
+    MachineRegisterKind::X12,
+    MachineRegisterKind::X13,
+    MachineRegisterKind::X14,
+    MachineRegisterKind::X15,
+];
 
 impl Printer for MachineRegisterKind {
     fn print(&self, buf: &mut String) -> super::Result {
@@ -56,6 +79,14 @@ impl Printer for MachineRegisterKind {
 
         let s = match self {
             X0 => "x0",
+            X8 => "x8",
+            X9 => "x9",
+            X10 => "x10",
+            X11 => "x11",
+            X12 => "x12",
+            X13 => "x13",
+            X14 => "x14",
+            X15 => "x15",
         };
         write!(buf, "{}", s)
     }

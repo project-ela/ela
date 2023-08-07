@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{fmt::Write, vec};
 
 use crate::{arch::aarch64::asm::Result, ssa};
 
@@ -57,6 +57,15 @@ pub enum Operand {
     Register(Register),
     Label(String),
     Immediate(Immediate),
+}
+
+impl Operand {
+    pub fn virt_regs_mut(&mut self) -> Vec<&mut Register> {
+        match self {
+            Self::Register(reg) if reg.is_virtual() => vec![reg],
+            _ => vec![],
+        }
+    }
 }
 
 impl From<ssa::InstructionId> for Operand {
