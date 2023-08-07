@@ -23,25 +23,25 @@ impl Printer for Assembly {
 
 #[derive(Debug)]
 pub struct TextSection {
-    pub function: Vec<Function>,
+    pub functions: Vec<Function>,
 }
 
 impl TextSection {
     pub fn new() -> Self {
         Self {
-            function: Vec::new(),
+            functions: Vec::new(),
         }
     }
 
     pub fn add_function(&mut self, function: Function) {
-        self.function.push(function);
+        self.functions.push(function);
     }
 }
 
 impl Printer for TextSection {
     fn print(&self, buf: &mut String) -> Result {
         writeln!(buf, ".text")?;
-        for func in &self.function {
+        for func in &self.functions {
             func.print(buf)?;
             writeln!(buf)?;
         }
