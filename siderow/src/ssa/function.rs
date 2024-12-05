@@ -78,4 +78,8 @@ impl Function {
     pub fn inst_mut(&mut self, inst_id: InstructionId) -> Option<&mut Instruction> {
         self.instructions.get_mut(inst_id)
     }
+
+    pub fn num_insts(&self) -> usize {
+        self.instructions.len()
+    }
 }

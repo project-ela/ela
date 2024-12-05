@@ -33,11 +33,16 @@ macro_rules! inst {
 pub struct FunctionTransrator<'a> {
     module: &'a ssa::Module,
     function: &'a ssa::Function,
+    next_virtual_register_id: usize,
 }
 
 impl<'a> FunctionTransrator<'a> {
     pub fn new(module: &'a ssa::Module, function: &'a ssa::Function) -> Self {
-        Self { module, function }
+        Self {
+            module,
+            function,
+            next_virtual_register_id: function.num_insts(),
+        }
     }
 
     pub fn translate(mut self) -> asm::Function {
@@ -143,5 +148,11 @@ impl<'a> FunctionTransrator<'a> {
 
     fn return_label(&self) -> String {
         format!(".{}.ret", self.function.name)
+    }
+
+    fn alloc_virtual_register(&mut self) -> asm::Operand {
+        let id = self.next_virtual_register_id;
+        self.next_virtual_register_id += 1;
+        asm::Operand::Register(asm::Register::new_virtual(id))
     }
 }
