@@ -75,7 +75,9 @@ impl<'a> FunctionTransrator<'a> {
             }
         }
 
-        let Some(term_id) = block.terminator else { return asm_block; };
+        let Some(term_id) = block.terminator else {
+            return asm_block;
+        };
         let ssa_inst = self.function.inst(term_id).unwrap();
         let asm_inst = self.trans_term(ssa_inst);
         for inst in asm_inst {

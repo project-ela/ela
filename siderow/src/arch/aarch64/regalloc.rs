@@ -19,10 +19,14 @@ pub fn allocate(assembly: &mut Assembly) {
     for function in &mut assembly.text.functions {
         for block in &mut function.blocks {
             for item in &mut block.items {
-                let AssemblyItem::Instruction(inst) = item else { continue;};
+                let AssemblyItem::Instruction(inst) = item else {
+                    continue;
+                };
                 for operand in &mut inst.operands {
                     for virt_reg in operand.virt_regs_mut() {
-                        let RegisterKind::Virtual(virt_reg_id) = virt_reg.kind else { continue; };
+                        let RegisterKind::Virtual(virt_reg_id) = virt_reg.kind else {
+                            continue;
+                        };
                         let phys_reg_idx = reg_map.entry(virt_reg_id).or_insert_with(|| {
                             if cur_reg >= regs.len() {
                                 unimplemented!();

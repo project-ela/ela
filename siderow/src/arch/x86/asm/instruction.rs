@@ -54,9 +54,7 @@ impl Operand {
     pub fn virt_regs(&self) -> Option<Vec<&Register>> {
         match self {
             Self::Register(
-                reg
-                @
-                Register {
+                reg @ Register {
                     kind: RegisterKind::Virtual(_),
                     ..
                 },
@@ -67,9 +65,7 @@ impl Operand {
                     regs.push(base);
                 }
                 if let Some(
-                    reg
-                    @
-                    Register {
+                    reg @ Register {
                         kind: RegisterKind::Virtual(_),
                         ..
                     },
@@ -86,10 +82,7 @@ impl Operand {
     pub fn virt_regs_mut(&mut self) -> Option<Vec<&mut Register>> {
         match self {
             Self::Register(
-                ref mut
-                reg
-                @
-                Register {
+                ref mut reg @ Register {
                     kind: RegisterKind::Virtual(_),
                     ..
                 },
@@ -100,9 +93,7 @@ impl Operand {
                     regs.push(base);
                 }
                 if let Some(
-                    reg
-                    @
-                    Register {
+                    reg @ Register {
                         kind: RegisterKind::Virtual(_),
                         ..
                     },
