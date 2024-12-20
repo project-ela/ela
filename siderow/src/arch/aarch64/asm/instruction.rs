@@ -2,7 +2,7 @@ use std::{fmt::Write, vec};
 
 use crate::{arch::aarch64::asm::Result, ssa};
 
-use super::{Immediate, Printer, Register};
+use super::{Condition, Immediate, Printer, Register};
 
 #[derive(Debug)]
 pub struct Instruction {
@@ -33,9 +33,18 @@ impl Printer for Instruction {
 #[derive(Debug)]
 pub enum Mnemonic {
     Add,
+    And,
     B,
+    Eor,
     Mov,
+    MSub,
+    Mul,
+    Lsl,
+    Lsr,
+    Orr,
     Ret,
+    SDiv,
+    Sub,
 }
 
 impl Printer for Mnemonic {
@@ -44,9 +53,18 @@ impl Printer for Mnemonic {
 
         let s = match self {
             Add => "add",
+            And => "and",
             B => "b",
+            Eor => "eor",
             Mov => "mov",
+            MSub => "msub",
+            Mul => "mul",
+            Lsl => "lsl",
+            Lsr => "lsr",
+            Orr => "orr",
             Ret => "ret",
+            SDiv => "sdiv",
+            Sub => "sub",
         };
         write!(buf, "{}", s)
     }

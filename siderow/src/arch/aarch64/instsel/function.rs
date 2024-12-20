@@ -114,7 +114,65 @@ impl<'a> FunctionTransrator<'a> {
                 inst!(Mov (value reg.clone()) (value lhs)),
                 inst!(Add (value reg.clone()) (value reg) (value rhs)),
             ],
-            _ => unimplemented!(),
+            Sub => vec![
+                inst!(Mov (value reg.clone()) (value lhs)),
+                inst!(Sub (value reg.clone()) (value reg) (value rhs)),
+            ],
+            Mul => {
+                let lhs_reg = self.alloc_virtual_register();
+                let rhs_reg = self.alloc_virtual_register();
+                vec![
+                    inst!(Mov (value lhs_reg.clone()) (value lhs)),
+                    inst!(Mov (value rhs_reg.clone()) (value rhs)),
+                    inst!(Mul (value reg) (value lhs_reg) (value rhs_reg)),
+                ]
+            }
+            Div => {
+                let lhs_reg = self.alloc_virtual_register();
+                let rhs_reg = self.alloc_virtual_register();
+                vec![
+                    inst!(Mov (value lhs_reg.clone()) (value lhs)),
+                    inst!(Mov (value rhs_reg.clone()) (value rhs)),
+                    inst!(SDiv (value reg) (value lhs_reg) (value rhs_reg)),
+                ]
+            }
+            Rem => {
+                let lhs_reg = self.alloc_virtual_register();
+                let rhs_reg = self.alloc_virtual_register();
+                vec![
+                    inst!(Mov (value lhs_reg.clone()) (value lhs)),
+                    inst!(Mov (value rhs_reg.clone()) (value rhs)),
+                    inst!(SDiv (value reg.clone()) (value lhs_reg.clone()) (value rhs_reg.clone())),
+                    inst!(MSub (value reg.clone()) (value rhs_reg) (value reg) (value lhs_reg)),
+                ]
+            }
+            Shl => {
+                let lhs_reg = self.alloc_virtual_register();
+                vec![
+                    inst!(Mov (value lhs_reg.clone()) (value lhs)),
+                    inst!(Lsl (value reg.clone()) (value lhs_reg) (value rhs)),
+                ]
+            }
+            Shr => {
+                let lhs_reg = self.alloc_virtual_register();
+                vec![
+                    inst!(Mov (value lhs_reg.clone()) (value lhs)),
+                    inst!(Lsr (value reg.clone()) (value lhs_reg) (value rhs)),
+                ]
+            }
+
+            And => vec![
+                inst!(Mov (value reg.clone()) (value lhs)),
+                inst!(And (value reg.clone()) (value reg.clone()) (value rhs)),
+            ],
+            Or => vec![inst!(Orr (value reg.clone()) (value lhs) (value rhs))],
+            Xor => {
+                let lhs_reg = self.alloc_virtual_register();
+                vec![
+                    inst!(Mov (value lhs_reg.clone()) (value lhs)),
+                    inst!(Eor (value reg.clone()) (value lhs_reg) (value rhs)),
+                ]
+            }
         }
     }
 

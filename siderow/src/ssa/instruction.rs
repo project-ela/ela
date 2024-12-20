@@ -41,6 +41,7 @@ pub enum BinaryOperator {
     Div,
     Rem,
 
+    // FIXME: is this signed or unsigned?
     Shl,
     Shr,
 
