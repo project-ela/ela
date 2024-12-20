@@ -35,6 +35,8 @@ pub enum Mnemonic {
     Add,
     And,
     B,
+    Cmp,
+    CSet,
     Eor,
     Mov,
     MSub,
@@ -55,6 +57,8 @@ impl Printer for Mnemonic {
             Add => "add",
             And => "and",
             B => "b",
+            Cmp => "cmp",
+            CSet => "cset",
             Eor => "eor",
             Mov => "mov",
             MSub => "msub",
@@ -75,6 +79,7 @@ pub enum Operand {
     Register(Register),
     Label(String),
     Immediate(Immediate),
+    Condition(Condition),
 }
 
 impl Operand {
@@ -100,6 +105,7 @@ impl Printer for Operand {
             Register(reg) => reg.print(buf),
             Label(name) => write!(buf, "{}", name),
             Immediate(imm) => imm.print(buf),
+            Condition(cond) => cond.print(buf),
         }
     }
 }

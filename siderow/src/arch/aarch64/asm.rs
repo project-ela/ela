@@ -4,6 +4,9 @@ pub use assembly::*;
 mod block;
 pub use block::*;
 
+mod condition;
+pub use condition::*;
+
 mod function;
 pub use function::*;
 

@@ -16,6 +16,9 @@ macro_rules! operand {
     ((label $name:expr)) => {
         $crate::arch::aarch64::asm::Operand::Label($name)
     };
+    ((cond $name:tt)) => {
+        $crate::arch::aarch64::asm::Operand::Condition($crate::arch::aarch64::asm::Condition::$name)
+    };
     ((value $value:expr)) => {
         $value
     };
@@ -92,6 +95,7 @@ impl<'a> FunctionTransrator<'a> {
 
         match &inst.kind {
             BinOp(op, lhs, rhs) => self.trans_binop(inst.id, op, lhs, rhs),
+            Cmp(op, lhs, rhs) => self.trans_cmp(inst.id, op, lhs, rhs),
             _ => unimplemented!(),
         }
     }
@@ -174,6 +178,25 @@ impl<'a> FunctionTransrator<'a> {
                 ]
             }
         }
+    }
+
+    fn trans_cmp(
+        &mut self,
+        inst_id: ssa::InstructionId,
+        op: &ssa::ComparisonOperator,
+        lhs: &ssa::Value,
+        rhs: &ssa::Value,
+    ) -> Vec<asm::Instruction> {
+        let reg: asm::Operand = inst_id.into();
+        let op = asm::Operand::Condition(op.into());
+        let lhs = self.trans_value(lhs);
+        let rhs = self.trans_value(rhs);
+
+        vec![
+            inst!(Mov (value reg.clone()) (value lhs)),
+            inst!(Cmp (value reg.clone()) (value rhs)),
+            inst!(CSet (value reg) (value op)),
+        ]
     }
 
     fn trans_term(&mut self, inst: &ssa::Instruction) -> Vec<asm::Instruction> {
