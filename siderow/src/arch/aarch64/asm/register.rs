@@ -52,6 +52,13 @@ impl Printer for RegisterKind {
 #[derive(Debug, Clone)]
 pub enum MachineRegisterKind {
     X0,
+    X1,
+    X2,
+    X3,
+    X4,
+    X5,
+    X6,
+    X7,
     X8,
     X9,
     X10,
@@ -62,7 +69,15 @@ pub enum MachineRegisterKind {
     X15,
 }
 
-pub const REGS: [MachineRegisterKind; 8] = [
+pub const REGS: [MachineRegisterKind; 16] = [
+    MachineRegisterKind::X0,
+    MachineRegisterKind::X1,
+    MachineRegisterKind::X2,
+    MachineRegisterKind::X3,
+    MachineRegisterKind::X4,
+    MachineRegisterKind::X5,
+    MachineRegisterKind::X6,
+    MachineRegisterKind::X7,
     MachineRegisterKind::X8,
     MachineRegisterKind::X9,
     MachineRegisterKind::X10,
@@ -79,6 +94,13 @@ impl Printer for MachineRegisterKind {
 
         let s = match self {
             X0 => "x0",
+            X1 => "x1",
+            X2 => "x2",
+            X3 => "x3",
+            X4 => "x4",
+            X5 => "x5",
+            X6 => "x6",
+            X7 => "x7",
             X8 => "x8",
             X9 => "x9",
             X10 => "x10",
@@ -89,5 +111,11 @@ impl Printer for MachineRegisterKind {
             X15 => "x15",
         };
         write!(buf, "{}", s)
+    }
+}
+
+impl From<MachineRegisterKind> for Register {
+    fn from(reg: MachineRegisterKind) -> Self {
+        Register::new_physical(reg)
     }
 }

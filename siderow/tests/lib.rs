@@ -7,7 +7,7 @@ use std::{
 };
 
 use siderow::{
-    arch::x86::{self, regalloc},
+    arch::aarch64::{asm::Printer, instsel, regalloc},
     ssa::{self, parser},
 };
 
@@ -39,17 +39,22 @@ fn test_file(path: &Path) {
 }
 
 fn exec(module: ssa::Module, expected: i32) -> io::Result<()> {
-    let mut assembly = x86::instsel::translate(module);
+    let mut assembly = instsel::translate(module);
     regalloc::allocate(&mut assembly);
 
+    let mut asm = String::new();
+    assembly.print(&mut asm).expect("failed to print");
+
     let mut file = File::create("./tmp.s")?;
-    file.write_all(assembly.stringify().as_bytes())?;
+    file.write_all(asm.as_bytes())?;
 
     let cc = env::var("CC").unwrap_or(String::from("gcc"));
     let status = Command::new(cc)
         .arg("./tmp.s")
         .arg("-o")
         .arg("./tmp")
+        .arg("-e")
+        .arg("main")
         .status()?;
 
     if !status.success() {

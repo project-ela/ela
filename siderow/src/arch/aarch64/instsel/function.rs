@@ -33,6 +33,18 @@ macro_rules! inst {
     };
 }
 
+const ARG_REGS: [asm::MachineRegisterKind; 9] = [
+    asm::MachineRegisterKind::X0,
+    asm::MachineRegisterKind::X1,
+    asm::MachineRegisterKind::X2,
+    asm::MachineRegisterKind::X3,
+    asm::MachineRegisterKind::X4,
+    asm::MachineRegisterKind::X5,
+    asm::MachineRegisterKind::X6,
+    asm::MachineRegisterKind::X7,
+    asm::MachineRegisterKind::X8,
+];
+
 pub struct FunctionTransrator<'a> {
     module: &'a ssa::Module,
     function: &'a ssa::Function,
@@ -96,6 +108,7 @@ impl<'a> FunctionTransrator<'a> {
         match &inst.kind {
             BinOp(op, lhs, rhs) => self.trans_binop(inst.id, op, lhs, rhs),
             Cmp(op, lhs, rhs) => self.trans_cmp(inst.id, op, lhs, rhs),
+            Call(func_id, args) => self.trans_call(inst.id, func_id, args),
             _ => unimplemented!(),
         }
     }
@@ -199,6 +212,23 @@ impl<'a> FunctionTransrator<'a> {
         ]
     }
 
+    fn trans_call(
+        &mut self,
+        inst_id: ssa::InstructionId,
+        func_id: &ssa::FunctionId,
+        args: &Vec<ssa::Value>,
+    ) -> Vec<asm::Instruction> {
+        let func = self.module.function(*func_id).unwrap();
+        let mut inst = Vec::new();
+
+        for (i, arg) in args.iter().enumerate() {
+            let arg_reg = self.arg_reg(i);
+            inst.extend(self.trans_move_value(l))
+        }
+
+        inst
+    }
+
     fn trans_term(&mut self, inst: &ssa::Instruction) -> Vec<asm::Instruction> {
         use ssa::InstructionKind::*;
 
@@ -237,5 +267,14 @@ impl<'a> FunctionTransrator<'a> {
         let id = self.next_virtual_register_id;
         self.next_virtual_register_id += 1;
         asm::Operand::Register(asm::Register::new_virtual(id))
+    }
+
+    fn arg_reg(&mut self, index: usize) -> asm::Register {
+        if index >= ARG_REGS.len() {
+            unimplemented!()
+        }
+
+        let reg = ARG_REGS.get(index).unwrap().clone();
+        reg.into()
     }
 }
